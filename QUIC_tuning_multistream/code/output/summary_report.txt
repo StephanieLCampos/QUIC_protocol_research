@@ -1,0 +1,108 @@
+======================================================================
+QUIC Multi-Stream Research: Grid Search Results Summary
+======================================================================
+Generated: 2026-01-04 19:13:17
+
+----------------------------------------------------------------------
+DATA OVERVIEW
+----------------------------------------------------------------------
+Total records: 192
+Application types: 3
+Unique configurations: 192
+
+----------------------------------------------------------------------
+OPTIMAL PARAMETERS BY APPLICATION TYPE
+----------------------------------------------------------------------
+
+  VIDEO STREAMING
+  ~~~~~~~~~~~~~~~
+  Optimization target: rtt (minimize)
+  Best rtt: 2.53 ms
+
+  Optimal configuration:
+    - Initial Congestion Window: 36000 bytes
+    - Max ACK Delay: 2.0 ms
+    - Loss Reduction Factor: 0.4
+
+  All metrics at optimal:
+    - throughput: 169.41 KB/s
+    - rtt: 2.53 ms
+    - jitter: 0.307 ms
+    - packet_loss_rate: 100.00%
+    - connection_establishment_time: 181.30 ms
+
+  FILE TRANSFER
+  ~~~~~~~~~~~~~
+  Optimization target: throughput (maximize)
+  Best throughput: 45.98 MB/s
+
+  Optimal configuration:
+    - Initial Congestion Window: 72000 bytes
+    - Max ACK Delay: 2.0 ms
+    - Loss Reduction Factor: 0.4
+
+  All metrics at optimal:
+    - throughput: 45.98 MB/s
+    - rtt: 7.66 ms
+    - jitter: 0.211 ms
+    - packet_loss_rate: 100.00%
+    - connection_establishment_time: 176.08 ms
+
+  CONFERENCE CALL
+  ~~~~~~~~~~~~~~~
+  Optimization target: jitter (minimize)
+  Best jitter: 0.630 ms
+
+  Optimal configuration:
+    - Initial Congestion Window: 72000 bytes
+    - Max ACK Delay: 25.0 ms
+    - Loss Reduction Factor: 0.4
+
+  All metrics at optimal:
+    - throughput: 15.68 KB/s
+    - rtt: 4.53 ms
+    - jitter: 0.630 ms
+    - packet_loss_rate: 100.00%
+    - connection_establishment_time: 204.97 ms
+
+----------------------------------------------------------------------
+PARAMETER IMPACT ANALYSIS
+----------------------------------------------------------------------
+
+  INITIAL CW
+  Impact on throughput:
+    12000: mean=13599149 B/s, std=19321727
+    36000: mean=14040094 B/s, std=19955816
+    72000: mean=14020098 B/s, std=19926314
+    120000: mean=13629852 B/s, std=19349520
+
+  MAX ACK DELAY
+  Impact on throughput:
+    0.002: mean=13969061 B/s, std=19871968
+    0.01: mean=13825477 B/s, std=19643159
+    0.025: mean=13737548 B/s, std=19514371
+    0.05: mean=13757107 B/s, std=19534828
+
+  LOSS FACTOR
+  Impact on throughput:
+    0.4: mean=13846008 B/s, std=19674448
+    0.5: mean=13738050 B/s, std=19509654
+    0.6: mean=13745614 B/s, std=19533580
+    0.7: mean=13959521 B/s, std=19846873
+
+----------------------------------------------------------------------
+RECOMMENDATIONS
+----------------------------------------------------------------------
+
+  For video streaming:
+    Use ICW=36000, ACK=2ms, LF=0.4
+
+  For file transfer:
+    Use ICW=72000, ACK=2ms, LF=0.4
+
+  For conference call:
+    Use ICW=72000, ACK=25ms, LF=0.4
+
+======================================================================
+END OF REPORT
+======================================================================
