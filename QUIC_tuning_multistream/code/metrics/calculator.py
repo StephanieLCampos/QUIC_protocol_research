@@ -1,7 +1,7 @@
 """
 Metrics calculation utilities.
 
-Provides functions for calculating the 5 key performance metrics
+Provides functions for calculating the 6 key performance metrics
 from raw measurement data.
 """
 
@@ -16,6 +16,7 @@ class MetricsResult:
 
     throughput: float  # bytes per second
     rtt: float  # round-trip time in seconds
+    latency: float  # one-way latency in seconds (estimated as RTT / 2)
     jitter: float  # jitter in seconds
     packet_loss_rate: float  # percentage (0.0 to 1.0)
     connection_establishment_time: float  # seconds
@@ -25,6 +26,7 @@ class MetricsResult:
         return {
             "throughput": self.throughput,
             "rtt": self.rtt,
+            "latency": self.latency,
             "jitter": self.jitter,
             "packet_loss_rate": self.packet_loss_rate,
             "connection_establishment_time": self.connection_establishment_time,
@@ -35,12 +37,13 @@ class MetricsCalculator:
     """
     Calculates performance metrics from raw data.
 
-    The 5 metrics are:
+    The 6 metrics are:
     1. Throughput: Data transfer rate (bytes/second)
     2. RTT: Round-trip time (seconds)
-    3. Jitter: Variation in packet delay (seconds)
-    4. Packet Loss Rate: Percentage of lost packets
-    5. Connection Establishment Time: Time for initial handshake
+    3. Latency: One-way latency estimated as RTT/2 (seconds)
+    4. Jitter: Variation in packet delay (seconds)
+    5. Packet Loss Rate: Percentage of lost packets
+    6. Connection Establishment Time: Time for initial handshake
     """
 
     @staticmethod
@@ -124,6 +127,30 @@ class MetricsCalculator:
         return packets_lost / packets_sent
 
     @staticmethod
+    def calculate_latency(rtt: float) -> float:
+        """
+        Calculate estimated one-way latency from RTT.
+
+        Latency is estimated as RTT / 2, assuming a symmetric network path.
+        This is a reasonable approximation for localhost testing and symmetric
+        networks. For asymmetric networks, actual one-way latency may differ.
+
+        Note: This measures pure network/QUIC latency. Real-world application
+        latency would include processing overhead (encoding, decoding, etc.)
+        which is negligible with synthetic data but significant (~5-20ms) with
+        real data.
+
+        Args:
+            rtt: Round-trip time in seconds.
+
+        Returns:
+            Estimated one-way latency in seconds.
+        """
+        if rtt <= 0:
+            return 0.0
+        return rtt / 2
+
+    @staticmethod
     def calculate_all(
         total_bytes: int,
         duration_seconds: float,
@@ -134,7 +161,7 @@ class MetricsCalculator:
         connection_time: float,
     ) -> MetricsResult:
         """
-        Calculate all 5 metrics.
+        Calculate all 6 metrics.
 
         Args:
             total_bytes: Total bytes transferred.
@@ -159,6 +186,9 @@ class MetricsCalculator:
         else:
             rtt = 0.0
 
+        # Calculate latency (estimated as RTT / 2)
+        latency = MetricsCalculator.calculate_latency(rtt)
+
         # Calculate jitter
         jitter = MetricsCalculator.calculate_jitter(packet_timestamps)
 
@@ -170,6 +200,7 @@ class MetricsCalculator:
         return MetricsResult(
             throughput=throughput,
             rtt=rtt,
+            latency=latency,
             jitter=jitter,
             packet_loss_rate=packet_loss_rate,
             connection_establishment_time=connection_time,

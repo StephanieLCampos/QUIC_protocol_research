@@ -118,7 +118,7 @@ class ResultsAnalyzer:
         """
         group_cols = ["app_type", "initial_cw", "max_ack_delay", "loss_factor"]
         # Use actual column names from CSV exporter
-        metric_cols = ["throughput", "rtt", "jitter", "packet_loss_rate", "connection_establishment_time"]
+        metric_cols = ["throughput", "rtt", "latency", "jitter", "packet_loss_rate", "connection_establishment_time"]
 
         # Filter to only existing columns
         available_metrics = [c for c in metric_cols if c in self.data.columns]
@@ -155,6 +155,8 @@ class ResultsAnalyzer:
         # Get summary by parameter combination
         # Use actual column names from CSV exporter
         agg_dict = {"throughput": "mean", "rtt": "mean", "jitter": "mean"}
+        if "latency" in app_data.columns:
+            agg_dict["latency"] = "mean"
         if "packet_loss_rate" in app_data.columns:
             agg_dict["packet_loss_rate"] = "mean"
         if "connection_establishment_time" in app_data.columns:
@@ -172,6 +174,10 @@ class ResultsAnalyzer:
 
         optimal_row = summary.loc[optimal_idx]
 
+        # Calculate latency from RTT if not present
+        rtt_value = float(optimal_row.get("rtt", 0))
+        latency_value = float(optimal_row.get("latency", rtt_value / 2))
+
         return OptimalParameters(
             app_type=app_type,
             initial_cw=int(optimal_row["initial_cw"]),
@@ -181,7 +187,8 @@ class ResultsAnalyzer:
             primary_metric_value=float(optimal_row[target_metric]),
             all_metrics={
                 "throughput": float(optimal_row.get("throughput", 0)),
-                "rtt": float(optimal_row.get("rtt", 0)),
+                "rtt": rtt_value,
+                "latency": latency_value,
                 "jitter": float(optimal_row.get("jitter", 0)),
                 "packet_loss_rate": float(optimal_row.get("packet_loss_rate", 0)),
                 "connection_establishment_time": float(optimal_row.get("connection_establishment_time", 0)),
@@ -252,7 +259,7 @@ class ResultsAnalyzer:
             data = data[data["app_type"] == app_type]
 
         param_cols = ["initial_cw", "max_ack_delay", "loss_factor"]
-        metric_cols = ["throughput", "rtt", "jitter", "packet_loss_rate"]
+        metric_cols = ["throughput", "rtt", "latency", "jitter", "packet_loss_rate"]
 
         available_cols = [c for c in param_cols + metric_cols if c in data.columns]
 
@@ -282,6 +289,8 @@ class ResultsAnalyzer:
 
         # Use actual column names from CSV exporter
         agg_dict = {"throughput": "mean", "rtt": "mean", "jitter": "mean"}
+        if "latency" in app_data.columns:
+            agg_dict["latency"] = "mean"
         if "packet_loss_rate" in app_data.columns:
             agg_dict["packet_loss_rate"] = "mean"
 
@@ -304,6 +313,8 @@ class ResultsAnalyzer:
             "rtt": ["mean", "std"],
             "jitter": ["mean", "std"],
         }
+        if "latency" in self.data.columns:
+            agg_dict["latency"] = ["mean", "std"]
         if "packet_loss_rate" in self.data.columns:
             agg_dict["packet_loss_rate"] = ["mean", "std"]
 

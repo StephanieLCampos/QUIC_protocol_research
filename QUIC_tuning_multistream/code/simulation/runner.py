@@ -10,6 +10,9 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
+# Import aioquic congestion control module for parameter patching
+from aioquic.quic.congestion import cubic as aioquic_cubic
+
 from config.settings import Settings, DEFAULT_SETTINGS
 from synthesizers import SynthesizerFactory
 from metrics.collector import MetricsCollector
@@ -17,6 +20,12 @@ from metrics.calculator import MetricsResult
 
 from .server import QuicServer
 from .client import QuicClient
+
+# Store original aioquic values to restore later
+# K_INITIAL_WINDOW is in packets (multiplied by max_datagram_size internally)
+_ORIGINAL_K_INITIAL_WINDOW = aioquic_cubic.K_INITIAL_WINDOW
+# K_CUBIC_LOSS_REDUCTION_FACTOR is the beta for multiplicative decrease
+_ORIGINAL_K_LOSS_REDUCTION_FACTOR = aioquic_cubic.K_CUBIC_LOSS_REDUCTION_FACTOR
 
 
 @dataclass
@@ -92,19 +101,28 @@ class SimulationRunner:
 
     def _apply_recovery_parameters(self):
         """
-        Apply recovery.py parameters.
+        Apply congestion control parameters by patching aioquic module.
 
-        Note: In a real implementation, this would modify the aioquic
-        recovery.py constants. For this simulation, we document the
-        intended changes but cannot modify the library at runtime.
-
-        The actual modification would be:
-        - K_INITIAL_WINDOW = self.initial_cw
-        - K_LOSS_REDUCTION_FACTOR = self.loss_reduction_factor
+        This modifies the aioquic cubic congestion control constants at runtime:
+        - K_INITIAL_WINDOW: Initial congestion window in packets
+        - K_CUBIC_LOSS_REDUCTION_FACTOR: Multiplicative decrease factor on loss (beta)
         """
-        # Log the intended parameter changes
-        # In production, this would patch the aioquic module
-        pass
+        # Convert initial_cw from bytes to packets (aioquic uses ~1200 bytes per packet)
+        max_datagram_size = 1200
+        initial_window_packets = self.initial_cw // max_datagram_size
+
+        # Patch aioquic cubic module with our parameter values
+        aioquic_cubic.K_INITIAL_WINDOW = initial_window_packets
+        aioquic_cubic.K_CUBIC_LOSS_REDUCTION_FACTOR = self.loss_reduction_factor
+
+    def _restore_recovery_parameters(self):
+        """
+        Restore original aioquic congestion control parameters.
+
+        Called after simulation to ensure clean state for next run.
+        """
+        aioquic_cubic.K_INITIAL_WINDOW = _ORIGINAL_K_INITIAL_WINDOW
+        aioquic_cubic.K_CUBIC_LOSS_REDUCTION_FACTOR = _ORIGINAL_K_LOSS_REDUCTION_FACTOR
 
     async def run(self) -> SimulationResult:
         """
@@ -215,6 +233,8 @@ class SimulationRunner:
                 await self._client.close()
             if self._server:
                 await self._server.stop()
+            # Restore original aioquic parameters
+            self._restore_recovery_parameters()
 
     async def run_with_retry(self, max_retries: int = 3) -> SimulationResult:
         """

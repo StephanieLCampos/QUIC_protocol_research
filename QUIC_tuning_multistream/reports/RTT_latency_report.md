@@ -137,10 +137,10 @@ def on_ack_received(self, ack_frame):
 
 ## Latency in Your Project Context
 
-### From requirements_v2.md
+### From requirements_v3.md
 
 Your project specifies:
-> **Video Streaming**: <50ms average latency
+> **Video Streaming**: <50ms average latency (RTT)
 
 ### What Does This Mean?
 
@@ -408,6 +408,80 @@ Results:
 
 ---
 
+## Localhost-Specific Considerations
+
+### Is RTT/2 = Latency Valid on Localhost?
+
+**Yes.** On localhost (127.0.0.1), RTT/2 is a valid estimate of one-way latency
+because the path is **perfectly symmetric**.
+
+### Why Localhost is Different
+
+On a real network, RTT/2 might not equal one-way latency due to:
+- Asymmetric routing (different paths in each direction)
+- Different upload/download speeds
+- Variable network conditions
+
+On localhost, **none of these issues exist**:
+
+| Factor | Real Network | Localhost |
+|--------|--------------|-----------|
+| Path symmetry | Often asymmetric | ✅ Perfectly symmetric |
+| Propagation delay | Variable | ✅ ~0ms |
+| Bandwidth asymmetry | Common | ✅ None |
+| Network congestion | Variable | ✅ None |
+
+### What Localhost RTT Actually Measures
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Localhost RTT Components:                                      │
+├─────────────────────────────────────────────────────────────────┤
+│  ✅ QUIC encryption (TLS 1.3)      ~0.2ms  - Real overhead      │
+│  ✅ aioquic library processing     ~0.1ms  - Real overhead      │
+│  ✅ Python/asyncio event loop      ~0.1ms  - Real overhead      │
+│  ✅ Kernel loopback interface      ~0.01ms - Negligible         │
+│  ❌ Network propagation            0ms     - Not applicable     │
+│  ❌ ACK delay                      0ms     - Subtracted by QUIC │
+├─────────────────────────────────────────────────────────────────┤
+│  Total RTT: ~1-7ms depending on traffic pattern                 │
+│  One-way Latency (RTT/2): ~0.5-3.5ms                            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Important: Processing Overhead IS Included
+
+A common misconception is that localhost has "no overhead." In reality:
+
+| Overhead Type | Present? | Included in RTT? | Symmetric? |
+|---------------|:--------:|:----------------:|:----------:|
+| QUIC encryption | ✅ Yes | ✅ Yes | ✅ Yes |
+| Python runtime | ✅ Yes | ✅ Yes | ✅ Yes |
+| Kernel networking | ✅ Yes | ✅ Yes | ✅ Yes |
+| Network propagation | ❌ No | N/A | N/A |
+
+**This overhead is valid to include** because:
+1. It's real QUIC protocol latency (not artificial)
+2. It's symmetric (same in both directions)
+3. It's consistent across all tests
+
+### Validation: Your Measured Values
+
+| Application | RTT | Latency (RTT/2) | Valid? |
+|-------------|-----|-----------------|:------:|
+| Video Streaming | 2.45 ms | 1.22 ms | ✅ |
+| Conference Call | 3.47 ms | 1.74 ms | ✅ |
+| File Transfer | 6.95 ms | 3.48 ms | ✅ |
+
+These values are consistent with TLS 1.3 + Python async overhead on localhost.
+
+### References
+
+- [RFC 9002 - QUIC Loss Detection and Congestion Control](https://datatracker.ietf.org/doc/rfc9002/)
+- [APNIC Blog - Update QUIC timers once per RTT](https://blog.apnic.net/2023/07/27/update-quic-timers-once-per-rtt/)
+
+---
+
 ## Summary
 
 ### Are RTT and Latency the Same?
@@ -419,14 +493,16 @@ Results:
 | **Relationship** | One-way ≈ RTT/2 | Latency ≈ RTT/2 + overhead |
 | **Measured by QUIC** | ✅ Automatically | ❌ Must measure manually |
 | **What it tells you** | Network path characteristics | User-perceived delay |
+| **Valid on localhost?** | ✅ Yes | ✅ Yes (as RTT/2) |
 
 ### Key Takeaways
 
 1. **RTT ≠ Latency**, but they're related (latency ≈ RTT/2 + overhead)
 2. **QUIC measures RTT** automatically; you must measure latency yourself
-3. **Your <50ms latency goal** requires RTT < ~90ms (assuming 5ms overhead)
-4. **Max ACK Delay** directly affects perceived latency (one of your parameters)
-5. **Report both metrics** in your research for complete analysis
+3. **On localhost, RTT/2 = Latency** because the path is perfectly symmetric
+4. **Your <50ms latency goal** requires RTT < ~90ms (assuming 5ms overhead)
+5. **Max ACK Delay** directly affects perceived latency (one of your parameters)
+6. **Report both metrics** in your research for complete analysis
 
 ### Formula for Your Project
 
@@ -443,3 +519,9 @@ For the video streaming goal of <50ms latency:
 - Control Max ACK Delay to minimize its contribution
 - Test on networks with RTT < 90ms
 - Measure actual end-to-end latency, not just RTT
+
+### References
+
+- [RFC 9002 - QUIC Loss Detection and Congestion Control](https://datatracker.ietf.org/doc/rfc9002/)
+- [APNIC Blog - Update QUIC timers once per RTT](https://blog.apnic.net/2023/07/27/update-quic-timers-once-per-rtt/)
+- [APNIC Blog - QUIC timers don't work well](https://blog.apnic.net/2023/07/21/quic-timers-dont-work-well/)

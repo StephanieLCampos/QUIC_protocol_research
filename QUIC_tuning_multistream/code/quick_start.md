@@ -23,6 +23,25 @@ uv sync
 
 This will create a virtual environment and install all required packages.
 
+## Complete Workflow
+
+Every time you regenerate simulations, follow these steps:
+
+```bash
+# Step 1: Clear old results (optional - if starting fresh)
+uv run main.py clear -f
+
+# Step 2: Run all simulations
+uv run main.py run
+
+# Step 3: Generate the summary report (REQUIRED after simulations complete)
+uv run main.py report -o output/summary_report.txt
+```
+
+**Important**: The summary report is NOT automatically generated. You must run Step 3 after simulations complete to update `output/summary_report.txt`.
+
+---
+
 ## Running the Grid Search
 
 ### Check Status
@@ -138,13 +157,16 @@ Results are stored in `output/measurements/` with naming convention:
 
 Example: `video_streaming_36000_0.025_0.5.csv`
 
-Each CSV contains metrics collected during the simulation:
-- `timestamp`: Measurement time
-- `throughput`: Bytes per second
+Each CSV contains:
+- `initial_congestion_window`: ICW parameter value (bytes)
+- `max_ack_delay`: ACK delay parameter value (seconds)
+- `loss_reduction_factor`: Loss factor parameter value
+- `throughput`: Data transfer rate (bytes/second)
 - `rtt`: Round-trip time (seconds)
-- `jitter`: RTT variance (seconds)
-- `loss_rate`: Packet loss percentage
-- `goodput`: Effective throughput
+- `latency`: One-way latency, calculated as RTT/2 (seconds)
+- `jitter`: Variation in packet delay (seconds)
+- `packet_loss_rate`: Packet loss percentage (0.0 to 1.0)
+- `connection_establishment_time`: QUIC handshake time (seconds)
 
 ## Troubleshooting
 

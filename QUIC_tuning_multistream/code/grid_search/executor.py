@@ -98,7 +98,7 @@ class GridSearchExecutor:
 
         if dry_run:
             print("DRY RUN - Would execute the following simulations:")
-            for i, combo in enumerate(pending, start=1):
+            for i, combo in enumerate(pending, start=1): #for each combo in pending 
                 print(f"  {completed_before + i}/{total}: {combo}")
             return {
                 "status": "dry_run",
@@ -109,7 +109,7 @@ class GridSearchExecutor:
         successes = 0
         failures = 0
 
-        for i, combo in enumerate(pending, start=1):
+        for i, combo in enumerate(pending, start=1): #for each combo in pending
             current_num = completed_before + i
             self._current_combo = combo
 
@@ -164,7 +164,7 @@ class GridSearchExecutor:
         print(f"Time elapsed: {elapsed:.1f}s")
         print(f"{'='*60}\n")
 
-        return {
+        return { # returns a dictionary of the results
             "status": "complete" if completed_after >= total else "partial",
             "total": total,
             "completed": completed_after,
@@ -220,8 +220,9 @@ class GridSearchExecutor:
             "current": str(self._current_combo) if self._current_combo else None,
         }
 
-
-async def run_grid_search(dry_run: bool = False) -> dict:
+#like a main function, creates a GridSearchExecutor object and runs the execute method
+async def run_grid_search(dry_run: bool = False) -> dict: # having this function allows you to reuse the created object in other files,
+                                                          # Rather than having to create a new one each time you want to run a grid search in another file
     """
     Run the complete grid search.
 
@@ -230,8 +231,9 @@ async def run_grid_search(dry_run: bool = False) -> dict:
     executor = GridSearchExecutor()
     return await executor.execute(dry_run=dry_run)
 
-
-if __name__ == "__main__":
+#What actually runs the run_grid_search
+if __name__ == "__main__":  #This code only runs if you execute this file directly (like python executor.py). 
+                            #If another file imports this module, this block is skipped.
     # Test run
     result = asyncio.run(run_grid_search(dry_run=True))
     print(f"\nResult: {result}")

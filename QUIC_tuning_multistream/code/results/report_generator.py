@@ -183,6 +183,8 @@ class ReportGenerator:
                         f"LF={row['loss_factor']}")
             lines.append(f"    Throughput: {row['throughput']:.0f} B/s")
             lines.append(f"    RTT: {row['rtt']*1000:.2f} ms")
+            latency = row.get('latency', row['rtt'] / 2)
+            lines.append(f"    Latency: {latency*1000:.2f} ms")
             lines.append(f"    Jitter: {row['jitter']*1000:.2f} ms")
 
         lines.append("")
@@ -198,7 +200,7 @@ class ReportGenerator:
         for param in ["initial_cw", "max_ack_delay", "loss_factor"]:
             if param in corr.columns:
                 lines.append(f"\n  {param}:")
-                for metric in ["throughput", "rtt", "jitter"]:
+                for metric in ["throughput", "rtt", "latency", "jitter"]:
                     if metric in corr.index:
                         val = corr.loc[metric, param]
                         lines.append(f"    vs {metric}: {val:+.3f}")
@@ -238,6 +240,8 @@ class ReportGenerator:
             else:
                 return f"{value:.0f} B/s"
         elif metric == "rtt":
+            return f"{value * 1000:.2f} ms"
+        elif metric == "latency":
             return f"{value * 1000:.2f} ms"
         elif metric == "jitter":
             return f"{value * 1000:.3f} ms"

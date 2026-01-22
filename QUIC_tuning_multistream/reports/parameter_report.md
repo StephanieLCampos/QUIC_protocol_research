@@ -9,7 +9,14 @@ This report identifies the three most impactful QUIC parameters for the multi-st
 2. Max ACK Delay
 3. Loss Reduction Factor
 
----
+## Other alternative parameters:
+  | Constant                      | Value      | Effect on Localhost           |
+  |-------------------------------|------------|-------------------------------|
+  | K_INITIAL_WINDOW              | 10 packets | Yes - already testing         |
+  | K_CUBIC_C                     | 0.4        | Yes - affects growth rate     |
+  | K_CUBIC_LOSS_REDUCTION_FACTOR | 0.7        | No - needs packet loss        |
+  | K_CUBIC_MAX_IDLE_TIME         | 2 sec      | Maybe - if idle periods exist |
+  | K_MINIMUM_WINDOW              | 2 packets  | No - only used after loss     |
 
 ## Selection Methodology
 

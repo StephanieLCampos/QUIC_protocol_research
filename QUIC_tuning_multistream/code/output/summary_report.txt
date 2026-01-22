@@ -1,7 +1,7 @@
 ======================================================================
 QUIC Multi-Stream Research: Grid Search Results Summary
 ======================================================================
-Generated: 2026-01-04 19:13:17
+Generated: 2026-01-09 11:45:26
 
 ----------------------------------------------------------------------
 DATA OVERVIEW
@@ -17,53 +17,56 @@ OPTIMAL PARAMETERS BY APPLICATION TYPE
   VIDEO STREAMING
   ~~~~~~~~~~~~~~~
   Optimization target: rtt (minimize)
-  Best rtt: 2.53 ms
+  Best rtt: 2.47 ms
 
   Optimal configuration:
-    - Initial Congestion Window: 36000 bytes
-    - Max ACK Delay: 2.0 ms
-    - Loss Reduction Factor: 0.4
+    - Initial Congestion Window: 12000 bytes
+    - Max ACK Delay: 50.0 ms
+    - Loss Reduction Factor: 0.6
 
   All metrics at optimal:
-    - throughput: 169.41 KB/s
-    - rtt: 2.53 ms
-    - jitter: 0.307 ms
-    - packet_loss_rate: 100.00%
-    - connection_establishment_time: 181.30 ms
+    - throughput: 169.07 KB/s
+    - rtt: 2.47 ms
+    - latency: 1.23 ms
+    - jitter: 1.472 ms
+    - packet_loss_rate: 0.00%
+    - connection_establishment_time: 199.73 ms
 
   FILE TRANSFER
   ~~~~~~~~~~~~~
   Optimization target: throughput (maximize)
-  Best throughput: 45.98 MB/s
+  Best throughput: 46.95 MB/s
 
   Optimal configuration:
-    - Initial Congestion Window: 72000 bytes
-    - Max ACK Delay: 2.0 ms
-    - Loss Reduction Factor: 0.4
-
-  All metrics at optimal:
-    - throughput: 45.98 MB/s
-    - rtt: 7.66 ms
-    - jitter: 0.211 ms
-    - packet_loss_rate: 100.00%
-    - connection_establishment_time: 176.08 ms
-
-  CONFERENCE CALL
-  ~~~~~~~~~~~~~~~
-  Optimization target: jitter (minimize)
-  Best jitter: 0.630 ms
-
-  Optimal configuration:
-    - Initial Congestion Window: 72000 bytes
+    - Initial Congestion Window: 36000 bytes
     - Max ACK Delay: 25.0 ms
     - Loss Reduction Factor: 0.4
 
   All metrics at optimal:
-    - throughput: 15.68 KB/s
-    - rtt: 4.53 ms
-    - jitter: 0.630 ms
-    - packet_loss_rate: 100.00%
-    - connection_establishment_time: 204.97 ms
+    - throughput: 46.95 MB/s
+    - rtt: 6.53 ms
+    - latency: 3.27 ms
+    - jitter: 0.146 ms
+    - packet_loss_rate: 0.00%
+    - connection_establishment_time: 175.99 ms
+
+  CONFERENCE CALL
+  ~~~~~~~~~~~~~~~
+  Optimization target: jitter (minimize)
+  Best jitter: 0.328 ms
+
+  Optimal configuration:
+    - Initial Congestion Window: 12000 bytes
+    - Max ACK Delay: 2.0 ms
+    - Loss Reduction Factor: 0.5
+
+  All metrics at optimal:
+    - throughput: 15.69 KB/s
+    - rtt: 4.11 ms
+    - latency: 2.05 ms
+    - jitter: 0.328 ms
+    - packet_loss_rate: 0.00%
+    - connection_establishment_time: 195.54 ms
 
 ----------------------------------------------------------------------
 PARAMETER IMPACT ANALYSIS
@@ -71,37 +74,37 @@ PARAMETER IMPACT ANALYSIS
 
   INITIAL CW
   Impact on throughput:
-    12000: mean=13599149 B/s, std=19321727
-    36000: mean=14040094 B/s, std=19955816
-    72000: mean=14020098 B/s, std=19926314
-    120000: mean=13629852 B/s, std=19349520
+    12000: mean=13774908 B/s, std=19569583
+    36000: mean=14643587 B/s, std=20843483
+    72000: mean=12715840 B/s, std=18058770
+    120000: mean=13790107 B/s, std=19632526
 
   MAX ACK DELAY
   Impact on throughput:
-    0.002: mean=13969061 B/s, std=19871968
-    0.01: mean=13825477 B/s, std=19643159
-    0.025: mean=13737548 B/s, std=19514371
-    0.05: mean=13757107 B/s, std=19534828
+    0.002: mean=13281551 B/s, std=18898876
+    0.01: mean=13924294 B/s, std=19848374
+    0.025: mean=13914075 B/s, std=19842070
+    0.05: mean=13804520 B/s, std=19640920
 
   LOSS FACTOR
   Impact on throughput:
-    0.4: mean=13846008 B/s, std=19674448
-    0.5: mean=13738050 B/s, std=19509654
-    0.6: mean=13745614 B/s, std=19533580
-    0.7: mean=13959521 B/s, std=19846873
+    0.4: mean=13760298 B/s, std=19604721
+    0.5: mean=13735724 B/s, std=19559153
+    0.6: mean=13581695 B/s, std=19368444
+    0.7: mean=13846725 B/s, std=19718104
 
 ----------------------------------------------------------------------
 RECOMMENDATIONS
 ----------------------------------------------------------------------
 
   For video streaming:
-    Use ICW=36000, ACK=2ms, LF=0.4
+    Use ICW=12000, ACK=50ms, LF=0.6
 
   For file transfer:
-    Use ICW=72000, ACK=2ms, LF=0.4
+    Use ICW=36000, ACK=25ms, LF=0.4
 
   For conference call:
-    Use ICW=72000, ACK=25ms, LF=0.4
+    Use ICW=12000, ACK=2ms, LF=0.5
 
 ======================================================================
 END OF REPORT

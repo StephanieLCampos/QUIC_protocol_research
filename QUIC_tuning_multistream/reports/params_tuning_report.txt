@@ -1,0 +1,162 @@
+======================================================================
+QUIC Parameter Tuning Report
+======================================================================
+Project: QUIC Multi-Stream Research
+Library: aioquic v1.3.0
+
+This report documents the two techniques used to modify QUIC protocol
+parameters in the aioquic Python library, along with their associated
+risks and the parameters configured by each method.
+
+======================================================================
+TECHNIQUE 1: Official Configuration API
+======================================================================
+
+Description:
+------------
+aioquic provides a QuicConfiguration class with attributes that can be
+set before creating a connection. This is the intended, supported way
+to customize QUIC behavior.
+
+Implementation:
+---------------
+    from aioquic.quic.configuration import QuicConfiguration
+
+    config = QuicConfiguration(is_client=True)
+    config.max_ack_delay = 0.025  # Set to 25ms
+
+Parameters Using This Technique:
+--------------------------------
+    - max_ack_delay (float, seconds)
+      Description: Maximum time to wait before sending an ACK
+      Default: 0.025 (25ms)
+      Our test values: 0.002, 0.010, 0.025, 0.050 seconds
+
+Risks:
+------
+    LOW RISK
+    - This is the officially supported method
+    - API is stable and documented
+    - Will continue to work across library updates
+    - No side effects on other connections
+
+
+======================================================================
+TECHNIQUE 2: Runtime Module Patching
+======================================================================
+
+Description:
+------------
+Some QUIC parameters are hardcoded as constants in aioquic's source
+code and are not exposed through the configuration API. To modify
+these values, we "patch" (overwrite) the module's constants at runtime
+after importing the library.
+
+Implementation:
+---------------
+    from aioquic.quic.congestion import cubic as aioquic_cubic
+
+    # Store original values for restoration
+    original_icw = aioquic_cubic.K_INITIAL_WINDOW
+    original_lrf = aioquic_cubic.K_CUBIC_LOSS_REDUCTION_FACTOR
+
+    # Patch the constants
+    aioquic_cubic.K_INITIAL_WINDOW = 100  # packets
+    aioquic_cubic.K_CUBIC_LOSS_REDUCTION_FACTOR = 0.5
+
+    # ... run simulation ...
+
+    # Restore original values
+    aioquic_cubic.K_INITIAL_WINDOW = original_icw
+    aioquic_cubic.K_CUBIC_LOSS_REDUCTION_FACTOR = original_lrf
+
+Parameters Using This Technique:
+--------------------------------
+    - K_INITIAL_WINDOW (int, packets)
+      Location: aioquic/quic/congestion/cubic.py
+      Description: Initial congestion window size in packets
+      Default: 10 packets (10 * 1200 = 12000 bytes)
+      Our test values: 10, 30, 60, 100 packets (12000-120000 bytes)
+
+    - K_CUBIC_LOSS_REDUCTION_FACTOR (float, 0.0-1.0)
+      Location: aioquic/quic/congestion/cubic.py
+      Description: Multiplicative decrease factor when packet loss detected
+                   (beta parameter in CUBIC congestion control)
+      aioquic Default: 0.7 (CUBIC RFC 8312 standard)
+      QUIC RFC Default: 0.5 (original QUIC recommendation)
+      Our test values: 0.4, 0.5, 0.6, 0.7
+      Note: Our research baseline uses 0.5 as the reference "default"
+
+Risks:
+------
+    MEDIUM-HIGH RISK
+
+    1. API Instability
+       - These are internal implementation details, not public API
+       - Constant names or locations may change in future versions
+       - No guarantee of backwards compatibility
+
+    2. Global State Modification
+       - Changes affect ALL connections in the process
+       - Must carefully restore values after each simulation
+       - Risk of interference if running concurrent simulations
+
+    3. Maintenance Burden
+       - Must verify constant names after each aioquic update
+       - Code may silently break if constants are renamed/moved
+
+    4. Thread Safety
+       - Patching is not thread-safe
+       - Concurrent simulations could interfere with each other
+
+
+======================================================================
+PARAMETER SUMMARY TABLE
+======================================================================
+
++---------------------------+------------------+---------------------+
+| Parameter                 | Technique        | Risk Level          |
++---------------------------+------------------+---------------------+
+| max_ack_delay             | Official API     | Low                 |
+| initial_cw (K_INITIAL_    | Runtime Patching | Medium-High         |
+|   WINDOW)                 |                  |                     |
+| loss_reduction_factor     | Runtime Patching | Medium-High         |
+|   (K_CUBIC_LOSS_          |                  |                     |
+|   REDUCTION_FACTOR)       |                  |                     |
++---------------------------+------------------+---------------------+
+
+
+======================================================================
+RECOMMENDATIONS
+======================================================================
+
+1. For Production Use:
+   - Consider forking aioquic and modifying constants directly
+   - Or submit a pull request to aioquic to expose these parameters
+     through QuicConfiguration
+
+2. For Research/Testing:
+   - Runtime patching is acceptable for controlled experiments
+   - Always restore original values after each test
+   - Run simulations sequentially, not in parallel
+   - Document the aioquic version used for reproducibility
+
+3. Version Pinning:
+   - Pin aioquic version in pyproject.toml: aioquic==1.3.0
+   - Test parameter patching after any library updates
+
+
+======================================================================
+CODE LOCATION
+======================================================================
+
+The parameter patching implementation can be found in:
+    simulation/runner.py
+
+    Methods:
+    - _apply_recovery_parameters()  : Patches aioquic constants
+    - _restore_recovery_parameters(): Restores original values
+
+======================================================================
+END OF REPORT
+======================================================================
