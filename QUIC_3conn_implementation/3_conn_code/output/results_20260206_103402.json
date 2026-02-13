@@ -1,0 +1,17 @@
+{
+  "simulation_id": "20260206_103402",
+  "start_timestamp": "2026-02-06T10:34:02.380407",
+  "end_timestamp": "2026-02-06T10:34:02.380983",
+  "duration_seconds": 30.0,
+  "network_scenario": "congested_low",
+  "network_config": {},
+  "shared_params": {
+    "initial_cw": 12000,
+    "max_ack_delay": 0.025,
+    "max_data": 1048576,
+    "max_stream_data": 1048576
+  },
+  "fairness_index": 1.0,
+  "total_throughput": 0,
+  "connections": {}
+}

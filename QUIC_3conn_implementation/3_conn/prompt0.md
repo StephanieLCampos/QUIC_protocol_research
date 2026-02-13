@@ -1,0 +1,7 @@
+## Task
+Based on the curret code in the code directory, I want to update it where I have the option to run 3 separate QUIC connections running concurrently. Each QUIC connection is sending different application data, each connection corresponding to one of the 3 applications.
+You should be able to alter the parameters of each separate QUIC connection before they initate. The same metrics calculated for the grid search should be used for each separate QUIC connection. 
+
+# Context
+ This implementation will be used for research as later down the line we will implement machine learning that will determine the values of the parameters for each QUIC connection to make sure there is no bottleneck at the network channel and optmization for all 3 connectons. We will test this later with simulating network conditions, for example, packet loss, and once this is simulating, our machine learning implementation will have to determine which parameters from which connection to alter to reduce the packetloss, which would be caused by an overfilled buffer. The machine learning algorithm we later implement will be altering the parameters mid-connection and aims to make all QUIC connections someone optimal Please keep that in mind when developing the task above and research if it is possible to alter the parameters mid-connection and if we can display that in code. Add your findings at the botton of the implementation plan. 
+ 

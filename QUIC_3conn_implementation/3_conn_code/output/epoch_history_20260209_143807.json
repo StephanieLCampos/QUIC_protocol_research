@@ -1,0 +1,126 @@
+{
+  "simulation_id": "20260209_143807",
+  "network_scenario": "congested_low",
+  "network_config": {},
+  "shared_params": {
+    "initial_cw": 12000,
+    "max_ack_delay": 0.025,
+    "max_data": 1048576,
+    "max_stream_data": 1048576
+  },
+  "connections": {
+    "1": {
+      "application_type": "video_streaming",
+      "epoch_count": 1,
+      "epochs": [
+        {
+          "epoch_id": 0,
+          "connection_id": 1,
+          "application_type": "video_streaming",
+          "timing": {
+            "start_time": 1770676657.4700868,
+            "end_time": 1770676687.447798,
+            "duration_seconds": 29.97771120071411,
+            "settling_start": null,
+            "settling_duration_seconds": 0.0
+          },
+          "parameters": {
+            "dynamic": {
+              "loss_reduction_factor": 0.6,
+              "cubic_c": 0.4,
+              "minimum_window": 4,
+              "packet_threshold": 3,
+              "time_threshold": 1.125,
+              "cubic_max_idle_time": 2.0
+            },
+            "start_only": {
+              "initial_cw": 12000,
+              "max_ack_delay": 0.025,
+              "max_data": 1048576,
+              "max_stream_data": 1048576
+            }
+          },
+          "network": {
+            "scenario": "congested_low",
+            "config": {}
+          },
+          "metrics": {
+            "throughput_bps": 174228.73966738943,
+            "throughput_mbps": 0.17422873966738942,
+            "avg_rtt_ms": 5.070899276087721,
+            "min_rtt_ms": 4.2090605502283,
+            "max_rtt_ms": 14.934118482017299,
+            "jitter_ms": 1.5319558194676373,
+            "packet_loss_rate": 0.0,
+            "packet_loss_percent": 0.0,
+            "bytes_sent": 4935000,
+            "bytes_received": 0,
+            "packets_sent": 861,
+            "packets_lost": 0
+          },
+          "is_valid": true,
+          "sample_count": 285
+        }
+      ]
+    },
+    "2": {
+      "application_type": "file_transfer",
+      "epoch_count": 0,
+      "epochs": []
+    },
+    "3": {
+      "application_type": "conference_call",
+      "epoch_count": 1,
+      "epochs": [
+        {
+          "epoch_id": 0,
+          "connection_id": 3,
+          "application_type": "conference_call",
+          "timing": {
+            "start_time": 1770676657.464735,
+            "end_time": 1770676687.433013,
+            "duration_seconds": 29.96827793121338,
+            "settling_start": null,
+            "settling_duration_seconds": 0.0
+          },
+          "parameters": {
+            "dynamic": {
+              "loss_reduction_factor": 0.5,
+              "cubic_c": 0.3,
+              "minimum_window": 6,
+              "packet_threshold": 2,
+              "time_threshold": 1.0,
+              "cubic_max_idle_time": 2.0
+            },
+            "start_only": {
+              "initial_cw": 12000,
+              "max_ack_delay": 0.025,
+              "max_data": 1048576,
+              "max_stream_data": 1048576
+            }
+          },
+          "network": {
+            "scenario": "congested_low",
+            "config": {}
+          },
+          "metrics": {
+            "throughput_bps": 15134.70561723596,
+            "throughput_mbps": 0.01513470561723596,
+            "avg_rtt_ms": 4.164060359897483,
+            "min_rtt_ms": 3.269407928357496,
+            "max_rtt_ms": 19.528281062697413,
+            "jitter_ms": 1.2001480849816855,
+            "packet_loss_rate": 0.0,
+            "packet_loss_percent": 0.0,
+            "bytes_sent": 449600,
+            "bytes_received": 0,
+            "packets_sent": 1405,
+            "packets_lost": 0
+          },
+          "is_valid": true,
+          "sample_count": 282
+        }
+      ]
+    }
+  }
+}

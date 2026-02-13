@@ -1,0 +1,5321 @@
+{
+  "simulation_id": "20260209_161024",
+  "start_timestamp": "2026-02-09T16:10:24.583871",
+  "end_timestamp": "2026-02-09T16:10:24.583992",
+  "duration_seconds": 30.0,
+  "network_scenario": "congested_low",
+  "network_config": {},
+  "shared_params": {
+    "initial_cw": 12000,
+    "max_ack_delay": 0.025,
+    "max_data": 1048576,
+    "max_stream_data": 1048576
+  },
+  "fairness_index": 0.3359728991505381,
+  "total_throughput": 46184013.43370208,
+  "connections": {
+    "1": {
+      "connection_id": 1,
+      "application_type": "video_streaming",
+      "final_metrics": {
+        "throughput": 166993.38559555562,
+        "rtt": 0.004812825350209012,
+        "latency": 0.002406412675104506,
+        "jitter": 0.0012893225962824204,
+        "packet_loss_rate": 0.0,
+        "connection_establishment_time": 9.5367431640625e-07
+      },
+      "param_history": [],
+      "epoch_history": [
+        {
+          "epoch_id": 0,
+          "connection_id": 1,
+          "application_type": "video_streaming",
+          "timing": {
+            "start_time": 1770682194.4447029,
+            "end_time": 1770682224.415946,
+            "duration_seconds": 29.971243143081665,
+            "settling_start": null,
+            "settling_duration_seconds": 0.0
+          },
+          "parameters": {
+            "dynamic": {
+              "loss_reduction_factor": 0.6,
+              "cubic_c": 0.4,
+              "minimum_window": 4,
+              "packet_threshold": 3,
+              "time_threshold": 1.125,
+              "cubic_max_idle_time": 2.0
+            },
+            "start_only": {
+              "initial_cw": 12000,
+              "max_ack_delay": 0.025,
+              "max_data": 1048576,
+              "max_stream_data": 1048576
+            }
+          },
+          "network": {
+            "scenario": "congested_low",
+            "config": {}
+          },
+          "metrics": {
+            "throughput_bps": 174308.38058500315,
+            "throughput_mbps": 0.17430838058500314,
+            "avg_rtt_ms": 5.247687556572606,
+            "min_rtt_ms": 4.582143708172281,
+            "max_rtt_ms": 16.272422960368576,
+            "jitter_ms": 1.409211868430033,
+            "packet_loss_rate": 0.0,
+            "packet_loss_percent": 0.0,
+            "bytes_sent": 4940000,
+            "bytes_received": 0,
+            "packets_sent": 862,
+            "packets_lost": 0
+          },
+          "is_valid": true,
+          "sample_count": 287
+        }
+      ],
+      "metrics_history": [
+        {
+          "timestamp": 0.11942577362060547,
+          "throughput": 871474.2721791858,
+          "rtt": 0.01123697495747486,
+          "latency": 0.00561848747873743,
+          "jitter": 0.0003874138315121379,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 0.22131776809692383,
+          "throughput": 439467.78727137594,
+          "rtt": 0.0116847453175826,
+          "latency": 0.0058423726587913,
+          "jitter": 0.00037080311176417415,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 0.32286691665649414,
+          "throughput": 330616.2279760617,
+          "rtt": 0.01509763612844857,
+          "latency": 0.007548818064224285,
+          "jitter": 0.0003807296502987432,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 0.425764799118042,
+          "throughput": 279908.1722152309,
+          "rtt": 0.016272422960368578,
+          "latency": 0.008136211480184289,
+          "jitter": 0.0003636698993772462,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 0.5290098190307617,
+          "throughput": 250839.374860767,
+          "rtt": 0.015768679955050904,
+          "latency": 0.007884339977525452,
+          "jitter": 0.00035132064302785434,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 0.6323578357696533,
+          "throughput": 232035.75006915204,
+          "rtt": 0.014761654809893951,
+          "latency": 0.007380827404946976,
+          "jitter": 0.0003395193462000068,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 0.7357649803161621,
+          "throughput": 218868.19495703836,
+          "rtt": 0.013647816606683596,
+          "latency": 0.006823908303341798,
+          "jitter": 0.00033120590698958256,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 0.839735746383667,
+          "throughput": 208946.4038679501,
+          "rtt": 0.012589799932310837,
+          "latency": 0.006294899966155418,
+          "jitter": 0.0003568121943259874,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 0.9435489177703857,
+          "throughput": 201338.4575464314,
+          "rtt": 0.011638511533694471,
+          "latency": 0.005819255766847236,
+          "jitter": 0.000343290449853008,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 1.0462589263916016,
+          "throughput": 195817.15288805956,
+          "rtt": 0.01088798638500453,
+          "latency": 0.005443993192502265,
+          "jitter": 0.000341264013810283,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 1.1491458415985107,
+          "throughput": 191143.5141260691,
+          "rtt": 0.01020104194269764,
+          "latency": 0.00510052097134882,
+          "jitter": 0.00032654900011092823,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 1.2519617080688477,
+          "throughput": 187237.57836713048,
+          "rtt": 0.009574967826865233,
+          "latency": 0.004787483913432616,
+          "jitter": 0.0003273231312293883,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 1.3578035831451416,
+          "throughput": 183491.3100588079,
+          "rtt": 0.00902999123573241,
+          "latency": 0.004514995617866205,
+          "jitter": 0.00043408954775511256,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 1.4616966247558594,
+          "throughput": 180650.0579591521,
+          "rtt": 0.008576860928818065,
+          "latency": 0.004288430464409032,
+          "jitter": 0.0004266837811114132,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 1.5639066696166992,
+          "throughput": 178381.8359153492,
+          "rtt": 0.008180380413578965,
+          "latency": 0.004090190206789483,
+          "jitter": 0.00043712410794259355,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 1.6651487350463867,
+          "throughput": 176514.20890364284,
+          "rtt": 0.007826592563708492,
+          "latency": 0.003913296281854246,
+          "jitter": 0.00046303243951503867,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 1.7677247524261475,
+          "throughput": 174705.15955164758,
+          "rtt": 0.007508773733765935,
+          "latency": 0.0037543868668829675,
+          "jitter": 0.000461282732061126,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 1.8708038330078125,
+          "throughput": 173037.01158054188,
+          "rtt": 0.0072113731106480125,
+          "latency": 0.0036056865553240063,
+          "jitter": 0.00044919609584623027,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 1.974083662033081,
+          "throughput": 171557.18988961552,
+          "rtt": 0.006931687347090907,
+          "latency": 0.0034658436735454535,
+          "jitter": 0.00043760902323003166,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 2.077948808670044,
+          "throughput": 170138.97561874363,
+          "rtt": 0.006674630873919691,
+          "latency": 0.0033373154369598455,
+          "jitter": 0.00043348576383660665,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 2.184048891067505,
+          "throughput": 189823.9257785109,
+          "rtt": 0.0065224171449195095,
+          "latency": 0.0032612085724597548,
+          "jitter": 0.0006513053921185728,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 2.2916617393493652,
+          "throughput": 187376.60704310026,
+          "rtt": 0.0063853497666947106,
+          "latency": 0.0031926748833473553,
+          "jitter": 0.0007623064556697703,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 2.393969774246216,
+          "throughput": 185577.9882879289,
+          "rtt": 0.006262363781517465,
+          "latency": 0.0031311818907587326,
+          "jitter": 0.0007460201769702148,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 2.4968957901000977,
+          "throughput": 183908.7197575734,
+          "rtt": 0.006133255981839423,
+          "latency": 0.0030666279909197115,
+          "jitter": 0.0007327344664466754,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 2.6000587940216064,
+          "throughput": 182384.04825442686,
+          "rtt": 0.006014070991589796,
+          "latency": 0.003007035495794898,
+          "jitter": 0.0009381615429655355,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 2.7067577838897705,
+          "throughput": 180671.17881122758,
+          "rtt": 0.0059058765217829805,
+          "latency": 0.0029529382608914903,
+          "jitter": 0.0009760005037331537,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 2.8093247413635254,
+          "throughput": 179400.47085937625,
+          "rtt": 0.005797808058415128,
+          "latency": 0.002898904029207564,
+          "jitter": 0.000959359468105901,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 2.911928653717041,
+          "throughput": 178222.2309982426,
+          "rtt": 0.005699230415787071,
+          "latency": 0.0028496152078935355,
+          "jitter": 0.000945238900671023,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 3.0171446800231934,
+          "throughput": 176913.3716360093,
+          "rtt": 0.005590088991407714,
+          "latency": 0.002795044495703857,
+          "jitter": 0.0009495914184177587,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 3.1273279190063477,
+          "throughput": 175463.3421563749,
+          "rtt": 0.005533500506662271,
+          "latency": 0.0027667502533311357,
+          "jitter": 0.001536174618283137,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 3.230301856994629,
+          "throughput": 174528.12811612024,
+          "rtt": 0.005525244986221161,
+          "latency": 0.0027626224931105803,
+          "jitter": 0.0015115634042124862,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 3.3330307006835938,
+          "throughput": 173643.54165663448,
+          "rtt": 0.0055683875792975155,
+          "latency": 0.0027841937896487578,
+          "jitter": 0.0014890363840622965,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 3.436410665512085,
+          "throughput": 172768.60441315256,
+          "rtt": 0.00555161079474033,
+          "latency": 0.002775805397370165,
+          "jitter": 0.0014687636599287992,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 3.5388989448547363,
+          "throughput": 171995.61553687733,
+          "rtt": 0.005500050222878601,
+          "latency": 0.0027500251114393006,
+          "jitter": 0.0014484027274535695,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 3.6432037353515625,
+          "throughput": 171149.1469536942,
+          "rtt": 0.005430512244977069,
+          "latency": 0.0027152561224885346,
+          "jitter": 0.00142822746963658,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 3.7462778091430664,
+          "throughput": 170433.4760228028,
+          "rtt": 0.005362682858540753,
+          "latency": 0.0026813414292703765,
+          "jitter": 0.0014091608152197663,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 3.8492486476898193,
+          "throughput": 169772.44260798531,
+          "rtt": 0.005318988354370278,
+          "latency": 0.002659494177185139,
+          "jitter": 0.0016262970919269334,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 3.9548606872558594,
+          "throughput": 169021.1855866525,
+          "rtt": 0.005289172468649557,
+          "latency": 0.0026445862343247783,
+          "jitter": 0.0016156762679077005,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 4.059391975402832,
+          "throughput": 168354.20162827824,
+          "rtt": 0.005256251661834387,
+          "latency": 0.0026281258309171934,
+          "jitter": 0.0015991902433176697,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 4.1620118618011475,
+          "throughput": 167794.8244603474,
+          "rtt": 0.005227010757335237,
+          "latency": 0.0026135053786676184,
+          "jitter": 0.0015793736093087272,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 4.266535758972168,
+          "throughput": 177845.73109876612,
+          "rtt": 0.005191805094384532,
+          "latency": 0.002595902547192266,
+          "jitter": 0.0015741413527515726,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 4.368701934814453,
+          "throughput": 177150.83553673932,
+          "rtt": 0.0051594616078825565,
+          "latency": 0.0025797308039412783,
+          "jitter": 0.0015575940088130575,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 4.472135782241821,
+          "throughput": 176402.41760104665,
+          "rtt": 0.005113321734694901,
+          "latency": 0.0025566608673474505,
+          "jitter": 0.0015416465323034067,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 4.576478958129883,
+          "throughput": 175627.0684878173,
+          "rtt": 0.005060442046000276,
+          "latency": 0.002530221023000138,
+          "jitter": 0.0015241361495963353,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 4.682882785797119,
+          "throughput": 174840.31051443782,
+          "rtt": 0.005011198582134215,
+          "latency": 0.0025055992910671073,
+          "jitter": 0.001590817205743447,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 4.7872419357299805,
+          "throughput": 174133.51699299773,
+          "rtt": 0.004969851992857721,
+          "latency": 0.0024849259964288607,
+          "jitter": 0.001573696943148435,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 4.893740653991699,
+          "throughput": 173388.96336224303,
+          "rtt": 0.004936417944358386,
+          "latency": 0.002468208972179193,
+          "jitter": 0.0015697565233376252,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 5.0049357414245605,
+          "throughput": 172540.7172439635,
+          "rtt": 0.004914701382722082,
+          "latency": 0.002457350691361041,
+          "jitter": 0.0016505727276433359,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 5.111065626144409,
+          "throughput": 171895.78578758094,
+          "rtt": 0.004891901919013288,
+          "latency": 0.002445950959506644,
+          "jitter": 0.0016381908117029723,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 5.213254690170288,
+          "throughput": 171397.82238326038,
+          "rtt": 0.004870345233021983,
+          "latency": 0.0024351726165109913,
+          "jitter": 0.0016292584336506603,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 5.317059755325317,
+          "throughput": 170859.59284266699,
+          "rtt": 0.004847988926211774,
+          "latency": 0.002423994463105887,
+          "jitter": 0.0016137034786516235,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 5.420331001281738,
+          "throughput": 170381.35209460763,
+          "rtt": 0.004824414462519965,
+          "latency": 0.0024122072312599825,
+          "jitter": 0.0016009682738418725,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 5.523286581039429,
+          "throughput": 169925.5516020374,
+          "rtt": 0.004796633895949482,
+          "latency": 0.002398316947974741,
+          "jitter": 0.0015861535752718697,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 5.625857591629028,
+          "throughput": 169479.00185871936,
+          "rtt": 0.0047567107405316255,
+          "latency": 0.0023783553702658128,
+          "jitter": 0.0015727725948107994,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 5.730310916900635,
+          "throughput": 168980.32000208827,
+          "rtt": 0.004714079045101532,
+          "latency": 0.002357039522550766,
+          "jitter": 0.0015593467967226502,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 5.834617853164673,
+          "throughput": 168532.97489058608,
+          "rtt": 0.004687379158794448,
+          "latency": 0.002343689579397224,
+          "jitter": 0.0015475886497257065,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 5.937774658203125,
+          "throughput": 168104.12319276956,
+          "rtt": 0.004669009520001187,
+          "latency": 0.0023345047600005935,
+          "jitter": 0.0015347923261550436,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 6.0420496463775635,
+          "throughput": 167708.26732199776,
+          "rtt": 0.0046556179593666485,
+          "latency": 0.0023278089796833243,
+          "jitter": 0.0015221805229829616,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 6.148099660873413,
+          "throughput": 167169.68047158042,
+          "rtt": 0.004640523366275582,
+          "latency": 0.002320261683137791,
+          "jitter": 0.0015156689029240684,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 6.252189874649048,
+          "throughput": 166862.8718149265,
+          "rtt": 0.004636017861915614,
+          "latency": 0.002318008930957807,
+          "jitter": 0.0015055423770102547,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 6.355496883392334,
+          "throughput": 173645.16619566182,
+          "rtt": 0.004665732494947692,
+          "latency": 0.002332866247473846,
+          "jitter": 0.00150713470620916,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 6.460348844528198,
+          "throughput": 173136.29682436882,
+          "rtt": 0.004687690120267958,
+          "latency": 0.002343845060133979,
+          "jitter": 0.0014971047369105248,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 6.565248727798462,
+          "throughput": 172644.17556522074,
+          "rtt": 0.004697660240103205,
+          "latency": 0.0023488301200516024,
+          "jitter": 0.0014868132856086682,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 6.669882774353027,
+          "throughput": 172188.42454595832,
+          "rtt": 0.004703412164164821,
+          "latency": 0.0023517060820824106,
+          "jitter": 0.0014756126881068372,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 6.773035764694214,
+          "throughput": 171753.54700160472,
+          "rtt": 0.004707858549463072,
+          "latency": 0.002353929274731536,
+          "jitter": 0.0014643840200977663,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 6.878549575805664,
+          "throughput": 171342.36072742793,
+          "rtt": 0.004704614627482734,
+          "latency": 0.002352307313741367,
+          "jitter": 0.0014764657635922352,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 6.981623649597168,
+          "throughput": 170941.50493932448,
+          "rtt": 0.004688755282224567,
+          "latency": 0.0023443776411122834,
+          "jitter": 0.001467421773983745,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 7.085071802139282,
+          "throughput": 170573.1935837976,
+          "rtt": 0.00467891800899841,
+          "latency": 0.002339459004499205,
+          "jitter": 0.001456948615514608,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 7.18809175491333,
+          "throughput": 170217.46345191365,
+          "rtt": 0.004662783531036037,
+          "latency": 0.0023313917655180187,
+          "jitter": 0.001446701990822158,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 7.29207181930542,
+          "throughput": 169828.13530462806,
+          "rtt": 0.004637919555713887,
+          "latency": 0.0023189597778569436,
+          "jitter": 0.0014396895624397277,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 7.396681785583496,
+          "throughput": 169449.63242057266,
+          "rtt": 0.004616019706347313,
+          "latency": 0.0023080098531736565,
+          "jitter": 0.001430128245655886,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 7.500811576843262,
+          "throughput": 169087.15888642924,
+          "rtt": 0.004600559669639007,
+          "latency": 0.0023002798348195036,
+          "jitter": 0.0014217798186732802,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 7.6044957637786865,
+          "throughput": 168752.42230617622,
+          "rtt": 0.004592546012725241,
+          "latency": 0.0022962730063626207,
+          "jitter": 0.0014136327262863962,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 7.708575963973999,
+          "throughput": 168420.48224333697,
+          "rtt": 0.004596038310457593,
+          "latency": 0.0022980191552287965,
+          "jitter": 0.0014042963960554768,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 7.812787771224976,
+          "throughput": 168084.48028442365,
+          "rtt": 0.0046022900945933715,
+          "latency": 0.0023011450472966858,
+          "jitter": 0.0014051025577227923,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 7.916066646575928,
+          "throughput": 167779.34909089742,
+          "rtt": 0.004600879513139099,
+          "latency": 0.0023004397565695497,
+          "jitter": 0.0013988463324856406,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 8.020277976989746,
+          "throughput": 167479.68401787872,
+          "rtt": 0.004600061015207409,
+          "latency": 0.0023000305076037045,
+          "jitter": 0.0013900741617238765,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 8.124615907669067,
+          "throughput": 167169.76437322836,
+          "rtt": 0.004597068321231311,
+          "latency": 0.0022985341606156554,
+          "jitter": 0.0013846513125256319,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 8.22757887840271,
+          "throughput": 166864.461338528,
+          "rtt": 0.004590831907230264,
+          "latency": 0.002295415953615132,
+          "jitter": 0.0013769906353903727,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 8.330089807510376,
+          "throughput": 166655.6972545921,
+          "rtt": 0.004585750317917285,
+          "latency": 0.0022928751589586425,
+          "jitter": 0.001370049354188635,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 8.434110879898071,
+          "throughput": 171743.28943941597,
+          "rtt": 0.00460318313973626,
+          "latency": 0.00230159156986813,
+          "jitter": 0.0013782667496212715,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 8.537676572799683,
+          "throughput": 171415.6629450234,
+          "rtt": 0.004609317498310665,
+          "latency": 0.0023046587491553326,
+          "jitter": 0.001371152221001946,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 8.64340877532959,
+          "throughput": 171048.91260156088,
+          "rtt": 0.0046199842494187154,
+          "latency": 0.0023099921247093577,
+          "jitter": 0.0014256887949532558,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 8.74914264678955,
+          "throughput": 170688.59241616598,
+          "rtt": 0.0046424619668199935,
+          "latency": 0.0023212309834099967,
+          "jitter": 0.0014267571078344858,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 8.856066703796387,
+          "throughput": 170318.79385675318,
+          "rtt": 0.004655941971695501,
+          "latency": 0.0023279709858477506,
+          "jitter": 0.0014198977701548841,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 8.957603693008423,
+          "throughput": 170047.81051323906,
+          "rtt": 0.004667638769434403,
+          "latency": 0.0023338193847172017,
+          "jitter": 0.0014169426618395715,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 9.062166690826416,
+          "throughput": 169728.36257889954,
+          "rtt": 0.004673479330630911,
+          "latency": 0.0023367396653154555,
+          "jitter": 0.0014098966513622683,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 9.167515754699707,
+          "throughput": 169428.22272943959,
+          "rtt": 0.004678953919420572,
+          "latency": 0.002339476959710286,
+          "jitter": 0.0014108960282321588,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 9.27286672592163,
+          "throughput": 169125.54598449252,
+          "rtt": 0.0046812695674387575,
+          "latency": 0.0023406347837193787,
+          "jitter": 0.0014150519616201558,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 9.376280784606934,
+          "throughput": 168862.3956663851,
+          "rtt": 0.0046789151085621615,
+          "latency": 0.0023394575542810808,
+          "jitter": 0.0014222126927697254,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 9.481630802154541,
+          "throughput": 168565.87415177963,
+          "rtt": 0.00467371003307542,
+          "latency": 0.00233685501653771,
+          "jitter": 0.0014163925827312216,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 9.593522787094116,
+          "throughput": 168173.4333378492,
+          "rtt": 0.004668884119464522,
+          "latency": 0.002334442059732261,
+          "jitter": 0.001517810363580403,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 9.706405878067017,
+          "throughput": 167727.9253834316,
+          "rtt": 0.004655985227465401,
+          "latency": 0.0023279926137327006,
+          "jitter": 0.0015655960922553154,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 9.821058750152588,
+          "throughput": 167316.7636796846,
+          "rtt": 0.00464939613762386,
+          "latency": 0.00232469806881193,
+          "jitter": 0.0015912017603697307,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 9.926530599594116,
+          "throughput": 167046.09868785593,
+          "rtt": 0.004647856893201183,
+          "latency": 0.0023239284466005914,
+          "jitter": 0.0015855831532337375,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 10.026606798171997,
+          "throughput": 166873.99903610686,
+          "rtt": 0.004650937145785218,
+          "latency": 0.002325468572892609,
+          "jitter": 0.0015791663343677573,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 10.139723777770996,
+          "throughput": 166475.3684081904,
+          "rtt": 0.004651229635778543,
+          "latency": 0.0023256148178892717,
+          "jitter": 0.0016897601532967512,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 10.246803760528564,
+          "throughput": 166195.66420802227,
+          "rtt": 0.004648974991034684,
+          "latency": 0.002324487495517342,
+          "jitter": 0.0016909260310178941,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 10.351712703704834,
+          "throughput": 165956.97885478794,
+          "rtt": 0.004644788529445851,
+          "latency": 0.0023223942647229256,
+          "jitter": 0.0016850027251822945,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 10.453259706497192,
+          "throughput": 165813.9976183863,
+          "rtt": 0.004641848519708619,
+          "latency": 0.0023209242598543093,
+          "jitter": 0.0016793476728457536,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 10.556517839431763,
+          "throughput": 169893.35419389882,
+          "rtt": 0.004632202507203374,
+          "latency": 0.002316101253601687,
+          "jitter": 0.0016717134188884582,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 10.66000485420227,
+          "throughput": 169640.16206907708,
+          "rtt": 0.004617735513901943,
+          "latency": 0.0023088677569509716,
+          "jitter": 0.001663736555533014,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 10.766144752502441,
+          "throughput": 169353.6977318855,
+          "rtt": 0.004601362445684692,
+          "latency": 0.002300681222842346,
+          "jitter": 0.0016611896284318165,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 10.869232892990112,
+          "throughput": 169127.7848131612,
+          "rtt": 0.0045915610804056275,
+          "latency": 0.0022957805402028138,
+          "jitter": 0.0016557174407564402,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 10.974698781967163,
+          "throughput": 168856.42877124046,
+          "rtt": 0.004584704400892766,
+          "latency": 0.002292352200446383,
+          "jitter": 0.0016503230892589648,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 11.081896781921387,
+          "throughput": 168578.3087229933,
+          "rtt": 0.004582143708172281,
+          "latency": 0.0022910718540861403,
+          "jitter": 0.0016573243600169767,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 11.215268850326538,
+          "throughput": 168377.63882420593,
+          "rtt": 0.004588198473042036,
+          "latency": 0.002294099236521018,
+          "jitter": 0.0016653205536541068,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 11.32301378250122,
+          "throughput": 168085.25093337448,
+          "rtt": 0.00458955146989119,
+          "latency": 0.002294775734945595,
+          "jitter": 0.0016640217213528391,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 11.429056644439697,
+          "throughput": 167835.48054831577,
+          "rtt": 0.0045966153371850265,
+          "latency": 0.0022983076685925133,
+          "jitter": 0.0016728172754119726,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 11.533300876617432,
+          "throughput": 167605.0494942362,
+          "rtt": 0.004600484629579765,
+          "latency": 0.0023002423147898826,
+          "jitter": 0.0016662761661432755,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 11.636533975601196,
+          "throughput": 167408.15254550532,
+          "rtt": 0.004606064399156426,
+          "latency": 0.002303032199578213,
+          "jitter": 0.0016608631852514952,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 11.740504741668701,
+          "throughput": 167206.17351720337,
+          "rtt": 0.004605416651480153,
+          "latency": 0.0023027083257400765,
+          "jitter": 0.0016574445712524975,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 11.843774795532227,
+          "throughput": 166993.30660870404,
+          "rtt": 0.004605977037568399,
+          "latency": 0.0023029885187841994,
+          "jitter": 0.0016526774443434312,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 11.94787883758545,
+          "throughput": 166810.6349281753,
+          "rtt": 0.004611796918867893,
+          "latency": 0.0023058984594339464,
+          "jitter": 0.0016468675456450454,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 12.055194854736328,
+          "throughput": 166578.46538022393,
+          "rtt": 0.004619373411711507,
+          "latency": 0.0023096867058557537,
+          "jitter": 0.0016404574023876648,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 12.188217639923096,
+          "throughput": 166414.7789076226,
+          "rtt": 0.0046298870842253785,
+          "latency": 0.0023149435421126892,
+          "jitter": 0.0016357670081939193,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 12.292304754257202,
+          "throughput": 166215.82770574777,
+          "rtt": 0.004629379046433396,
+          "latency": 0.002314689523216698,
+          "jitter": 0.0016311582092658108,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 12.39741587638855,
+          "throughput": 166011.94426293805,
+          "rtt": 0.00462513367414449,
+          "latency": 0.002312566837072245,
+          "jitter": 0.0016306675066033282,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 12.503122806549072,
+          "throughput": 165820.80644594654,
+          "rtt": 0.004619163322465775,
+          "latency": 0.0023095816612328877,
+          "jitter": 0.0016459012564179103,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 12.60602593421936,
+          "throughput": 169234.81710245917,
+          "rtt": 0.004625048976646928,
+          "latency": 0.002312524488323464,
+          "jitter": 0.0016492659343071588,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 12.709672927856445,
+          "throughput": 169028.5794454386,
+          "rtt": 0.004637263767831186,
+          "latency": 0.002318631883915593,
+          "jitter": 0.0016426025174642624,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 12.820434808731079,
+          "throughput": 168733.22372714034,
+          "rtt": 0.004638771559899105,
+          "latency": 0.0023193857799495526,
+          "jitter": 0.0016717233550512316,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 12.925010919570923,
+          "throughput": 168531.30577196096,
+          "rtt": 0.00464122012985247,
+          "latency": 0.002320610064926235,
+          "jitter": 0.0016650532042359121,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 13.028434753417969,
+          "throughput": 168339.86829322422,
+          "rtt": 0.004647415244011721,
+          "latency": 0.0023237076220058604,
+          "jitter": 0.001665411335882381,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 13.134130716323853,
+          "throughput": 168137.17970305608,
+          "rtt": 0.004655530030482821,
+          "latency": 0.0023277650152414104,
+          "jitter": 0.0016602008334505641,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 13.237894773483276,
+          "throughput": 167924.0634254647,
+          "rtt": 0.004662551816940259,
+          "latency": 0.0023312759084701297,
+          "jitter": 0.0016544515399782064,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 13.341797828674316,
+          "throughput": 167729.7928082094,
+          "rtt": 0.004669543369322082,
+          "latency": 0.002334771684661041,
+          "jitter": 0.0016489450450101397,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 13.445666790008545,
+          "throughput": 167562.48372748925,
+          "rtt": 0.004677388897542558,
+          "latency": 0.002338694448771279,
+          "jitter": 0.0016444740869893902,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 13.549453735351562,
+          "throughput": 167387.23453789312,
+          "rtt": 0.0046820757339320245,
+          "latency": 0.0023410378669660122,
+          "jitter": 0.0016402022664561628,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 13.654504776000977,
+          "throughput": 167197.8167585801,
+          "rtt": 0.00468700251952952,
+          "latency": 0.00234350125976476,
+          "jitter": 0.0016380540544603803,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 13.756300687789917,
+          "throughput": 167040.7926781782,
+          "rtt": 0.00469322713497724,
+          "latency": 0.00234661356748862,
+          "jitter": 0.0016392819401817107,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 13.859119653701782,
+          "throughput": 166886.87904623666,
+          "rtt": 0.0046977777189688924,
+          "latency": 0.0023488888594844462,
+          "jitter": 0.0016346576434866922,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 13.962642908096313,
+          "throughput": 166731.73100107317,
+          "rtt": 0.004698899386659726,
+          "latency": 0.002349449693329863,
+          "jitter": 0.0016293611846123714,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 14.067412853240967,
+          "throughput": 166552.18202884973,
+          "rtt": 0.004698362366700615,
+          "latency": 0.0023491811833503077,
+          "jitter": 0.0016262726284694167,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 14.171787738800049,
+          "throughput": 166378.9241292047,
+          "rtt": 0.0046984218249035625,
+          "latency": 0.0023492109124517812,
+          "jitter": 0.001621687101935842,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 14.273427963256836,
+          "throughput": 166252.93017943698,
+          "rtt": 0.004699639882045528,
+          "latency": 0.002349819941022764,
+          "jitter": 0.0016164674823866017,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 14.377809762954712,
+          "throughput": 166066.09739235742,
+          "rtt": 0.0046989116718794514,
+          "latency": 0.0023494558359397257,
+          "jitter": 0.0016109962002656512,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 14.48292875289917,
+          "throughput": 165909.28208946876,
+          "rtt": 0.004705375008302222,
+          "latency": 0.002352687504151111,
+          "jitter": 0.0016070786296832182,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 14.586493730545044,
+          "throughput": 165748.31122226655,
+          "rtt": 0.0047095081079341645,
+          "latency": 0.0023547540539670822,
+          "jitter": 0.0016034840431495285,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 14.688187837600708,
+          "throughput": 168727.39477561778,
+          "rtt": 0.004729630182955402,
+          "latency": 0.002364815091477701,
+          "jitter": 0.001608176588303142,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 14.790687799453735,
+          "throughput": 168570.3708928234,
+          "rtt": 0.004749791690112874,
+          "latency": 0.002374895845056437,
+          "jitter": 0.0016036117013169138,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 14.90041971206665,
+          "throughput": 168327.22508449623,
+          "rtt": 0.004754947414336265,
+          "latency": 0.0023774737071681324,
+          "jitter": 0.001624330627183973,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 15.0070059299469,
+          "throughput": 168127.03304869967,
+          "rtt": 0.0047595726517741955,
+          "latency": 0.0023797863258870977,
+          "jitter": 0.0016449884379240991,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 15.144714832305908,
+          "throughput": 167905.5677626686,
+          "rtt": 0.004768365577783668,
+          "latency": 0.002384182788891834,
+          "jitter": 0.0016774707007278515,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 15.246795654296875,
+          "throughput": 167787.17793940898,
+          "rtt": 0.004780026080986823,
+          "latency": 0.0023900130404934114,
+          "jitter": 0.0016922605098951997,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 15.347004890441895,
+          "throughput": 167650.63322597672,
+          "rtt": 0.004786628048974389,
+          "latency": 0.0023933140244871945,
+          "jitter": 0.001688431817794222,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 15.449272632598877,
+          "throughput": 167537.68775912668,
+          "rtt": 0.00479060621565768,
+          "latency": 0.00239530310782884,
+          "jitter": 0.0016839568817758703,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 15.552632808685303,
+          "throughput": 167387.93019805313,
+          "rtt": 0.004785539409330805,
+          "latency": 0.0023927697046654023,
+          "jitter": 0.001678472861081894,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 15.655447721481323,
+          "throughput": 167236.93772382868,
+          "rtt": 0.00477583891950512,
+          "latency": 0.00238791945975256,
+          "jitter": 0.0016735398767170648,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 15.760542869567871,
+          "throughput": 167028.509624608,
+          "rtt": 0.00476477840989831,
+          "latency": 0.002382389204949155,
+          "jitter": 0.0016686858439337476,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 15.862443685531616,
+          "throughput": 166943.09277741855,
+          "rtt": 0.004765825898911508,
+          "latency": 0.002382912949455754,
+          "jitter": 0.0016651745058649608,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 15.966553688049316,
+          "throughput": 166775.35719539222,
+          "rtt": 0.0047610115720943535,
+          "latency": 0.0023805057860471768,
+          "jitter": 0.0016600045072340981,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 16.070892572402954,
+          "throughput": 166628.18201730505,
+          "rtt": 0.004761471799428217,
+          "latency": 0.0023807358997141085,
+          "jitter": 0.0016559291134584625,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 16.17437481880188,
+          "throughput": 166483.06888661315,
+          "rtt": 0.0047658605488460435,
+          "latency": 0.0023829302744230218,
+          "jitter": 0.0016523442614193426,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 16.277456760406494,
+          "throughput": 166359.39412715076,
+          "rtt": 0.004770009136080692,
+          "latency": 0.002385004568040346,
+          "jitter": 0.0016476315904875828,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 16.382184743881226,
+          "throughput": 166210.15431347984,
+          "rtt": 0.004775743179231783,
+          "latency": 0.0023878715896158914,
+          "jitter": 0.0016431384655163327,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 16.489827632904053,
+          "throughput": 166039.82093287192,
+          "rtt": 0.004778942913263372,
+          "latency": 0.002389471456631686,
+          "jitter": 0.0016438517767230396,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 16.592798948287964,
+          "throughput": 165914.97127627648,
+          "rtt": 0.004780436735249822,
+          "latency": 0.002390218367624911,
+          "jitter": 0.0016440898111568035,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 16.695420742034912,
+          "throughput": 165791.81283735624,
+          "rtt": 0.004780449498856383,
+          "latency": 0.0023902247494281916,
+          "jitter": 0.0016393501607257766,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 16.798200607299805,
+          "throughput": 168365.2450840447,
+          "rtt": 0.004812039852694444,
+          "latency": 0.002406019926347222,
+          "jitter": 0.0016355844486693517,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 16.901593685150146,
+          "throughput": 168219.66822667324,
+          "rtt": 0.0048318449272711644,
+          "latency": 0.0024159224636355822,
+          "jitter": 0.0016306843185511684,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 17.0064115524292,
+          "throughput": 168036.80676820615,
+          "rtt": 0.0048366332834975335,
+          "latency": 0.0024183166417487668,
+          "jitter": 0.001626255455393796,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 17.109130859375,
+          "throughput": 167912.28499963696,
+          "rtt": 0.004840781297406699,
+          "latency": 0.0024203906487033494,
+          "jitter": 0.001622723774996403,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 17.211926698684692,
+          "throughput": 167806.78180199538,
+          "rtt": 0.004842266658010265,
+          "latency": 0.0024211333290051324,
+          "jitter": 0.0016181126866516003,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 17.31490683555603,
+          "throughput": 167662.94221659767,
+          "rtt": 0.004839809330476682,
+          "latency": 0.002419904665238341,
+          "jitter": 0.001614080466492141,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 17.41731572151184,
+          "throughput": 167537.9017121929,
+          "rtt": 0.004836671274560482,
+          "latency": 0.002418335637280241,
+          "jitter": 0.0016100031392947765,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 17.520108699798584,
+          "throughput": 167411.84392402077,
+          "rtt": 0.004834043971512809,
+          "latency": 0.0024170219857564046,
+          "jitter": 0.001605939538235338,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 17.62400484085083,
+          "throughput": 167269.84297210432,
+          "rtt": 0.004830482248153426,
+          "latency": 0.002415241124076713,
+          "jitter": 0.0016012107780409236,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 17.72741174697876,
+          "throughput": 167144.07836963024,
+          "rtt": 0.004830569044571052,
+          "latency": 0.002415284522285526,
+          "jitter": 0.001597084296459018,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 17.830809831619263,
+          "throughput": 167015.95673536535,
+          "rtt": 0.004828441766043777,
+          "latency": 0.0024142208830218886,
+          "jitter": 0.0015925243017782154,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 17.934423685073853,
+          "throughput": 166888.6909654962,
+          "rtt": 0.004825737629353195,
+          "latency": 0.0024128688146765973,
+          "jitter": 0.0015880068247190926,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 18.038253784179688,
+          "throughput": 166758.9680851611,
+          "rtt": 0.004823663883994543,
+          "latency": 0.0024118319419972716,
+          "jitter": 0.0015840773483137669,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 18.14247965812683,
+          "throughput": 166630.40295225792,
+          "rtt": 0.004824004757730523,
+          "latency": 0.0024120023788652615,
+          "jitter": 0.0015932206659834776,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 18.246152877807617,
+          "throughput": 166504.78710686648,
+          "rtt": 0.004826973530222244,
+          "latency": 0.002413486765111122,
+          "jitter": 0.0015894652323167264,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 18.34982967376709,
+          "throughput": 166380.49561568018,
+          "rtt": 0.004828886657961982,
+          "latency": 0.002414443328980991,
+          "jitter": 0.0015856237092426377,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 18.453343868255615,
+          "throughput": 166258.49054257397,
+          "rtt": 0.004829259686181473,
+          "latency": 0.0024146298430907367,
+          "jitter": 0.0015812211890511815,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 18.55686092376709,
+          "throughput": 166144.18044396123,
+          "rtt": 0.004829460822299036,
+          "latency": 0.002414730411149518,
+          "jitter": 0.0015769545505088128,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 18.660033702850342,
+          "throughput": 166027.71911332657,
+          "rtt": 0.004826889183926286,
+          "latency": 0.002413444591963143,
+          "jitter": 0.0015727827542860618,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 18.762183904647827,
+          "throughput": 165923.81254707463,
+          "rtt": 0.004821620972806298,
+          "latency": 0.002410810486403149,
+          "jitter": 0.001569512186285936,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 18.86546564102173,
+          "throughput": 168204.78802933873,
+          "rtt": 0.004829892484993727,
+          "latency": 0.0024149462424968636,
+          "jitter": 0.001565847359656967,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 18.968931674957275,
+          "throughput": 168080.68637083535,
+          "rtt": 0.004832159534427807,
+          "latency": 0.0024160797672139033,
+          "jitter": 0.0015616657157095884,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 19.072715759277344,
+          "throughput": 167943.87170166208,
+          "rtt": 0.004827837435088784,
+          "latency": 0.002413918717544392,
+          "jitter": 0.0015576160694815,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 19.175986766815186,
+          "throughput": 167826.20945025847,
+          "rtt": 0.004823474093319684,
+          "latency": 0.002411737046659842,
+          "jitter": 0.0015535161930064446,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 19.27912974357605,
+          "throughput": 167706.84741330938,
+          "rtt": 0.004816708679179675,
+          "latency": 0.0024083543395898373,
+          "jitter": 0.0015494862041172336,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 19.381285667419434,
+          "throughput": 167595.3820462806,
+          "rtt": 0.004809429105224055,
+          "latency": 0.0024047145526120274,
+          "jitter": 0.0015463832202435453,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 19.48514175415039,
+          "throughput": 167459.89334395333,
+          "rtt": 0.0048043641856696665,
+          "latency": 0.0024021820928348332,
+          "jitter": 0.0015430625642848176,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 19.588538885116577,
+          "throughput": 167356.31589231166,
+          "rtt": 0.004806235916835933,
+          "latency": 0.0024031179584179667,
+          "jitter": 0.001540073806830141,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 19.693318843841553,
+          "throughput": 167214.11178896928,
+          "rtt": 0.004805141400276132,
+          "latency": 0.002402570700138066,
+          "jitter": 0.001536148210741791,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 19.797446727752686,
+          "throughput": 167091.2056147036,
+          "rtt": 0.004806559168150418,
+          "latency": 0.002403279584075209,
+          "jitter": 0.0015326425923303073,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 19.90249490737915,
+          "throughput": 166962.40592998755,
+          "rtt": 0.004810120459867634,
+          "latency": 0.002405060229933817,
+          "jitter": 0.0015295446216073893,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 20.010207891464233,
+          "throughput": 166812.85882312994,
+          "rtt": 0.004814273921268501,
+          "latency": 0.0024071369606342504,
+          "jitter": 0.0015266358941799717,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 20.113545894622803,
+          "throughput": 166700.0647887067,
+          "rtt": 0.004826914296477592,
+          "latency": 0.002413457148238796,
+          "jitter": 0.0015243595888066767,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 20.246704816818237,
+          "throughput": 166602.88795607165,
+          "rtt": 0.004841888247295226,
+          "latency": 0.002420944123647613,
+          "jitter": 0.0015206535502849962,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 20.350637674331665,
+          "throughput": 166483.30535642945,
+          "rtt": 0.004842402075070031,
+          "latency": 0.0024212010375350155,
+          "jitter": 0.001518557672732222,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 20.45384383201599,
+          "throughput": 166385.97418951106,
+          "rtt": 0.004842183621664663,
+          "latency": 0.0024210918108323316,
+          "jitter": 0.0015149591747469781,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 20.557085752487183,
+          "throughput": 166278.77182814988,
+          "rtt": 0.004837338217821536,
+          "latency": 0.002418669108910768,
+          "jitter": 0.0015112382444989131,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 20.658782958984375,
+          "throughput": 166182.9175817597,
+          "rtt": 0.004828404507120549,
+          "latency": 0.0024142022535602746,
+          "jitter": 0.0015087396195383436,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 20.762175798416138,
+          "throughput": 166076.73284364404,
+          "rtt": 0.004819923338208429,
+          "latency": 0.0024099616691042147,
+          "jitter": 0.0015050724368578091,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 20.866267681121826,
+          "throughput": 168125.8063890666,
+          "rtt": 0.004812893511419509,
+          "latency": 0.0024064467557097543,
+          "jitter": 0.001501407089273948,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 20.968835830688477,
+          "throughput": 168020.14722110136,
+          "rtt": 0.004812534678592645,
+          "latency": 0.0024062673392963225,
+          "jitter": 0.0014982791477416496,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 21.07148265838623,
+          "throughput": 167909.2500542199,
+          "rtt": 0.0048079238354618815,
+          "latency": 0.0024039619177309408,
+          "jitter": 0.0014950663229864724,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 21.174083709716797,
+          "throughput": 167803.32550338827,
+          "rtt": 0.004803064812436649,
+          "latency": 0.0024015324062183247,
+          "jitter": 0.001492143334562134,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 21.277570724487305,
+          "throughput": 167694.41385500578,
+          "rtt": 0.004801240994719538,
+          "latency": 0.002400620497359769,
+          "jitter": 0.0014885745197529728,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 21.380815744400024,
+          "throughput": 167584.12826425355,
+          "rtt": 0.004798205900173174,
+          "latency": 0.002399102950086587,
+          "jitter": 0.0014850709218251776,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 21.484546661376953,
+          "throughput": 167467.90952659768,
+          "rtt": 0.004794261686784641,
+          "latency": 0.0023971308433923203,
+          "jitter": 0.0014817294233752786,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 21.58828067779541,
+          "throughput": 167357.70896304297,
+          "rtt": 0.004795755107434076,
+          "latency": 0.002397877553717038,
+          "jitter": 0.0014783941868912068,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 21.695082902908325,
+          "throughput": 167227.74223192743,
+          "rtt": 0.004801939824155233,
+          "latency": 0.0024009699120776163,
+          "jitter": 0.001477203835553879,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 21.797894716262817,
+          "throughput": 167132.76109247416,
+          "rtt": 0.004807740077865323,
+          "latency": 0.0024038700389326616,
+          "jitter": 0.0014744885402222922,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 21.903534650802612,
+          "throughput": 167002.0435734863,
+          "rtt": 0.004811541789247044,
+          "latency": 0.002405770894623522,
+          "jitter": 0.0014749900215377653,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 22.007776737213135,
+          "throughput": 166891.02456961936,
+          "rtt": 0.004817358841219958,
+          "latency": 0.002408679420609979,
+          "jitter": 0.0014716732530002865,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 22.113512754440308,
+          "throughput": 166771.32179236182,
+          "rtt": 0.0048218883454972375,
+          "latency": 0.0024109441727486187,
+          "jitter": 0.0014686327538905967,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 22.218242645263672,
+          "throughput": 166673.32135944624,
+          "rtt": 0.0048265701685544764,
+          "latency": 0.0024132850842772382,
+          "jitter": 0.0014655014175071102,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 22.31897759437561,
+          "throughput": 166576.3519218606,
+          "rtt": 0.0048287263366635,
+          "latency": 0.00241436316833175,
+          "jitter": 0.0014628500667185048,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 22.422260999679565,
+          "throughput": 166478.16921245566,
+          "rtt": 0.004835268887832265,
+          "latency": 0.0024176344439161327,
+          "jitter": 0.0014602275773851208,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 22.525808811187744,
+          "throughput": 166332.51031770304,
+          "rtt": 0.004839434616834012,
+          "latency": 0.002419717308417006,
+          "jitter": 0.0014574693475046133,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 22.62878680229187,
+          "throughput": 166284.06683677895,
+          "rtt": 0.00484742305360881,
+          "latency": 0.002423711526804405,
+          "jitter": 0.0014557341771726854,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 22.733272790908813,
+          "throughput": 166183.0235963635,
+          "rtt": 0.004847882121208271,
+          "latency": 0.0024239410606041356,
+          "jitter": 0.0014542844519897277,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 22.835258722305298,
+          "throughput": 166099.1722746817,
+          "rtt": 0.004851187907220893,
+          "latency": 0.0024255939536104464,
+          "jitter": 0.0014528443917505409,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 22.93779468536377,
+          "throughput": 167985.08382432413,
+          "rtt": 0.004851726733217033,
+          "latency": 0.0024258633666085164,
+          "jitter": 0.0014499737098403003,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 23.040591716766357,
+          "throughput": 167889.82031770225,
+          "rtt": 0.004853535439962052,
+          "latency": 0.002426767719981026,
+          "jitter": 0.001447031538629756,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 23.146169662475586,
+          "throughput": 167753.82007010723,
+          "rtt": 0.004849521869333101,
+          "latency": 0.0024247609346665505,
+          "jitter": 0.0014443368571931132,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 23.247272968292236,
+          "throughput": 167679.66289772943,
+          "rtt": 0.004850847915909034,
+          "latency": 0.002425423957954517,
+          "jitter": 0.0014423959528106118,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 23.349899768829346,
+          "throughput": 167582.33406148505,
+          "rtt": 0.0048495544187543635,
+          "latency": 0.0024247772093771817,
+          "jitter": 0.0014396996706633868,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 23.453276872634888,
+          "throughput": 167481.79442041626,
+          "rtt": 0.004847557290539558,
+          "latency": 0.002423778645269779,
+          "jitter": 0.001436626242156731,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 23.556673765182495,
+          "throughput": 167383.80744738792,
+          "rtt": 0.00484572420443778,
+          "latency": 0.00242286210221889,
+          "jitter": 0.001433579004695059,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 23.660107612609863,
+          "throughput": 167285.92799222385,
+          "rtt": 0.004845400501435002,
+          "latency": 0.002422700250717501,
+          "jitter": 0.0014305584951640326,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 23.763442754745483,
+          "throughput": 167189.7829588002,
+          "rtt": 0.004844425819398289,
+          "latency": 0.0024222129096991445,
+          "jitter": 0.0014275163329542282,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 23.866930723190308,
+          "throughput": 167093.13213554426,
+          "rtt": 0.004842542035299967,
+          "latency": 0.0024212710176499835,
+          "jitter": 0.0014244640793019325,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 23.97033190727234,
+          "throughput": 166999.16163777065,
+          "rtt": 0.004840457228192335,
+          "latency": 0.0024202286140961675,
+          "jitter": 0.0014214623605560694,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 24.073786735534668,
+          "throughput": 166905.7452008577,
+          "rtt": 0.0048382204785044625,
+          "latency": 0.0024191102392522312,
+          "jitter": 0.0014184734040044939,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 24.17719864845276,
+          "throughput": 166808.9351693013,
+          "rtt": 0.004835195027160743,
+          "latency": 0.0024175975135803714,
+          "jitter": 0.001415500977256249,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 24.28009581565857,
+          "throughput": 166727.32442847762,
+          "rtt": 0.004831751793518231,
+          "latency": 0.0024158758967591154,
+          "jitter": 0.0014126474056382185,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 24.384644746780396,
+          "throughput": 166611.04006057436,
+          "rtt": 0.004824577119988746,
+          "latency": 0.002412288559994373,
+          "jitter": 0.0014100579780258545,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 24.48622179031372,
+          "throughput": 166541.0980240118,
+          "rtt": 0.00482467893234498,
+          "latency": 0.00241233946617249,
+          "jitter": 0.0014082937130318039,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 24.58965277671814,
+          "throughput": 166458.89588614213,
+          "rtt": 0.004823619200735661,
+          "latency": 0.0024118096003678305,
+          "jitter": 0.0014053634396799005,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 24.692962646484375,
+          "throughput": 166361.54234106335,
+          "rtt": 0.00481941303488193,
+          "latency": 0.002409706517440965,
+          "jitter": 0.0014024611272357964,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 24.79593777656555,
+          "throughput": 166277.4393655724,
+          "rtt": 0.0048161315630202125,
+          "latency": 0.0024080657815101062,
+          "jitter": 0.0013997438164305366,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 24.899243593215942,
+          "throughput": 166188.27547902512,
+          "rtt": 0.004813103049618374,
+          "latency": 0.002406551524809187,
+          "jitter": 0.001396879761200143,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 25.003548860549927,
+          "throughput": 167897.8437577334,
+          "rtt": 0.0048100301669133155,
+          "latency": 0.0024050150834566577,
+          "jitter": 0.0013942332090272238,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 25.10515785217285,
+          "throughput": 167825.2334828741,
+          "rtt": 0.004837348677899127,
+          "latency": 0.0024186743389495633,
+          "jitter": 0.0013929430465882246,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 25.20824670791626,
+          "throughput": 167728.66978424694,
+          "rtt": 0.004846248248936063,
+          "latency": 0.0024231241244680314,
+          "jitter": 0.001390193811726444,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 25.311651706695557,
+          "throughput": 167633.53122587944,
+          "rtt": 0.004847039180965523,
+          "latency": 0.0024235195904827615,
+          "jitter": 0.0013873938601930472,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 25.414334774017334,
+          "throughput": 167550.2210060763,
+          "rtt": 0.004845884765487223,
+          "latency": 0.0024229423827436115,
+          "jitter": 0.0013848506216459571,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 25.517515659332275,
+          "throughput": 167462.12772356614,
+          "rtt": 0.004842788821265442,
+          "latency": 0.002421394410632721,
+          "jitter": 0.001382113189779294,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 25.62095880508423,
+          "throughput": 167369.7639823015,
+          "rtt": 0.004836639982859313,
+          "latency": 0.0024183199914296566,
+          "jitter": 0.0013793809043816045,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 25.724308967590332,
+          "throughput": 167278.47700920698,
+          "rtt": 0.004829873544558938,
+          "latency": 0.002414936772279469,
+          "jitter": 0.001376647938560221,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 25.82694673538208,
+          "throughput": 167192.0864741031,
+          "rtt": 0.00482441203522097,
+          "latency": 0.002412206017610485,
+          "jitter": 0.0013744973596952607,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 25.930543661117554,
+          "throughput": 167103.53105597664,
+          "rtt": 0.004821528741138245,
+          "latency": 0.0024107643705691224,
+          "jitter": 0.0013717562078632067,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 26.033819675445557,
+          "throughput": 167016.31649960458,
+          "rtt": 0.004818470193150681,
+          "latency": 0.0024092350965753406,
+          "jitter": 0.0013690831733836387,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 26.137218713760376,
+          "throughput": 166929.39004716056,
+          "rtt": 0.004815307230016197,
+          "latency": 0.0024076536150080983,
+          "jitter": 0.001366423080877192,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 26.23959183692932,
+          "throughput": 166852.4190667464,
+          "rtt": 0.004811842796911529,
+          "latency": 0.0024059213984557646,
+          "jitter": 0.0013642762498730727,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 26.34293293952942,
+          "throughput": 166764.26643753474,
+          "rtt": 0.004807394889011624,
+          "latency": 0.002403697444505812,
+          "jitter": 0.001361639646242147,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 26.44533085823059,
+          "throughput": 166684.81283788278,
+          "rtt": 0.0048032866342518354,
+          "latency": 0.0024016433171259177,
+          "jitter": 0.001359583039683296,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 26.548648834228516,
+          "throughput": 166602.08131907292,
+          "rtt": 0.004799703214170378,
+          "latency": 0.002399851607085189,
+          "jitter": 0.0013569875269928793,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 26.6520357131958,
+          "throughput": 166518.23484045774,
+          "rtt": 0.004796094576827782,
+          "latency": 0.002398047288413891,
+          "jitter": 0.0013543849418564946,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 26.7553768157959,
+          "throughput": 166435.57264274114,
+          "rtt": 0.004793369935629289,
+          "latency": 0.0023966849678146445,
+          "jitter": 0.0013517969342026661,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 26.858410835266113,
+          "throughput": 166352.8656969983,
+          "rtt": 0.004790547482380173,
+          "latency": 0.0023952737411900866,
+          "jitter": 0.0013493669349558008,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 26.961033821105957,
+          "throughput": 166272.00382125532,
+          "rtt": 0.004789151656088148,
+          "latency": 0.002394575828044074,
+          "jitter": 0.0013472619449127476,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 27.065101623535156,
+          "throughput": 167859.08991051823,
+          "rtt": 0.004789781768747567,
+          "latency": 0.0023948908843737836,
+          "jitter": 0.0013448923411718474,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 27.167917728424072,
+          "throughput": 167770.59217459796,
+          "rtt": 0.004798835071031519,
+          "latency": 0.0023994175355157594,
+          "jitter": 0.0013427824088985,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 27.271132707595825,
+          "throughput": 167686.24733784804,
+          "rtt": 0.0048025025929717725,
+          "latency": 0.0024012512964858863,
+          "jitter": 0.0013403113619462814,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 27.3776216506958,
+          "throughput": 167575.49515513566,
+          "rtt": 0.004804477624983711,
+          "latency": 0.0024022388124918556,
+          "jitter": 0.0013411900243196018,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 27.478115797042847,
+          "throughput": 167504.16354532764,
+          "rtt": 0.004809978348179128,
+          "latency": 0.002404989174089564,
+          "jitter": 0.0013433160102071255,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 27.581000804901123,
+          "throughput": 167432.0049933782,
+          "rtt": 0.004813594766928917,
+          "latency": 0.0024067973834644586,
+          "jitter": 0.001341121716842803,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 27.684268712997437,
+          "throughput": 167356.99740607152,
+          "rtt": 0.004814986250885432,
+          "latency": 0.002407493125442716,
+          "jitter": 0.001338687455785253,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 27.787357807159424,
+          "throughput": 167277.3377723632,
+          "rtt": 0.004814711138746166,
+          "latency": 0.002407355569373083,
+          "jitter": 0.0013363018630073913,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 27.890426874160767,
+          "throughput": 167184.06285334352,
+          "rtt": 0.004811034099045797,
+          "latency": 0.0024055170495228986,
+          "jitter": 0.0013340975678058267,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 27.99389386177063,
+          "throughput": 167104.8612667648,
+          "rtt": 0.0048121208070438706,
+          "latency": 0.0024060604035219353,
+          "jitter": 0.0013317482390319826,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 28.09722065925598,
+          "throughput": 167025.2927668563,
+          "rtt": 0.004813618082886935,
+          "latency": 0.0024068090414434674,
+          "jitter": 0.0013293990212202744,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 28.200398683547974,
+          "throughput": 166948.22857730935,
+          "rtt": 0.004814743394493692,
+          "latency": 0.002407371697246846,
+          "jitter": 0.0013270836015644948,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 28.303773880004883,
+          "throughput": 166866.57034500974,
+          "rtt": 0.004813973186639914,
+          "latency": 0.002406986593319957,
+          "jitter": 0.0013247078771130793,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 28.407144784927368,
+          "throughput": 166785.82039333932,
+          "rtt": 0.004813891193387617,
+          "latency": 0.0024069455966938087,
+          "jitter": 0.0013223609940409453,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 28.509462594985962,
+          "throughput": 166721.38031755298,
+          "rtt": 0.00481478952015181,
+          "latency": 0.002407394760075905,
+          "jitter": 0.0013204619732123653,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 28.612590789794922,
+          "throughput": 166636.39156062738,
+          "rtt": 0.004812139834770863,
+          "latency": 0.0024060699173854313,
+          "jitter": 0.001318257901840805,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 28.7159206867218,
+          "throughput": 166558.563034113,
+          "rtt": 0.004812340417814272,
+          "latency": 0.002406170208907136,
+          "jitter": 0.0013159387780581839,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 28.819140672683716,
+          "throughput": 166483.29843813655,
+          "rtt": 0.0048129239789495935,
+          "latency": 0.0024064619894747967,
+          "jitter": 0.001313635613625291,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 28.922531843185425,
+          "throughput": 166407.20945321242,
+          "rtt": 0.004813169705667817,
+          "latency": 0.0024065848528339083,
+          "jitter": 0.00131130826305214,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 29.025823831558228,
+          "throughput": 166331.66839681438,
+          "rtt": 0.004812893550931212,
+          "latency": 0.002406446775465606,
+          "jitter": 0.0013090137025572996,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 29.129660844802856,
+          "throughput": 167801.32029337328,
+          "rtt": 0.0048126762374104855,
+          "latency": 0.0024063381187052427,
+          "jitter": 0.001306777094794684,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 29.231823682785034,
+          "throughput": 167731.78923701582,
+          "rtt": 0.004818955798002289,
+          "latency": 0.0024094778990011445,
+          "jitter": 0.0013050028631425561,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 29.335211753845215,
+          "throughput": 167648.9711262837,
+          "rtt": 0.00481950829830381,
+          "latency": 0.002409754149151905,
+          "jitter": 0.0013027255352513552,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 29.437970876693726,
+          "throughput": 167573.1654200009,
+          "rtt": 0.004818460117925807,
+          "latency": 0.0024092300589629036,
+          "jitter": 0.0013007641424494485,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 29.541220664978027,
+          "throughput": 167495.33429013795,
+          "rtt": 0.004817389972346695,
+          "latency": 0.0024086949861733477,
+          "jitter": 0.0012985219778043561,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 29.64374089241028,
+          "throughput": 167421.17089148733,
+          "rtt": 0.004815758824758817,
+          "latency": 0.0024078794123794083,
+          "jitter": 0.0012966590481534792,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 29.746896743774414,
+          "throughput": 167346.54621582714,
+          "rtt": 0.004815023081412455,
+          "latency": 0.0024075115407062274,
+          "jitter": 0.0012944599163026106,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 29.850263595581055,
+          "throughput": 167268.80605178745,
+          "rtt": 0.004813557436856738,
+          "latency": 0.002406778718428369,
+          "jitter": 0.0012922507396586555,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        },
+        {
+          "timestamp": 29.953455686569214,
+          "throughput": 167193.83918535928,
+          "rtt": 0.004812839774436112,
+          "latency": 0.002406419887218056,
+          "jitter": 0.001290062461372593,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 9.5367431640625e-07
+        }
+      ],
+      "start_time": 0.0,
+      "end_time": 0.0,
+      "success": true,
+      "error_message": null,
+      "network_scenario": "congested_low",
+      "network_config": {}
+    },
+    "2": {
+      "connection_id": 2,
+      "application_type": "file_transfer",
+      "final_metrics": {
+        "throughput": 46001928.124180846,
+        "rtt": 0.029265726194466164,
+        "latency": 0.014632863097233082,
+        "jitter": 0.000591034474713411,
+        "packet_loss_rate": 0.0,
+        "connection_establishment_time": 1.1920928955078125e-06
+      },
+      "param_history": [],
+      "epoch_history": [],
+      "metrics_history": [
+        {
+          "timestamp": 0.10000991821289062,
+          "throughput": 40561443.16014003,
+          "rtt": 0.009290507564664046,
+          "latency": 0.004645253782332023,
+          "jitter": 0.0005651719344928949,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.1920928955078125e-06
+        },
+        {
+          "timestamp": 0.200164794921875,
+          "throughput": 46792280.0663408,
+          "rtt": 0.022347607465184015,
+          "latency": 0.011173803732592007,
+          "jitter": 0.00041157472650278057,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.1920928955078125e-06
+        }
+      ],
+      "start_time": 0.0,
+      "end_time": 0.0,
+      "success": true,
+      "error_message": null,
+      "network_scenario": "congested_low",
+      "network_config": {}
+    },
+    "3": {
+      "connection_id": 3,
+      "application_type": "conference_call",
+      "final_metrics": {
+        "throughput": 15091.923925676645,
+        "rtt": 0.0033592248981810353,
+        "latency": 0.0016796124490905176,
+        "jitter": 0.0009421748006975749,
+        "packet_loss_rate": 0.0,
+        "connection_establishment_time": 1.9073486328125e-06
+      },
+      "param_history": [],
+      "epoch_history": [
+        {
+          "epoch_id": 0,
+          "connection_id": 3,
+          "application_type": "conference_call",
+          "timing": {
+            "start_time": 1770682194.442297,
+            "end_time": 1770682224.4026828,
+            "duration_seconds": 29.96038579940796,
+            "settling_start": null,
+            "settling_duration_seconds": 0.0
+          },
+          "parameters": {
+            "dynamic": {
+              "loss_reduction_factor": 0.5,
+              "cubic_c": 0.3,
+              "minimum_window": 6,
+              "packet_threshold": 2,
+              "time_threshold": 1.0,
+              "cubic_max_idle_time": 2.0
+            },
+            "start_only": {
+              "initial_cw": 12000,
+              "max_ack_delay": 0.025,
+              "max_data": 1048576,
+              "max_stream_data": 1048576
+            }
+          },
+          "network": {
+            "scenario": "congested_low",
+            "config": {}
+          },
+          "metrics": {
+            "throughput_bps": 15133.903571723742,
+            "throughput_mbps": 0.015133903571723742,
+            "avg_rtt_ms": 4.082742403651251,
+            "min_rtt_ms": 3.184740934635929,
+            "max_rtt_ms": 20.461407279682668,
+            "jitter_ms": 1.0778470691119701,
+            "packet_loss_rate": 0.0,
+            "packet_loss_percent": 0.0,
+            "bytes_sent": 449600,
+            "bytes_received": 0,
+            "packets_sent": 1405,
+            "packets_lost": 0
+          },
+          "is_valid": true,
+          "sample_count": 282
+        }
+      ],
+      "metrics_history": [
+        {
+          "timestamp": 0.11078190803527832,
+          "throughput": 20458.148340090844,
+          "rtt": 0.014171710893151612,
+          "latency": 0.007085855446575806,
+          "jitter": 0.0005690794447405566,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 0.21516108512878418,
+          "throughput": 17253.06512107544,
+          "rtt": 0.01607218786940693,
+          "latency": 0.008036093934703465,
+          "jitter": 0.0003915258987605609,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 0.3186049461364746,
+          "throughput": 16571.22969657525,
+          "rtt": 0.020186641695027728,
+          "latency": 0.010093320847513864,
+          "jitter": 0.0003862787579194536,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 0.4237101078033447,
+          "throughput": 16192.876862636529,
+          "rtt": 0.020461407279682667,
+          "latency": 0.010230703639841333,
+          "jitter": 0.00034641974752499627,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 0.5290281772613525,
+          "throughput": 15973.016229253515,
+          "rtt": 0.018617084399248914,
+          "latency": 0.009308542199624457,
+          "jitter": 0.00031991046144413346,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 0.6343381404876709,
+          "throughput": 15831.399086636156,
+          "rtt": 0.01655597252993009,
+          "latency": 0.008277986264965046,
+          "jitter": 0.0002969447937344168,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 0.7398951053619385,
+          "throughput": 15725.704077536077,
+          "rtt": 0.01472842030124541,
+          "latency": 0.007364210150622705,
+          "jitter": 0.0002820716249689404,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 0.846229076385498,
+          "throughput": 15630.129791951269,
+          "rtt": 0.013218441092836104,
+          "latency": 0.006609220546418052,
+          "jitter": 0.00029040548894387685,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 0.9507391452789307,
+          "throughput": 15593.57505357537,
+          "rtt": 0.011992459753141095,
+          "latency": 0.0059962298765705475,
+          "jitter": 0.00034933956880332974,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 1.056443214416504,
+          "throughput": 15551.113820403843,
+          "rtt": 0.010997065086024086,
+          "latency": 0.005498532543012043,
+          "jitter": 0.00034913559478007625,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 1.161674976348877,
+          "throughput": 15516.74284783299,
+          "rtt": 0.010159898799319847,
+          "latency": 0.0050799493996599235,
+          "jitter": 0.000332384458510892,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 1.2678849697113037,
+          "throughput": 15474.066808077,
+          "rtt": 0.009446420808097234,
+          "latency": 0.004723210404048617,
+          "jitter": 0.00033292352542963166,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 1.3751332759857178,
+          "throughput": 15422.649512863198,
+          "rtt": 0.008843415984598726,
+          "latency": 0.004421707992299363,
+          "jitter": 0.0003850903055326625,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 1.480776071548462,
+          "throughput": 15407.085131875734,
+          "rtt": 0.008338853821202679,
+          "latency": 0.0041694269106013395,
+          "jitter": 0.00039583105564597006,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 1.5844600200653076,
+          "throughput": 15404.170947148872,
+          "rtt": 0.007900803288761332,
+          "latency": 0.003950401644380666,
+          "jitter": 0.0005403139653912779,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 1.6878859996795654,
+          "throughput": 15416.919253831147,
+          "rtt": 0.007528508848252678,
+          "latency": 0.003764254424126339,
+          "jitter": 0.0005354662860789989,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 1.7927610874176025,
+          "throughput": 15407.191139110768,
+          "rtt": 0.007187143085585729,
+          "latency": 0.0035935715427928643,
+          "jitter": 0.0005206254653468105,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 1.8984692096710205,
+          "throughput": 15389.805574089876,
+          "rtt": 0.006876889556881699,
+          "latency": 0.0034384447784408497,
+          "jitter": 0.0005069049018845593,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 2.0029401779174805,
+          "throughput": 15387.552242686976,
+          "rtt": 0.006598273605955798,
+          "latency": 0.003299136802977899,
+          "jitter": 0.0005031052724964027,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 2.1103768348693848,
+          "throughput": 15341.278174003492,
+          "rtt": 0.0063489340048490765,
+          "latency": 0.0031744670024245383,
+          "jitter": 0.0004995176770163011,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 2.214893102645874,
+          "throughput": 15326.984803508947,
+          "rtt": 0.006143936737298826,
+          "latency": 0.003071968368649413,
+          "jitter": 0.0004916233510451251,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 2.3231871128082275,
+          "throughput": 15327.838768721416,
+          "rtt": 0.005952999896510432,
+          "latency": 0.002976499948255216,
+          "jitter": 0.000521408963695233,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 2.4283151626586914,
+          "throughput": 15323.17904254097,
+          "rtt": 0.005778425051593708,
+          "latency": 0.002889212525796854,
+          "jitter": 0.0005149843817150634,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 2.532467842102051,
+          "throughput": 15324.838258811424,
+          "rtt": 0.005624231536857338,
+          "latency": 0.002812115768428669,
+          "jitter": 0.0006249019604757941,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 2.640136957168579,
+          "throughput": 15308.14628566551,
+          "rtt": 0.005479426774867961,
+          "latency": 0.0027397133874339807,
+          "jitter": 0.0006477714357240602,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 2.7494959831237793,
+          "throughput": 15277.650906634997,
+          "rtt": 0.005352436116328372,
+          "latency": 0.002676218058164186,
+          "jitter": 0.0008540796267316767,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 2.857140064239502,
+          "throughput": 15263.007483256046,
+          "rtt": 0.005239564730946355,
+          "latency": 0.0026197823654731775,
+          "jitter": 0.0009244234871946911,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 2.9625792503356934,
+          "throughput": 15261.147279110783,
+          "rtt": 0.005132991638012343,
+          "latency": 0.0025664958190061717,
+          "jitter": 0.0009077702131328151,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 3.0789270401000977,
+          "throughput": 15196.812173205113,
+          "rtt": 0.005034232556524356,
+          "latency": 0.002517116278262178,
+          "jitter": 0.001060849361346594,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 3.1888701915740967,
+          "throughput": 15180.483809359559,
+          "rtt": 0.004961787044612247,
+          "latency": 0.0024808935223061233,
+          "jitter": 0.001098477612534172,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 3.3019073009490967,
+          "throughput": 15144.893923982481,
+          "rtt": 0.004952494708102898,
+          "latency": 0.002476247354051449,
+          "jitter": 0.0012165960426534174,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 3.4069831371307373,
+          "throughput": 15144.8725816632,
+          "rtt": 0.0048986102323212224,
+          "latency": 0.0024493051161606112,
+          "jitter": 0.0011997000790546178,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 3.512247085571289,
+          "throughput": 15148.362880099101,
+          "rtt": 0.0048354902737756675,
+          "latency": 0.0024177451368878338,
+          "jitter": 0.0011814643896360956,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 3.6174731254577637,
+          "throughput": 15147.785922456234,
+          "rtt": 0.004757920637094056,
+          "latency": 0.002378960318547028,
+          "jitter": 0.0011656092815652604,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 3.7252490520477295,
+          "throughput": 15137.210194625013,
+          "rtt": 0.004682046744353428,
+          "latency": 0.002341023372176714,
+          "jitter": 0.001153662078766708,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 3.831088066101074,
+          "throughput": 15138.74116359676,
+          "rtt": 0.0046126315473209775,
+          "latency": 0.0023063157736604887,
+          "jitter": 0.0011446548420099571,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 3.935797929763794,
+          "throughput": 15142.447825489,
+          "rtt": 0.004543233125834776,
+          "latency": 0.002271616562917388,
+          "jitter": 0.0011309703258061761,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 4.044683933258057,
+          "throughput": 15129.948825564601,
+          "rtt": 0.004481334269162222,
+          "latency": 0.002240667134581111,
+          "jitter": 0.0011298778591213726,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 4.15240216255188,
+          "throughput": 15121.952643250988,
+          "rtt": 0.004425474222437449,
+          "latency": 0.0022127371112187245,
+          "jitter": 0.0011524582370161093,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 4.255902290344238,
+          "throughput": 15130.897379966222,
+          "rtt": 0.004374388485003351,
+          "latency": 0.0021871942425016754,
+          "jitter": 0.0011512593184095127,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 4.361823081970215,
+          "throughput": 15129.571376037897,
+          "rtt": 0.004324110610539098,
+          "latency": 0.002162055305269549,
+          "jitter": 0.0011385299670438802,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 4.4677369594573975,
+          "throughput": 15129.64718962601,
+          "rtt": 0.0042736300489030505,
+          "latency": 0.0021368150244515252,
+          "jitter": 0.0011255252288137159,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 4.573807001113892,
+          "throughput": 15128.439647111501,
+          "rtt": 0.004225843570507844,
+          "latency": 0.002112921785253922,
+          "jitter": 0.0011199535756298178,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 4.6901960372924805,
+          "throughput": 15093.01706632306,
+          "rtt": 0.004182150980306397,
+          "latency": 0.0020910754901531984,
+          "jitter": 0.0013337593848250487,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 4.79596209526062,
+          "throughput": 15093.179353116418,
+          "rtt": 0.004140758198058826,
+          "latency": 0.002070379099029413,
+          "jitter": 0.0013201847926835172,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 4.903284072875977,
+          "throughput": 15089.693265334487,
+          "rtt": 0.004109793099932055,
+          "latency": 0.0020548965499660276,
+          "jitter": 0.0013843959184831939,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 5.012026071548462,
+          "throughput": 15081.15846651636,
+          "rtt": 0.004087485574323105,
+          "latency": 0.0020437427871615524,
+          "jitter": 0.0013791588678430569,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 5.1176722049713135,
+          "throughput": 15083.51833497861,
+          "rtt": 0.004062356215936248,
+          "latency": 0.002031178107968124,
+          "jitter": 0.0013658064730235058,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 5.223361968994141,
+          "throughput": 15084.59673789074,
+          "rtt": 0.0040321585872602,
+          "latency": 0.0020160792936301,
+          "jitter": 0.001351924637747488,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 5.327980041503906,
+          "throughput": 15087.80317035059,
+          "rtt": 0.0039964131772132734,
+          "latency": 0.0019982065886066367,
+          "jitter": 0.0013400848466464989,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 5.434797048568726,
+          "throughput": 15087.750309001603,
+          "rtt": 0.003966120712694956,
+          "latency": 0.001983060356347478,
+          "jitter": 0.0013294595383796014,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 5.539853096008301,
+          "throughput": 15090.599030821297,
+          "rtt": 0.003933321131473255,
+          "latency": 0.0019666605657366275,
+          "jitter": 0.0013170890218615072,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 5.64526891708374,
+          "throughput": 15091.236235444116,
+          "rtt": 0.0038959120360342017,
+          "latency": 0.0019479560180171009,
+          "jitter": 0.001304769205776537,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 5.752150058746338,
+          "throughput": 15086.839402071808,
+          "rtt": 0.0038600382977601213,
+          "latency": 0.0019300191488800607,
+          "jitter": 0.0012935482449521235,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 5.86216402053833,
+          "throughput": 15075.74425681804,
+          "rtt": 0.003833191391186782,
+          "latency": 0.001916595695593391,
+          "jitter": 0.0012878114533489047,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 5.966963291168213,
+          "throughput": 15080.33021906516,
+          "rtt": 0.0038099971278661784,
+          "latency": 0.0019049985639330892,
+          "jitter": 0.0012790422670434136,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 6.074443101882935,
+          "throughput": 15076.031198399382,
+          "rtt": 0.003789736388123946,
+          "latency": 0.001894868194061973,
+          "jitter": 0.0012695200268309738,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 6.1799540519714355,
+          "throughput": 15078.16388502649,
+          "rtt": 0.003768347841057502,
+          "latency": 0.001884173920528751,
+          "jitter": 0.0012598338977766862,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 6.288889169692993,
+          "throughput": 15071.18249164535,
+          "rtt": 0.0037481895411530515,
+          "latency": 0.0018740947705765257,
+          "jitter": 0.0012513379109377683,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 6.393360137939453,
+          "throughput": 15072.948241148239,
+          "rtt": 0.003729747139519678,
+          "latency": 0.001864873569759839,
+          "jitter": 0.001242340304879103,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 6.498824834823608,
+          "throughput": 15077.047082278643,
+          "rtt": 0.003712841938644123,
+          "latency": 0.0018564209693220615,
+          "jitter": 0.0012343579676259815,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 6.605122089385986,
+          "throughput": 15078.674118125438,
+          "rtt": 0.003693923609147927,
+          "latency": 0.0018469618045739635,
+          "jitter": 0.0012258959969535534,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 6.711390972137451,
+          "throughput": 15076.174043442714,
+          "rtt": 0.003671367019741345,
+          "latency": 0.0018356835098706724,
+          "jitter": 0.001220025266070144,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 6.818590879440308,
+          "throughput": 15073.902787862537,
+          "rtt": 0.003653020709205568,
+          "latency": 0.001826510354602784,
+          "jitter": 0.0012144604722870598,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 6.923979043960571,
+          "throughput": 15075.58964471163,
+          "rtt": 0.0036343297642981486,
+          "latency": 0.0018171648821490743,
+          "jitter": 0.0012067672520388398,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 7.0307440757751465,
+          "throughput": 15073.403152373958,
+          "rtt": 0.0036151406445656576,
+          "latency": 0.0018075703222828288,
+          "jitter": 0.0011980067437540735,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 7.1360602378845215,
+          "throughput": 15077.671276536348,
+          "rtt": 0.003600119151712683,
+          "latency": 0.0018000595758563415,
+          "jitter": 0.00118934009944177,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 7.242298126220703,
+          "throughput": 15075.59241510973,
+          "rtt": 0.003579310984440536,
+          "latency": 0.001789655492220268,
+          "jitter": 0.0011809054054719658,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 7.350205898284912,
+          "throughput": 15072.172144686903,
+          "rtt": 0.00356015437386669,
+          "latency": 0.001780077186933345,
+          "jitter": 0.001181280720234704,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 7.459142208099365,
+          "throughput": 15066.045620263756,
+          "rtt": 0.0035432284999510183,
+          "latency": 0.0017716142499755092,
+          "jitter": 0.0011778590728416527,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 7.5639121532440186,
+          "throughput": 15068.71336043729,
+          "rtt": 0.003530639312841242,
+          "latency": 0.001765319656420621,
+          "jitter": 0.0011713640880832731,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 7.677927255630493,
+          "throughput": 15052.271305456134,
+          "rtt": 0.0035173048342911736,
+          "latency": 0.0017586524171455868,
+          "jitter": 0.0011856384543095324,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 7.783255100250244,
+          "throughput": 15055.240317277956,
+          "rtt": 0.0035053912688985853,
+          "latency": 0.0017526956344492927,
+          "jitter": 0.0011792358996436049,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 7.889283180236816,
+          "throughput": 15055.517600297278,
+          "rtt": 0.003492267672578712,
+          "latency": 0.001746133836289356,
+          "jitter": 0.0011730638446220628,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 7.99690318107605,
+          "throughput": 15052.751732002202,
+          "rtt": 0.003480683024614181,
+          "latency": 0.0017403415123070905,
+          "jitter": 0.0011659914507180789,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 8.101840019226074,
+          "throughput": 15054.694320876639,
+          "rtt": 0.0034699691499019327,
+          "latency": 0.0017349845749509664,
+          "jitter": 0.001162696237465228,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 8.20989203453064,
+          "throughput": 15052.913130916158,
+          "rtt": 0.0034629791056489403,
+          "latency": 0.0017314895528244701,
+          "jitter": 0.0012627986308286782,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 8.317302942276001,
+          "throughput": 15048.896210031713,
+          "rtt": 0.003454613741065871,
+          "latency": 0.0017273068705329355,
+          "jitter": 0.0012552498449650135,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 8.421876907348633,
+          "throughput": 15053.794813738492,
+          "rtt": 0.003446444720403238,
+          "latency": 0.001723222360201619,
+          "jitter": 0.00125101073519499,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 8.528556108474731,
+          "throughput": 15050.86059941087,
+          "rtt": 0.0034371164227616005,
+          "latency": 0.0017185582113808003,
+          "jitter": 0.0012447562848957006,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 8.639349937438965,
+          "throughput": 15043.13074002828,
+          "rtt": 0.003432000307100484,
+          "latency": 0.001716000153550242,
+          "jitter": 0.0012656675442714513,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 8.746215105056763,
+          "throughput": 15042.691184426621,
+          "rtt": 0.0034292457623180577,
+          "latency": 0.0017146228811590288,
+          "jitter": 0.0012590311682367588,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 8.853315114974976,
+          "throughput": 15040.761045549794,
+          "rtt": 0.0034257316646578244,
+          "latency": 0.0017128658323289122,
+          "jitter": 0.0012525694306459785,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 8.961580038070679,
+          "throughput": 15039.183103190488,
+          "rtt": 0.003419818346328893,
+          "latency": 0.0017099091731644464,
+          "jitter": 0.0012511265186220598,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 9.067233085632324,
+          "throughput": 15040.36788490731,
+          "rtt": 0.0034120474588496975,
+          "latency": 0.0017060237294248487,
+          "jitter": 0.0012449195994039784,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 9.17281985282898,
+          "throughput": 15042.278909459566,
+          "rtt": 0.003402405217977431,
+          "latency": 0.0017012026089887155,
+          "jitter": 0.0012381144774735403,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 9.279778003692627,
+          "throughput": 15040.68993757973,
+          "rtt": 0.0033919404970785857,
+          "latency": 0.0016959702485392929,
+          "jitter": 0.0012312138506246706,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 9.387551069259644,
+          "throughput": 15038.34908068054,
+          "rtt": 0.003383071369992223,
+          "latency": 0.0016915356849961116,
+          "jitter": 0.001228089925557588,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 9.492776870727539,
+          "throughput": 15040.219295193763,
+          "rtt": 0.003374787831742346,
+          "latency": 0.001687393915871173,
+          "jitter": 0.0012230669713590135,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 9.602179050445557,
+          "throughput": 15035.343795144072,
+          "rtt": 0.0033679315093002996,
+          "latency": 0.0016839657546501498,
+          "jitter": 0.0012212630713603061,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 9.709218978881836,
+          "throughput": 15035.572600492085,
+          "rtt": 0.0033653849625657874,
+          "latency": 0.0016826924812828937,
+          "jitter": 0.0012187613288143992,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 9.821086883544922,
+          "throughput": 15026.489966320978,
+          "rtt": 0.0033591781679021366,
+          "latency": 0.0016795890839510683,
+          "jitter": 0.001218515642940485,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 9.928312063217163,
+          "throughput": 15025.896369492373,
+          "rtt": 0.003355928566196939,
+          "latency": 0.0016779642830984695,
+          "jitter": 0.0012180424536063776,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 10.038597106933594,
+          "throughput": 15019.662850365008,
+          "rtt": 0.003349737748125677,
+          "latency": 0.0016748688740628385,
+          "jitter": 0.0012261118278991598,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 10.148325204849243,
+          "throughput": 15014.888945662862,
+          "rtt": 0.0033433274051090957,
+          "latency": 0.0016716637025545478,
+          "jitter": 0.001232924767149944,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 10.25577998161316,
+          "throughput": 15013.362208178367,
+          "rtt": 0.0033379206004353155,
+          "latency": 0.0016689603002176577,
+          "jitter": 0.001228406249750621,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 10.361928939819336,
+          "throughput": 15013.837664295874,
+          "rtt": 0.003332029677102518,
+          "latency": 0.001666014838551259,
+          "jitter": 0.0012244884634132645,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 10.46653699874878,
+          "throughput": 15018.646858694608,
+          "rtt": 0.0033256813775928104,
+          "latency": 0.0016628406887964052,
+          "jitter": 0.001219226993282787,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 10.571413040161133,
+          "throughput": 15020.487850142086,
+          "rtt": 0.0033141851406503302,
+          "latency": 0.0016570925703251651,
+          "jitter": 0.0012136374120141874,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 10.67674207687378,
+          "throughput": 15021.056227939986,
+          "rtt": 0.003300890738084949,
+          "latency": 0.0016504453690424745,
+          "jitter": 0.001207922174197565,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 10.783027172088623,
+          "throughput": 15020.719443898572,
+          "rtt": 0.0032895751686519347,
+          "latency": 0.0016447875843259674,
+          "jitter": 0.0012038470292010596,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 10.889065980911255,
+          "throughput": 15022.841091192753,
+          "rtt": 0.0032809071764848545,
+          "latency": 0.0016404535882424273,
+          "jitter": 0.0011993012065057832,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 10.995952129364014,
+          "throughput": 15020.653575622495,
+          "rtt": 0.0032728053228743862,
+          "latency": 0.0016364026614371931,
+          "jitter": 0.0011943248168612378,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 11.10450005531311,
+          "throughput": 15018.613415410393,
+          "rtt": 0.003268378050016035,
+          "latency": 0.0016341890250080174,
+          "jitter": 0.001192013392213536,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 11.212148904800415,
+          "throughput": 15016.213234824709,
+          "rtt": 0.0032638473696629334,
+          "latency": 0.0016319236848314667,
+          "jitter": 0.0011903589782120548,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 11.321144104003906,
+          "throughput": 15012.825838885872,
+          "rtt": 0.003259158165838203,
+          "latency": 0.0016295790829191014,
+          "jitter": 0.0011867089303223633,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 11.435891151428223,
+          "throughput": 15002.420835637507,
+          "rtt": 0.003256947945480571,
+          "latency": 0.0016284739727402855,
+          "jitter": 0.0013178134606897961,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 11.54150390625,
+          "throughput": 15004.450600625147,
+          "rtt": 0.003254948205833745,
+          "latency": 0.0016274741029168726,
+          "jitter": 0.0013128027814891872,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 11.64742398262024,
+          "throughput": 15005.242376532826,
+          "rtt": 0.0032505286743274645,
+          "latency": 0.0016252643371637322,
+          "jitter": 0.0013074589200107538,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 11.752989292144775,
+          "throughput": 15006.220591375431,
+          "rtt": 0.0032437548602304855,
+          "latency": 0.0016218774301152428,
+          "jitter": 0.0013028951327217467,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 11.859016180038452,
+          "throughput": 15007.132205723628,
+          "rtt": 0.0032379006858265116,
+          "latency": 0.0016189503429132558,
+          "jitter": 0.0012975081916422487,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 11.965031147003174,
+          "throughput": 15008.006004825873,
+          "rtt": 0.003232552887337835,
+          "latency": 0.0016162764436689174,
+          "jitter": 0.001291983517630691,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 12.070436000823975,
+          "throughput": 15010.696548619248,
+          "rtt": 0.0032275324737985637,
+          "latency": 0.0016137662368992819,
+          "jitter": 0.0012879484212136208,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 12.176875114440918,
+          "throughput": 15007.992889537727,
+          "rtt": 0.003222008179646559,
+          "latency": 0.0016110040898232795,
+          "jitter": 0.0012826624257470832,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 12.283432960510254,
+          "throughput": 15008.146135413335,
+          "rtt": 0.003220287843774263,
+          "latency": 0.0016101439218871316,
+          "jitter": 0.0012780574732311892,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 12.388542890548706,
+          "throughput": 15010.45121731989,
+          "rtt": 0.0032185643569691146,
+          "latency": 0.0016092821784845573,
+          "jitter": 0.001273909904045175,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 12.493662118911743,
+          "throughput": 15012.375930854836,
+          "rtt": 0.0032175524926417883,
+          "latency": 0.0016087762463208941,
+          "jitter": 0.001270041916185042,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 12.59832215309143,
+          "throughput": 15015.882321611583,
+          "rtt": 0.003218185094039246,
+          "latency": 0.001609092547019623,
+          "jitter": 0.0012657040664259614,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 12.704774141311646,
+          "throughput": 15014.866856679042,
+          "rtt": 0.003222657980287567,
+          "latency": 0.0016113289901437836,
+          "jitter": 0.0012606986576984226,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 12.814038038253784,
+          "throughput": 15009.087263098354,
+          "rtt": 0.003223617897712805,
+          "latency": 0.0016118089488564025,
+          "jitter": 0.0012682256259421616,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 12.91884994506836,
+          "throughput": 15011.67161630047,
+          "rtt": 0.003222307870069679,
+          "latency": 0.0016111539350348394,
+          "jitter": 0.0012650828493731428,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 13.026262044906616,
+          "throughput": 15011.591824099323,
+          "rtt": 0.003223316527472032,
+          "latency": 0.001611658263736016,
+          "jitter": 0.0012614021467984733,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 13.131815195083618,
+          "throughput": 15013.809257906165,
+          "rtt": 0.0032239440533879875,
+          "latency": 0.0016119720266939937,
+          "jitter": 0.0012576621571826238,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 13.242192029953003,
+          "throughput": 15009.604961462908,
+          "rtt": 0.00322220046469706,
+          "latency": 0.00161110023234853,
+          "jitter": 0.0012540605490219162,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 13.345689058303833,
+          "throughput": 15013.096017324817,
+          "rtt": 0.003223447039319912,
+          "latency": 0.001611723519659956,
+          "jitter": 0.0012552965718428438,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 13.451803207397461,
+          "throughput": 15014.289292904157,
+          "rtt": 0.0032233915908624353,
+          "latency": 0.0016116957954312176,
+          "jitter": 0.0012513679039064074,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 13.557736873626709,
+          "throughput": 15014.898531524761,
+          "rtt": 0.0032221805342179744,
+          "latency": 0.0016110902671089872,
+          "jitter": 0.0012504023951772838,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 13.663595914840698,
+          "throughput": 15015.657069482111,
+          "rtt": 0.0032206553215107714,
+          "latency": 0.0016103276607553857,
+          "jitter": 0.0012462567048639691,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 13.7692711353302,
+          "throughput": 15016.557822897139,
+          "rtt": 0.0032188151427530102,
+          "latency": 0.0016094075713765051,
+          "jitter": 0.001243966811776099,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 13.874946117401123,
+          "throughput": 15017.098657132292,
+          "rtt": 0.0032173437456803566,
+          "latency": 0.0016086718728401783,
+          "jitter": 0.001239290443294495,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 13.981608867645264,
+          "throughput": 15013.535110635683,
+          "rtt": 0.0032149557801824215,
+          "latency": 0.0016074778900912108,
+          "jitter": 0.0012349086385972147,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 14.08652114868164,
+          "throughput": 15018.562041278517,
+          "rtt": 0.0032152529396350486,
+          "latency": 0.0016076264698175243,
+          "jitter": 0.0012383567858432407,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 14.192322015762329,
+          "throughput": 15020.09934808434,
+          "rtt": 0.0032173461413852835,
+          "latency": 0.0016086730706926418,
+          "jitter": 0.0012347586072263199,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 14.298219919204712,
+          "throughput": 15019.551071425853,
+          "rtt": 0.003217227511054149,
+          "latency": 0.0016086137555270746,
+          "jitter": 0.0012307123314639831,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 14.405010223388672,
+          "throughput": 15021.605425733336,
+          "rtt": 0.0032148104848646135,
+          "latency": 0.0016074052424323068,
+          "jitter": 0.0012263864084238493,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 14.512071132659912,
+          "throughput": 15018.801107814483,
+          "rtt": 0.003213050746776944,
+          "latency": 0.001606525373388472,
+          "jitter": 0.0012244293455915846,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 14.616175174713135,
+          "throughput": 15023.62263470418,
+          "rtt": 0.0032131910334113807,
+          "latency": 0.0016065955167056903,
+          "jitter": 0.0012217187785055251,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 14.721570014953613,
+          "throughput": 15023.220403439263,
+          "rtt": 0.0032145905700796894,
+          "latency": 0.0016072952850398447,
+          "jitter": 0.0012174692961295001,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 14.829836130142212,
+          "throughput": 15020.7437410291,
+          "rtt": 0.0032152614081829645,
+          "latency": 0.0016076307040914822,
+          "jitter": 0.0012158341039901223,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 14.933005094528198,
+          "throughput": 15024.131213829873,
+          "rtt": 0.003216648394971667,
+          "latency": 0.0016083241974858334,
+          "jitter": 0.0012157732601788427,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 15.038064002990723,
+          "throughput": 15025.481259063818,
+          "rtt": 0.0032167267851391373,
+          "latency": 0.0016083633925695687,
+          "jitter": 0.0012134506357021017,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 15.147708177566528,
+          "throughput": 15022.666544540882,
+          "rtt": 0.0032162075074665814,
+          "latency": 0.0016081037537332907,
+          "jitter": 0.0012152655984933062,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 15.252722263336182,
+          "throughput": 15024.501620263512,
+          "rtt": 0.003215679092972403,
+          "latency": 0.0016078395464862016,
+          "jitter": 0.0012145394662569035,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 15.358633041381836,
+          "throughput": 15024.634680120578,
+          "rtt": 0.003214306106336598,
+          "latency": 0.001607153053168299,
+          "jitter": 0.001211156791756232,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 15.464197158813477,
+          "throughput": 15027.435614942746,
+          "rtt": 0.0032128317612397203,
+          "latency": 0.0016064158806198602,
+          "jitter": 0.0012071288315008506,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 15.569430112838745,
+          "throughput": 15028.476268556657,
+          "rtt": 0.003207660962040226,
+          "latency": 0.001603830481020113,
+          "jitter": 0.0012032255413278745,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 15.674987077713013,
+          "throughput": 15028.028472398972,
+          "rtt": 0.0032007370992260392,
+          "latency": 0.0016003685496130196,
+          "jitter": 0.0011992479572987625,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 15.780086040496826,
+          "throughput": 15029.17340100183,
+          "rtt": 0.003195585495430588,
+          "latency": 0.001597792747715294,
+          "jitter": 0.001195667763400923,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 15.886206865310669,
+          "throughput": 15030.612602514762,
+          "rtt": 0.0031921464592174044,
+          "latency": 0.0015960732296087022,
+          "jitter": 0.0011918715766985066,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 15.99154806137085,
+          "throughput": 15030.0492763779,
+          "rtt": 0.003187899839919648,
+          "latency": 0.001593949919959824,
+          "jitter": 0.0011881935269491158,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 16.097832202911377,
+          "throughput": 15030.827688390544,
+          "rtt": 0.0031859430915679404,
+          "latency": 0.0015929715457839702,
+          "jitter": 0.0011849673293030034,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 16.203503131866455,
+          "throughput": 15030.420262013868,
+          "rtt": 0.003184740934635929,
+          "latency": 0.0015923704673179646,
+          "jitter": 0.0011815479564751322,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 16.310259103775024,
+          "throughput": 15029.363044535203,
+          "rtt": 0.0031851517228060756,
+          "latency": 0.0015925758614030378,
+          "jitter": 0.0011783108156284594,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 16.419275999069214,
+          "throughput": 15028.692159660586,
+          "rtt": 0.0031865259177396407,
+          "latency": 0.0015932629588698204,
+          "jitter": 0.0011818603508154052,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 16.523333072662354,
+          "throughput": 15030.270827383869,
+          "rtt": 0.0031885371496597997,
+          "latency": 0.0015942685748298999,
+          "jitter": 0.001179142046170674,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 16.628823041915894,
+          "throughput": 15031.337487088731,
+          "rtt": 0.0031899440810813813,
+          "latency": 0.0015949720405406907,
+          "jitter": 0.0011756276072593496,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 16.73443102836609,
+          "throughput": 15032.490548683976,
+          "rtt": 0.003190836787113914,
+          "latency": 0.001595418393556957,
+          "jitter": 0.0011719735377736366,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 16.839103937149048,
+          "throughput": 15034.394542698892,
+          "rtt": 0.003197020633031151,
+          "latency": 0.0015985103165155755,
+          "jitter": 0.001169197944398279,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 16.943763256072998,
+          "throughput": 15036.851897651817,
+          "rtt": 0.003199095116566396,
+          "latency": 0.001599547558283198,
+          "jitter": 0.0011662705846432852,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 17.05396294593811,
+          "throughput": 15032.75171050174,
+          "rtt": 0.0031974636113534954,
+          "latency": 0.0015987318056767477,
+          "jitter": 0.0011724449748380175,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 17.158344984054565,
+          "throughput": 15032.97761094507,
+          "rtt": 0.003196965173383492,
+          "latency": 0.001598482586691746,
+          "jitter": 0.0011694494415640526,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 17.264183044433594,
+          "throughput": 15033.799553118117,
+          "rtt": 0.0031981345873803952,
+          "latency": 0.0015990672936901976,
+          "jitter": 0.0011664593183258866,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 17.3699471950531,
+          "throughput": 15034.017306814083,
+          "rtt": 0.0031996921909643278,
+          "latency": 0.0015998460954821639,
+          "jitter": 0.0011644122684633768,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 17.473769903182983,
+          "throughput": 15036.79077591511,
+          "rtt": 0.003202532221876315,
+          "latency": 0.0016012661109381576,
+          "jitter": 0.001162967781341076,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 17.580199241638184,
+          "throughput": 15036.003461197874,
+          "rtt": 0.003205982428070368,
+          "latency": 0.001602991214035184,
+          "jitter": 0.0011595922290323234,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 17.686163902282715,
+          "throughput": 15036.399111869088,
+          "rtt": 0.0032095721760739106,
+          "latency": 0.0016047860880369553,
+          "jitter": 0.0011567613652539886,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 17.791982173919678,
+          "throughput": 15037.051017271595,
+          "rtt": 0.0032137831089062868,
+          "latency": 0.0016068915544531434,
+          "jitter": 0.001154444015294134,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 17.8976309299469,
+          "throughput": 15037.560464197506,
+          "rtt": 0.003217875234000341,
+          "latency": 0.0016089376170001705,
+          "jitter": 0.0011524412926545,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 18.00213599205017,
+          "throughput": 15038.906206162568,
+          "rtt": 0.003221870425384325,
+          "latency": 0.0016109352126921625,
+          "jitter": 0.0011498487828601877,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 18.111366033554077,
+          "throughput": 15037.187971046787,
+          "rtt": 0.0032251221320279957,
+          "latency": 0.0016125610660139979,
+          "jitter": 0.0011531450508023423,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 18.214641094207764,
+          "throughput": 15039.792017183545,
+          "rtt": 0.0032289795453928336,
+          "latency": 0.0016144897726964168,
+          "jitter": 0.0011562615940286108,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 18.319366216659546,
+          "throughput": 15041.183286948546,
+          "rtt": 0.0032318401716659325,
+          "latency": 0.0016159200858329662,
+          "jitter": 0.0011532895212198273,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 18.42509627342224,
+          "throughput": 15041.886715888746,
+          "rtt": 0.003233962216928654,
+          "latency": 0.001616981108464327,
+          "jitter": 0.0011500320395534521,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 18.530383110046387,
+          "throughput": 15043.233033037131,
+          "rtt": 0.003236278378716569,
+          "latency": 0.0016181391893582845,
+          "jitter": 0.0011469848834829393,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 18.63501787185669,
+          "throughput": 15044.581355300406,
+          "rtt": 0.003238334993476586,
+          "latency": 0.001619167496738293,
+          "jitter": 0.0011445585624410724,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 18.740690231323242,
+          "throughput": 15045.113887203215,
+          "rtt": 0.0032392203272055696,
+          "latency": 0.0016196101636027848,
+          "jitter": 0.001141425496648752,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 18.846267223358154,
+          "throughput": 15046.518124528617,
+          "rtt": 0.003241253955089228,
+          "latency": 0.001620626977544614,
+          "jitter": 0.001138340166655548,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 18.95180320739746,
+          "throughput": 15046.36201874651,
+          "rtt": 0.0032422676384217908,
+          "latency": 0.0016211338192108954,
+          "jitter": 0.0011352505810945993,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 19.06028413772583,
+          "throughput": 15043.68931703612,
+          "rtt": 0.0032421455271726225,
+          "latency": 0.0016210727635863112,
+          "jitter": 0.00113250331362271,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 19.16343593597412,
+          "throughput": 15046.564990379677,
+          "rtt": 0.003244229515836378,
+          "latency": 0.001622114757918189,
+          "jitter": 0.0011305204808640453,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 19.268911123275757,
+          "throughput": 15047.193252506087,
+          "rtt": 0.0032458454816516524,
+          "latency": 0.0016229227408258262,
+          "jitter": 0.0011275042020646993,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 19.375510931015015,
+          "throughput": 15046.46009740223,
+          "rtt": 0.003247266690925215,
+          "latency": 0.0016236333454626075,
+          "jitter": 0.001124726534026407,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 19.480340003967285,
+          "throughput": 15048.807004952962,
+          "rtt": 0.0032491964258328735,
+          "latency": 0.0016245982129164368,
+          "jitter": 0.001122868209317481,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 19.585371017456055,
+          "throughput": 15049.867829300809,
+          "rtt": 0.0032516598340721924,
+          "latency": 0.0016258299170360962,
+          "jitter": 0.0011213836137226164,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 19.68838119506836,
+          "throughput": 15050.888459749876,
+          "rtt": 0.003254471197120886,
+          "latency": 0.001627235598560443,
+          "jitter": 0.0011195102105362811,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 19.794129133224487,
+          "throughput": 15051.491967951768,
+          "rtt": 0.0032581211755747463,
+          "latency": 0.0016290605877873731,
+          "jitter": 0.0011178961772599267,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 19.900050163269043,
+          "throughput": 15051.666882429143,
+          "rtt": 0.0032620436280147032,
+          "latency": 0.0016310218140073516,
+          "jitter": 0.0011164098591948293,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 20.00679612159729,
+          "throughput": 15051.306775786961,
+          "rtt": 0.003265722862818438,
+          "latency": 0.001632861431409219,
+          "jitter": 0.0011147382184647486,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 20.11035418510437,
+          "throughput": 15052.985418978198,
+          "rtt": 0.003269997868679329,
+          "latency": 0.0016349989343396646,
+          "jitter": 0.0011130346916356114,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 20.214370012283325,
+          "throughput": 15057.42057146705,
+          "rtt": 0.0032731063279581797,
+          "latency": 0.0016365531639790899,
+          "jitter": 0.0011113083915787092,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 20.322377920150757,
+          "throughput": 15054.201668463678,
+          "rtt": 0.0032725970503934636,
+          "latency": 0.0016362985251967318,
+          "jitter": 0.001112187095635216,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 20.42731809616089,
+          "throughput": 15056.618911362484,
+          "rtt": 0.0032736008052242473,
+          "latency": 0.0016368004026121236,
+          "jitter": 0.0011096809414366854,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 20.531678915023804,
+          "throughput": 15058.648694098782,
+          "rtt": 0.0032730539857669374,
+          "latency": 0.0016365269928834687,
+          "jitter": 0.0011074318327811766,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 20.636166095733643,
+          "throughput": 15059.370734796723,
+          "rtt": 0.0032699417100236533,
+          "latency": 0.0016349708550118267,
+          "jitter": 0.0011052096180131272,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 20.741885900497437,
+          "throughput": 15059.359217037212,
+          "rtt": 0.0032667365415283032,
+          "latency": 0.0016333682707641516,
+          "jitter": 0.0011024245856867136,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 20.846781969070435,
+          "throughput": 15059.938448696259,
+          "rtt": 0.0032645033682716018,
+          "latency": 0.0016322516841358009,
+          "jitter": 0.0011002393462893458,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 20.951997995376587,
+          "throughput": 15061.844495587437,
+          "rtt": 0.003264936563745059,
+          "latency": 0.0016324682818725294,
+          "jitter": 0.001097547437669455,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 21.057642936706543,
+          "throughput": 15060.529752501616,
+          "rtt": 0.003263677277056977,
+          "latency": 0.0016318386385284886,
+          "jitter": 0.0010948116487371695,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 21.163466930389404,
+          "throughput": 15059.595807604734,
+          "rtt": 0.0032644011377954934,
+          "latency": 0.0016322005688977467,
+          "jitter": 0.0010923264262694807,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 21.2680401802063,
+          "throughput": 15062.29020395546,
+          "rtt": 0.0032675610330341344,
+          "latency": 0.0016337805165170672,
+          "jitter": 0.0010905985338505561,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 21.373373985290527,
+          "throughput": 15062.597842709436,
+          "rtt": 0.0032698604530982094,
+          "latency": 0.0016349302265491047,
+          "jitter": 0.0010879935434378952,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 21.479625940322876,
+          "throughput": 15061.732442441064,
+          "rtt": 0.0032724639862272476,
+          "latency": 0.0016362319931136238,
+          "jitter": 0.0010857412992991533,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 21.5832040309906,
+          "throughput": 15063.351436900124,
+          "rtt": 0.0032769120751100795,
+          "latency": 0.0016384560375550397,
+          "jitter": 0.0010845177007031718,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 21.68854808807373,
+          "throughput": 15064.695360272357,
+          "rtt": 0.003282635193360899,
+          "latency": 0.0016413175966804494,
+          "jitter": 0.001083176683446197,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 21.792962074279785,
+          "throughput": 15065.784614969753,
+          "rtt": 0.00328649615396505,
+          "latency": 0.001643248076982525,
+          "jitter": 0.0010812159203621328,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 21.90120005607605,
+          "throughput": 15064.44464179868,
+          "rtt": 0.0032904821273949175,
+          "latency": 0.0016452410636974587,
+          "jitter": 0.0010790910970463843,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 22.00497007369995,
+          "throughput": 15066.337402025501,
+          "rtt": 0.0032960561145500677,
+          "latency": 0.0016480280572750338,
+          "jitter": 0.0010785611778251836,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 22.109633922576904,
+          "throughput": 15066.90478645636,
+          "rtt": 0.0033008119503826253,
+          "latency": 0.0016504059751913127,
+          "jitter": 0.0010768213052803548,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 22.215150117874146,
+          "throughput": 15068.60732727823,
+          "rtt": 0.003304645116285933,
+          "latency": 0.0016523225581429664,
+          "jitter": 0.0010746977940695205,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 22.323699235916138,
+          "throughput": 15066.60465912842,
+          "rtt": 0.0033067492576785125,
+          "latency": 0.0016533746288392563,
+          "jitter": 0.001076792114156821,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 22.429147243499756,
+          "throughput": 15068.20123787727,
+          "rtt": 0.0033092085882411265,
+          "latency": 0.0016546042941205632,
+          "jitter": 0.0010744202453452651,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 22.536473989486694,
+          "throughput": 15066.346783193298,
+          "rtt": 0.0033105501335712333,
+          "latency": 0.0016552750667856166,
+          "jitter": 0.0010728318941924555,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 22.641704082489014,
+          "throughput": 15066.702726905767,
+          "rtt": 0.0033122613245048617,
+          "latency": 0.0016561306622524309,
+          "jitter": 0.0010705638885467187,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 22.74668598175049,
+          "throughput": 15068.116632858677,
+          "rtt": 0.003314380114269312,
+          "latency": 0.001657190057134656,
+          "jitter": 0.0010684995837331355,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 22.852072954177856,
+          "throughput": 15068.508674155102,
+          "rtt": 0.0033157313719243712,
+          "latency": 0.0016578656859621856,
+          "jitter": 0.0010661327468053016,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 22.957576990127563,
+          "throughput": 15070.23577816493,
+          "rtt": 0.003316697825287203,
+          "latency": 0.0016583489126436016,
+          "jitter": 0.0010637489529284688,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 23.062079906463623,
+          "throughput": 15071.362950265875,
+          "rtt": 0.0033152442531524293,
+          "latency": 0.0016576221265762147,
+          "jitter": 0.0010618747934967583,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 23.166884183883667,
+          "throughput": 15071.370413189916,
+          "rtt": 0.0033130853979777357,
+          "latency": 0.0016565426989888679,
+          "jitter": 0.0010598012851824737,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 23.271432876586914,
+          "throughput": 15071.878265649279,
+          "rtt": 0.0033132131790003048,
+          "latency": 0.0016566065895001524,
+          "jitter": 0.0010579792599986243,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 23.376978158950806,
+          "throughput": 15072.517063113144,
+          "rtt": 0.003313854158702016,
+          "latency": 0.001656927079351008,
+          "jitter": 0.0010556989850137742,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 23.481929063796997,
+          "throughput": 15073.493596360064,
+          "rtt": 0.0033146032177142665,
+          "latency": 0.0016573016088571332,
+          "jitter": 0.0010537935367770602,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 23.58718514442444,
+          "throughput": 15073.636792575116,
+          "rtt": 0.0033153975613563996,
+          "latency": 0.0016576987806781998,
+          "jitter": 0.0010516808083614049,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 23.692748069763184,
+          "throughput": 15073.932802130663,
+          "rtt": 0.0033163864919772993,
+          "latency": 0.0016581932459886497,
+          "jitter": 0.001049387104781121,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 23.7974910736084,
+          "throughput": 15074.86225694047,
+          "rtt": 0.0033171873898142318,
+          "latency": 0.0016585936949071159,
+          "jitter": 0.0010473975825913224,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 23.903367042541504,
+          "throughput": 15075.165594140983,
+          "rtt": 0.003317624757107257,
+          "latency": 0.0016588123785536285,
+          "jitter": 0.001045115347695841,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 24.009011268615723,
+          "throughput": 15075.657185472286,
+          "rtt": 0.003318210775636456,
+          "latency": 0.001659105387818228,
+          "jitter": 0.0010428800000303715,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 24.114631175994873,
+          "throughput": 15076.012015649514,
+          "rtt": 0.0033185905667958457,
+          "latency": 0.0016592952833979228,
+          "jitter": 0.001040704440381283,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 24.219731092453003,
+          "throughput": 15077.488762129864,
+          "rtt": 0.0033189519636790247,
+          "latency": 0.0016594759818395124,
+          "jitter": 0.001038654503936576,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 24.324744939804077,
+          "throughput": 15075.755405896765,
+          "rtt": 0.0033176524457035977,
+          "latency": 0.0016588262228517988,
+          "jitter": 0.0010367429800867572,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 24.430613040924072,
+          "throughput": 15076.652877244685,
+          "rtt": 0.003316980970595947,
+          "latency": 0.0016584904852979736,
+          "jitter": 0.0010345873329831662,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 24.535728216171265,
+          "throughput": 15077.711320799937,
+          "rtt": 0.003318415219528741,
+          "latency": 0.0016592076097643705,
+          "jitter": 0.0010325582488873502,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 24.641226053237915,
+          "throughput": 15078.10541146121,
+          "rtt": 0.003319494337969549,
+          "latency": 0.0016597471689847746,
+          "jitter": 0.0010304071378724358,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 24.74677801132202,
+          "throughput": 15078.544307458335,
+          "rtt": 0.0033201972383704033,
+          "latency": 0.0016600986191852016,
+          "jitter": 0.0010283054607163368,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 24.85225009918213,
+          "throughput": 15079.953814551922,
+          "rtt": 0.0033209045319458627,
+          "latency": 0.0016604522659729314,
+          "jitter": 0.0010261881882303989,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 24.957688093185425,
+          "throughput": 15079.155682339406,
+          "rtt": 0.003320469342516869,
+          "latency": 0.0016602346712584345,
+          "jitter": 0.001024063052985947,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 25.062820196151733,
+          "throughput": 15081.142750271814,
+          "rtt": 0.003323222142031736,
+          "latency": 0.001661611071015868,
+          "jitter": 0.0010221936599856018,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 25.166808128356934,
+          "throughput": 15082.163176116392,
+          "rtt": 0.0033256163513518716,
+          "latency": 0.0016628081756759358,
+          "jitter": 0.0010206334599207373,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 25.272380113601685,
+          "throughput": 15081.328248843873,
+          "rtt": 0.003325493680217275,
+          "latency": 0.0016627468401086375,
+          "jitter": 0.0010185339605420674,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 25.37779402732849,
+          "throughput": 15082.851534436883,
+          "rtt": 0.003326216014874761,
+          "latency": 0.0016631080074373805,
+          "jitter": 0.0010165287789380135,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 25.482522010803223,
+          "throughput": 15083.898526406534,
+          "rtt": 0.003325847547594069,
+          "latency": 0.0016629237737970344,
+          "jitter": 0.0010146934264975587,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 25.587562084197998,
+          "throughput": 15084.143934479402,
+          "rtt": 0.0033235523139235447,
+          "latency": 0.0016617761569617724,
+          "jitter": 0.0010127360126918866,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 25.69285297393799,
+          "throughput": 15084.012513905393,
+          "rtt": 0.003321060109028671,
+          "latency": 0.0016605300545143354,
+          "jitter": 0.0010107132505179242,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 25.798677921295166,
+          "throughput": 15084.008130943817,
+          "rtt": 0.0033194801896045353,
+          "latency": 0.0016597400948022676,
+          "jitter": 0.0010086615657873299,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 25.903143167495728,
+          "throughput": 15084.978557636037,
+          "rtt": 0.003319228820054522,
+          "latency": 0.001659614410027261,
+          "jitter": 0.0010068504897419123,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 26.008595943450928,
+          "throughput": 15085.367120074776,
+          "rtt": 0.0033196866836514567,
+          "latency": 0.0016598433418257284,
+          "jitter": 0.0010048875275482385,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 26.114168167114258,
+          "throughput": 15085.651826137651,
+          "rtt": 0.003320068335881127,
+          "latency": 0.0016600341679405635,
+          "jitter": 0.0010029014358338799,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 26.219815254211426,
+          "throughput": 15086.711193646526,
+          "rtt": 0.0033201941642208004,
+          "latency": 0.0016600970821104002,
+          "jitter": 0.001000951785270179,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 26.325188159942627,
+          "throughput": 15085.939427730296,
+          "rtt": 0.0033191626062929426,
+          "latency": 0.0016595813031464713,
+          "jitter": 0.000998997335314591,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 26.43041205406189,
+          "throughput": 15086.414575581714,
+          "rtt": 0.003319281841018972,
+          "latency": 0.001659640920509486,
+          "jitter": 0.0009970915863707782,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 26.53575110435486,
+          "throughput": 15086.745284897746,
+          "rtt": 0.003320201409622908,
+          "latency": 0.001660100704811454,
+          "jitter": 0.000995185067421569,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 26.64033818244934,
+          "throughput": 15087.792607643652,
+          "rtt": 0.003322164389833007,
+          "latency": 0.0016610821949165034,
+          "jitter": 0.0009936265384178048,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 26.745944023132324,
+          "throughput": 15087.915757881106,
+          "rtt": 0.0033237101000142158,
+          "latency": 0.0016618550500071079,
+          "jitter": 0.0009916969687698961,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 26.851246118545532,
+          "throughput": 15088.265385231889,
+          "rtt": 0.003324956953422421,
+          "latency": 0.0016624784767112104,
+          "jitter": 0.0009898111252115362,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 26.956379175186157,
+          "throughput": 15088.055567234054,
+          "rtt": 0.003327031085353213,
+          "latency": 0.0016635155426766065,
+          "jitter": 0.0009879844264366188,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 27.06148099899292,
+          "throughput": 15089.08920569868,
+          "rtt": 0.0033300459549401524,
+          "latency": 0.0016650229774700762,
+          "jitter": 0.0009862712561145518,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 27.166121006011963,
+          "throughput": 15089.931981482607,
+          "rtt": 0.0033333387158308897,
+          "latency": 0.0016666693579154449,
+          "jitter": 0.0009845786497801139,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 27.271318912506104,
+          "throughput": 15090.514442087855,
+          "rtt": 0.0033359080182404663,
+          "latency": 0.0016679540091202331,
+          "jitter": 0.0009827686638643287,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 27.378772974014282,
+          "throughput": 15089.391078125633,
+          "rtt": 0.0033379774073998146,
+          "latency": 0.0016689887036999073,
+          "jitter": 0.0009825279426318812,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 27.48370099067688,
+          "throughput": 15090.083316190094,
+          "rtt": 0.0033405202110965873,
+          "latency": 0.0016702601055482936,
+          "jitter": 0.0009811338994456808,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 27.588486194610596,
+          "throughput": 15092.277903584636,
+          "rtt": 0.0033433417446147376,
+          "latency": 0.0016716708723073688,
+          "jitter": 0.0009795672213737954,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 27.693480253219604,
+          "throughput": 15091.736781464262,
+          "rtt": 0.0033437840548155196,
+          "latency": 0.0016718920274077598,
+          "jitter": 0.0009778294463818752,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 27.798656940460205,
+          "throughput": 15093.19156564399,
+          "rtt": 0.003344468416901169,
+          "latency": 0.0016722342084505846,
+          "jitter": 0.0009760611174295931,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 27.90385103225708,
+          "throughput": 15092.486860146297,
+          "rtt": 0.0033444357932360756,
+          "latency": 0.0016722178966180378,
+          "jitter": 0.0009742878452034488,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 28.008928060531616,
+          "throughput": 15093.348180357929,
+          "rtt": 0.003345291100199402,
+          "latency": 0.001672645550099701,
+          "jitter": 0.0009725881659818826,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 28.11439824104309,
+          "throughput": 15093.65244969951,
+          "rtt": 0.0033460810582074106,
+          "latency": 0.0016730405291037053,
+          "jitter": 0.0009708989257122787,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 28.219836235046387,
+          "throughput": 15094.437252422113,
+          "rtt": 0.003346627584562737,
+          "latency": 0.0016733137922813686,
+          "jitter": 0.000969118765317994,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 28.324674129486084,
+          "throughput": 15094.517975609051,
+          "rtt": 0.0033467047077832624,
+          "latency": 0.0016733523538916312,
+          "jitter": 0.0009676527381107342,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 28.43016815185547,
+          "throughput": 15094.695972011034,
+          "rtt": 0.0033471288973206236,
+          "latency": 0.0016735644486603118,
+          "jitter": 0.0009658992104534002,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 28.535629987716675,
+          "throughput": 15095.200565145047,
+          "rtt": 0.0033478404219113057,
+          "latency": 0.0016739202109556529,
+          "jitter": 0.0009641850523191749,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 28.64119291305542,
+          "throughput": 15094.9830813536,
+          "rtt": 0.003347864202014757,
+          "latency": 0.0016739321010073784,
+          "jitter": 0.0009624323859095859,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 28.746487140655518,
+          "throughput": 15095.331435919006,
+          "rtt": 0.0033488091149326523,
+          "latency": 0.0016744045574663261,
+          "jitter": 0.0009607712176282656,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 28.851662158966064,
+          "throughput": 15095.949850980354,
+          "rtt": 0.003349922419904853,
+          "latency": 0.0016749612099524265,
+          "jitter": 0.0009590904779322465,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 28.956592082977295,
+          "throughput": 15096.437302272732,
+          "rtt": 0.0033508327137084493,
+          "latency": 0.0016754163568542247,
+          "jitter": 0.000957455606873719,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 29.0621600151062,
+          "throughput": 15096.71060626337,
+          "rtt": 0.003351360808157712,
+          "latency": 0.001675680404078856,
+          "jitter": 0.0009557667049257406,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 29.16682004928589,
+          "throughput": 15097.993830831487,
+          "rtt": 0.003352289287112012,
+          "latency": 0.001676144643556006,
+          "jitter": 0.0009542775667220364,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 29.272382974624634,
+          "throughput": 15097.77604262356,
+          "rtt": 0.0033530340579608865,
+          "latency": 0.0016765170289804432,
+          "jitter": 0.0009525638262009666,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 29.377400159835815,
+          "throughput": 15098.09718510488,
+          "rtt": 0.0033535335131508457,
+          "latency": 0.0016767667565754229,
+          "jitter": 0.0009511716594510574,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 29.482760906219482,
+          "throughput": 15098.560563812212,
+          "rtt": 0.0033542957027319184,
+          "latency": 0.0016771478513659592,
+          "jitter": 0.0009495499581577875,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 29.588234901428223,
+          "throughput": 15098.621477098515,
+          "rtt": 0.0033547798924147857,
+          "latency": 0.0016773899462073929,
+          "jitter": 0.0009478900004941353,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 29.69383215904236,
+          "throughput": 15098.785517955837,
+          "rtt": 0.0033558962334608615,
+          "latency": 0.0016779481167304307,
+          "jitter": 0.0009462751714421153,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 29.79845905303955,
+          "throughput": 15099.694640341584,
+          "rtt": 0.0033573631016503166,
+          "latency": 0.0016786815508251583,
+          "jitter": 0.0009448899245378091,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        },
+        {
+          "timestamp": 29.904128074645996,
+          "throughput": 15099.811292420098,
+          "rtt": 0.003358550172350514,
+          "latency": 0.001679275086175257,
+          "jitter": 0.0009433511123493338,
+          "packet_loss_rate": 0.0,
+          "connection_establishment_time": 1.9073486328125e-06
+        }
+      ],
+      "start_time": 0.0,
+      "end_time": 0.0,
+      "success": true,
+      "error_message": null,
+      "network_scenario": "congested_low",
+      "network_config": {}
+    }
+  }
+}
