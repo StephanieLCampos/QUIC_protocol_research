@@ -149,10 +149,12 @@ class SimulationRunner:
                 key_file=str(self.settings.key_file),
                 max_ack_delay=self.max_ack_delay,
             )
+            print(f"Starting QUIC server on {self.settings.server_host}:{self.settings.server_port}...")
             await self._server.start()
+            print(f"✓ Server started")
 
             # Small delay to ensure server is ready
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.5)
 
             # Connect client
             self._client = QuicClient(
@@ -161,7 +163,9 @@ class SimulationRunner:
                 max_ack_delay=self.max_ack_delay,
                 verify_cert=False,
             )
+            print(f"Connecting client to {self.settings.server_host}:{self.settings.server_port}...")
             await self._client.connect()
+            print(f"✓ Client connected")
 
             # Record connection ready
             self._metrics_collector.record_connection_ready()
@@ -215,13 +219,20 @@ class SimulationRunner:
 
         except Exception as e:
             duration = time.time() - start_time
-            # Return failure result
+            # Return failure result with properly initialized MetricsResult
             return SimulationResult(
                 application_type=self.application_type,
                 initial_cw=self.initial_cw,
                 max_ack_delay=self.max_ack_delay,
                 loss_reduction_factor=self.loss_reduction_factor,
-                metrics=MetricsResult(0, 0, 0, 0, 0),
+                metrics=MetricsResult(
+                    throughput=0.0,
+                    rtt=0.0,
+                    latency=0.0,
+                    jitter=0.0,
+                    packet_loss_rate=0.0,
+                    connection_establishment_time=0.0
+                ),
                 success=False,
                 error_message=str(e),
                 duration=duration,

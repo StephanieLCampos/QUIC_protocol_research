@@ -42,7 +42,7 @@ class ClientProtocol(QuicConnectionProtocol):
             self.bytes_received += len(event.data)
             self.receive_timestamps.append(time.time())
 
-    async def wait_handshake(self, timeout: float = 10.0):
+    async def wait_handshake(self, timeout: float = 30.0):
         """Wait for handshake to complete."""
         await asyncio.wait_for(self.handshake_complete.wait(), timeout=timeout)
 
