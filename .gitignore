@@ -1,0 +1,56 @@
+# ── Simulation results & output ──────────────────────────────────────────────
+results/
+output/
+**/results/
+**/output/
+
+# Specific result file patterns
+**/*_results_*.json
+**/*_metrics_*.json
+**/*_history_*.json
+**/*_summary_*.json
+**/*_probe_*.json
+**/*_latest.json
+**/*.csv
+
+# ── Reports (generated) ───────────────────────────────────────────────────────
+reports/
+**/reports/
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+.uv/
+.venv/
+venv/
+env/
+*.egg
+
+# ── Jupyter ───────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# Keep Dockerfiles; ignore ephemeral build artifacts
+*.tar
+
+# ── OS / Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+Thumbs.db
+.vscode/settings.json
+.idea/
+
+# ── Certificates (generated) ──────────────────────────────────────────────────
+**/certs/*.pem
+**/certs/*.key
+**/certs/*.crt
+**/certs/*.p12

@@ -7,6 +7,9 @@ Coordinates worker processes, handles IPC, and manages simulation lifecycle.
 import asyncio
 import threading
 import time
+import os
+import re
+import statistics
 from multiprocessing import Process, Pipe, Queue, Barrier
 from typing import Dict, List, Optional, Callable
 
@@ -16,6 +19,13 @@ from .server import QuicServer
 from .ml_controller import MLController
 from .result import MultiConnectionResult, ConnectionResult
 from .ipc_messages import IPCMessage, MessageType
+
+# Optional wireless bottleneck import
+try:
+    from wireless_bottleneck import get_scenario, WirelessBottleneck
+    HAS_WIRELESS_BOTTLENECK = True
+except ImportError:
+    HAS_WIRELESS_BOTTLENECK = False
 
 
 class ProcessOrchestrator:
@@ -38,12 +48,18 @@ class ProcessOrchestrator:
         metrics_interval: float = 0.1,
         network_scenario: str = "",
         network_config: dict = None,
+        scenario: Optional[object] = None,
+        server_only: bool = False,
+        clients_only: bool = False,
     ):
         self.config = config
         self.ml_callback = ml_callback
         self.metrics_interval = metrics_interval
         self.network_scenario = network_scenario
         self.network_config = network_config or {}
+        self.scenario = scenario  # Full scenario object for bottleneck setup
+        self.server_only = server_only
+        self.clients_only = clients_only
 
         self.workers: Dict[int, Process] = {}
         self.command_pipes: Dict[int, Pipe] = {}
@@ -54,6 +70,7 @@ class ProcessOrchestrator:
         self.metrics_history: List[Dict] = []
         self.final_results: Dict[int, dict] = {}
         self.epoch_histories: Dict[int, List[Dict]] = {}  # Per-connection epoch data
+        self.bottleneck: Optional[object] = None  # Will hold WirelessBottleneck if used
 
         # Initialize for UI access
         self._latest_metrics: Dict[int, dict] = {}
@@ -61,15 +78,37 @@ class ProcessOrchestrator:
 
     async def setup(self):
         """Setup server and prepare for workers."""
-        self.server = QuicServer(host=self.config.server_host, port=self.config.server_port)
-        await self.server.start()
-        self.start_barrier = Barrier(4)  # 3 workers + 1 main
+        # Only start server in server-only or normal mode (not clients-only)
+        if not self.clients_only:
+            # In multi-container mode, use 0.0.0.0 to listen on all interfaces
+            # In regular mode, use the configured host
+            listen_host = self.config.server_host if self.config.server_host != "0.0.0.0" else "[::]"
+            
+            self.server = QuicServer(host=self.config.server_host, port=self.config.server_port)
+            await self.server.start()
+            print(f"[Server] Started on {self.config.server_host}:{self.config.server_port} (listening on all interfaces)")
+        
+        # Only setup barrier and workers in normal or clients-only mode
+        if not self.server_only:
+            self.start_barrier = Barrier(4)  # 3 workers + 1 main
 
-        if self.ml_callback:
-            self.ml_controller = MLController(
-                decision_interval=self.metrics_interval,
-                ml_callback=self.ml_callback,
-            )
+            if self.ml_callback:
+                self.ml_controller = MLController(
+                    decision_interval=self.metrics_interval,
+                    ml_callback=self.ml_callback,
+                )
+        
+        # Create a background task to keep the server running
+        if self.server and not self.server_only:
+            self._server_task = asyncio.create_task(self._keep_server_running())
+
+    async def _keep_server_running(self):
+        """Keep the server running until stopped."""
+        try:
+            while self.server.is_running:
+                await asyncio.sleep(0.1)
+        except asyncio.CancelledError:
+            pass
 
     def _spawn_workers(self, duration: float):
         """Spawn worker processes for each connection."""
@@ -94,23 +133,189 @@ class ProcessOrchestrator:
             )
             self.workers[conn_config.connection_id] = process
 
-    async def run(self, duration: Optional[float] = None) -> MultiConnectionResult:
-        """Run all connections concurrently."""
-        duration = duration or self.config.simulation_duration
+    async def _run_network_rtt_probe(self, host: str, duration: float) -> Dict[str, object]:
+        """Run a lightweight ICMP ping probe and return RTT summary stats."""
+        if not host:
+            return {"available": False, "error": "missing_host"}
+
+        interval_sec = 0.5
+        ping_count = max(5, int(duration / interval_sec))
+        ping_deadline = max(5, int(duration) + 5)
 
         try:
+            proc = await asyncio.create_subprocess_exec(
+                "ping",
+                "-n",
+                "-i",
+                str(interval_sec),
+                "-c",
+                str(ping_count),
+                "-w",
+                str(ping_deadline),
+                host,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+        except FileNotFoundError:
+            return {"available": False, "error": "ping_not_found"}
+        except Exception as exc:
+            return {"available": False, "error": f"ping_start_failed: {exc}"}
+
+        try:
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=duration + 15)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.communicate()
+            return {"available": False, "error": "ping_timeout"}
+
+        output = (stdout or b"").decode(errors="ignore") + "\n" + (stderr or b"").decode(errors="ignore")
+
+        rtt_samples_ms = [float(v) for v in re.findall(r"time[=<]([0-9]*\.?[0-9]+)\s*ms", output)]
+        packet_loss_match = re.search(r"([0-9]*\.?[0-9]+)%\s*packet loss", output)
+        packet_loss_pct = float(packet_loss_match.group(1)) if packet_loss_match else None
+
+        if not rtt_samples_ms:
+            return {
+                "available": False,
+                "error": "no_rtt_samples",
+                "packet_loss_percent": packet_loss_pct,
+            }
+
+        sorted_samples = sorted(rtt_samples_ms)
+        p95_index = max(0, min(len(sorted_samples) - 1, int(0.95 * (len(sorted_samples) - 1))))
+
+        jitter_ms = 0.0
+        if len(rtt_samples_ms) >= 2:
+            deltas = [abs(b - a) for a, b in zip(rtt_samples_ms[:-1], rtt_samples_ms[1:])]
+            jitter_ms = float(statistics.mean(deltas)) if deltas else 0.0
+
+        return {
+            "available": True,
+            "target_host": host,
+            "sample_count": len(rtt_samples_ms),
+            "rtt_min_ms": float(min(rtt_samples_ms)),
+            "rtt_median_ms": float(statistics.median(rtt_samples_ms)),
+            "rtt_avg_ms": float(statistics.mean(rtt_samples_ms)),
+            "rtt_p95_ms": float(sorted_samples[p95_index]),
+            "rtt_max_ms": float(max(rtt_samples_ms)),
+            "jitter_ms": float(jitter_ms),
+            "packet_loss_percent": float(packet_loss_pct) if packet_loss_pct is not None else None,
+        }
+
+    @staticmethod
+    def _extract_tc_sent_bytes(stats: dict) -> int:
+        """Extract transmitted bytes from tc qdisc stats output."""
+        raw = stats.get("raw_output", "") if isinstance(stats, dict) else ""
+        if not raw:
+            return 0
+
+        lines = raw.splitlines()
+        for idx, line in enumerate(lines):
+            if line.strip().startswith("qdisc htb") and " root " in line and idx + 1 < len(lines):
+                match = re.search(r"Sent\s+(\d+)\s+bytes", lines[idx + 1])
+                if match:
+                    return int(match.group(1))
+
+        for line in lines:
+            match = re.search(r"Sent\s+(\d+)\s+bytes", line)
+            if match:
+                return int(match.group(1))
+
+        return 0
+
+    async def run(self, duration: Optional[float] = None) -> Optional[MultiConnectionResult]:
+        """Run all connections concurrently with bottleneck if available."""
+        duration = duration or self.config.simulation_duration
+
+        # Setup bottleneck if scenario is provided
+        if HAS_WIRELESS_BOTTLENECK and self.scenario:
+            # Persist core scenario parameters for downstream reporting
+            scenario_cfg = getattr(self.scenario, "config", None)
+            if scenario_cfg is not None:
+                if hasattr(scenario_cfg, "capacity_bps"):
+                    self.network_config["capacity_bps"] = getattr(scenario_cfg, "capacity_bps")
+                if hasattr(scenario_cfg, "propagation_delay"):
+                    self.network_config["propagation_delay"] = getattr(scenario_cfg, "propagation_delay")
+                if hasattr(scenario_cfg, "loss_rate"):
+                    self.network_config["loss_rate"] = getattr(scenario_cfg, "loss_rate")
+
+            # Determine which interface to use based on deployment mode
+            run_mode = os.environ.get("RUN_MODE", "")
+            skip_veth = os.environ.get("SKIP_VETH", "0")
+            
+            if run_mode == "server":
+                # Multi-container docker-compose: use eth0 (docker network interface)
+                # Apply EGRESS shaping on server side
+                interface = "eth0"
+                apply_ingress = False
+                print(f"[Orchestrator] Multi-container Docker mode (SERVER): applying EGRESS shaping on eth0")
+            elif run_mode == "clients":
+                # Multi-container docker-compose: use eth0 (docker network interface)
+                # Apply EGRESS shaping on client side (traffic is primarily client -> server)
+                interface = "eth0"
+                apply_ingress = False
+                print(f"[Orchestrator] Multi-container Docker mode (CLIENTS): applying EGRESS shaping on eth0")
+            elif os.environ.get("USE_VETH_INTERFACE"):
+                # Single-container with veth: use veth0
+                interface = "veth0"
+                apply_ingress = False
+                print(f"[Orchestrator] Single-container veth mode: applying bottleneck on veth0")
+            else:
+                # Local macOS mode
+                interface = "lo"
+                apply_ingress = False
+                print(f"[Orchestrator] Local mode: applying bottleneck on lo (RTT only)")
+            
+            self.bottleneck = WirelessBottleneck(self.scenario.config, interface=interface, apply_ingress=apply_ingress)
+            self.bottleneck.__enter__()
+            print(f"[Orchestrator] Wireless bottleneck activated for scenario: {self.network_scenario}")
+
+        try:
+            probe_task = None
+            if self.clients_only and os.environ.get("ENABLE_NETWORK_RTT_PROBE", "1") != "0":
+                probe_task = asyncio.create_task(self._run_network_rtt_probe(self.config.server_host, duration))
+
+            # Server-only mode: just wait for connections
+            if self.server_only:
+                print(f"[Orchestrator] Setting up QUIC server on {self.config.server_host}:{self.config.server_port}")
+                await self.setup()
+                print(f"[Orchestrator] Server ready and waiting for client connections...")
+                print(f"[Orchestrator] Bottleneck active: {self.scenario.config.capacity_bps / 1e6:.1f} Mbps, "
+                      f"{self.scenario.config.propagation_delay * 2000:.0f}ms RTT, {self.scenario.config.loss_rate * 100:.2f}% loss")
+                
+                # Just keep server running for the specified duration
+                await asyncio.sleep(duration)
+                print(f"[Orchestrator] Server run duration complete")
+                return None
+            
+            # Normal mode (with or without server) or clients-only mode
+            if not self.clients_only:
+                print(f"[Orchestrator] Setting up QUIC server on {self.config.server_host}:{self.config.server_port}")
+            else:
+                print(f"[Orchestrator] Clients-only mode: connecting to {self.config.server_host}:{self.config.server_port}")
+            
             await self.setup()
+            
+            if not self.clients_only:
+                print(f"[Orchestrator] Server setup complete")
+                # Give server time to fully initialize and start accepting connections
+                await asyncio.sleep(0.5)
+            
             self._spawn_workers(duration)
+            print(f"[Orchestrator] Spawned {len(self.workers)} worker processes")
 
             for process in self.workers.values():
                 process.start()
+            print(f"[Orchestrator] All worker processes started")
 
             if self.ml_controller:
                 self.ml_controller.set_ipc_channels(self.command_pipes, self.metrics_queue)
 
             # Wait for all workers to be ready (run in thread to not block event loop)
             try:
+                print(f"[Orchestrator] Waiting for workers to synchronize...")
                 await asyncio.to_thread(self.start_barrier.wait, 10.0)
+                print(f"[Orchestrator] All workers synchronized, starting metric collection")
             except threading.BrokenBarrierError:
                 raise RuntimeError("Workers failed to start - barrier timeout after 10s")
 
@@ -120,16 +325,40 @@ class ProcessOrchestrator:
             else:
                 await self._collect_metrics_loop(duration)
 
+            print(f"[Orchestrator] Simulation duration complete, waiting for workers to finish...")
             for conn_id, process in self.workers.items():
                 process.join(timeout=duration + 5)
                 if process.is_alive():
+                    print(f"[Orchestrator] Terminating worker {conn_id}")
                     process.terminate()
                     process.join(timeout=2)
 
             self._collect_final_results()
+
+            if self.bottleneck:
+                tc_stats = self.bottleneck.get_current_stats()
+                tc_sent_bytes = self._extract_tc_sent_bytes(tc_stats)
+                if tc_sent_bytes > 0 and duration > 0:
+                    self.network_config["tc_sent_bytes"] = tc_sent_bytes
+                    self.network_config["tc_observed_throughput_bps"] = (tc_sent_bytes * 8) / duration
+
+            if probe_task is not None:
+                try:
+                    probe_result = await probe_task
+                    self.network_config["network_rtt_probe"] = probe_result
+                except Exception as exc:
+                    self.network_config["network_rtt_probe"] = {
+                        "available": False,
+                        "error": f"probe_failed: {exc}",
+                    }
+
             return self._build_results()
 
         finally:
+            # Cleanup bottleneck before other cleanup
+            if self.bottleneck:
+                self.bottleneck.__exit__(None, None, None)
+                print(f"[Orchestrator] Wireless bottleneck deactivated")
             await self.cleanup()
 
     async def _collect_metrics_loop(self, duration: float):
@@ -326,6 +555,19 @@ class ProcessOrchestrator:
             return True
         except Exception:
             return False
+
+    def stop(self):
+        """Stop the orchestrator - terminate any running processes."""
+        for conn_id, process in self.workers.items():
+            try:
+                if process and process.is_alive():
+                    process.terminate()
+                    process.join(timeout=2)
+            except Exception:
+                pass  # Process already terminated
+        
+        if self.server and hasattr(self.server, 'is_running'):
+            self.server.is_running = False
 
     def _process_pending_messages(self):
         """Process any pending messages from the metrics queue."""

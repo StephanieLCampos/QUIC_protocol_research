@@ -6,6 +6,8 @@ simulation results including metrics, epochs, and parameter history.
 """
 
 import json
+import math
+import statistics
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Any, Optional
 from datetime import datetime
@@ -135,6 +137,11 @@ class MultiConnectionResult:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
+        offered_bps = self.total_throughput  # bytes per second
+        offered_mbps = (offered_bps * 8) / 1_000_000
+        bottleneck_summary = self.get_bottleneck_summary()
+        robust_metrics_summary = self.get_robust_metrics_summary()
+
         return {
             "simulation_id": self.simulation_id,
             "start_timestamp": self.start_timestamp,
@@ -144,11 +151,135 @@ class MultiConnectionResult:
             "network_config": self.network_config,
             "shared_params": self.shared_params,
             "fairness_index": self.fairness_index,
-            "total_throughput": self.total_throughput,
+            "total_offered_throughput_Bps": offered_bps,
+            "total_offered_throughput_Mbps": offered_mbps,
+            "total_throughput": offered_bps,
+            "bottleneck_summary": bottleneck_summary,
+            "robust_metrics_summary": robust_metrics_summary,
             "connections": {
                 conn_id: result.to_dict()
                 for conn_id, result in self.connection_results.items()
             },
+        }
+
+    def _compute_trimmed_median_summary(
+        self,
+        series: List[Dict[str, Any]],
+        warmup_ratio: float = 0.2,
+        cooldown_ratio: float = 0.1,
+    ) -> Dict[str, Any]:
+        """Compute warmup/cooldown-trimmed medians from a metrics time-series."""
+        if not series:
+            return {
+                "samples_total": 0,
+                "samples_used": 0,
+                "warmup_ratio": warmup_ratio,
+                "cooldown_ratio": cooldown_ratio,
+            }
+
+        n = len(series)
+        start_idx = min(n - 1, max(0, int(math.floor(n * warmup_ratio))))
+        end_idx = max(start_idx + 1, n - int(math.floor(n * cooldown_ratio)))
+        trimmed = series[start_idx:end_idx]
+
+        def median_of(key: str) -> float:
+            values = [float(item.get(key, 0) or 0) for item in trimmed]
+            return float(statistics.median(values)) if values else 0.0
+
+        offered_bps_med = median_of("throughput") * 8
+
+        return {
+            "samples_total": n,
+            "samples_used": len(trimmed),
+            "warmup_ratio": warmup_ratio,
+            "cooldown_ratio": cooldown_ratio,
+            "offered_throughput_median_bps": offered_bps_med,
+            "offered_throughput_median_mbps": offered_bps_med / 1_000_000,
+            "rtt_median_ms": median_of("rtt") * 1000,
+            "latency_median_ms": median_of("latency") * 1000,
+            "jitter_median_ms": median_of("jitter") * 1000,
+            "packet_loss_rate_median": median_of("packet_loss_rate"),
+        }
+
+    def get_robust_metrics_summary(
+        self,
+        warmup_ratio: float = 0.2,
+        cooldown_ratio: float = 0.1,
+    ) -> Dict[str, Any]:
+        """Build robust, trimmed-median summaries for each connection."""
+        per_connection: Dict[str, Any] = {}
+        for conn_id, result in self.connection_results.items():
+            per_connection[str(conn_id)] = {
+                "application_type": result.application_type,
+                "trimmed_medians": self._compute_trimmed_median_summary(
+                    result.metrics_history,
+                    warmup_ratio=warmup_ratio,
+                    cooldown_ratio=cooldown_ratio,
+                ),
+            }
+
+        return {
+            "method": "trimmed_median",
+            "description": "Medians over metrics_history after dropping warmup and cooldown portions.",
+            "warmup_ratio": warmup_ratio,
+            "cooldown_ratio": cooldown_ratio,
+            "per_connection": per_connection,
+        }
+
+    def get_bottleneck_summary(self) -> Dict[str, Any]:
+        """Build a bottleneck-focused summary that is easy to interpret."""
+        offered_bps = self.total_throughput * 8
+        offered_mbps = offered_bps / 1_000_000
+
+        configured_capacity_bps = 0.0
+        observed_link_bps = 0.0
+
+        if isinstance(self.network_config, dict):
+            configured_capacity_bps = float(self.network_config.get("capacity_bps", 0) or 0)
+            observed_link_bps = float(self.network_config.get("tc_observed_throughput_bps", 0) or 0)
+
+        configured_capacity_mbps = configured_capacity_bps / 1_000_000 if configured_capacity_bps > 0 else 0.0
+        observed_link_mbps = observed_link_bps / 1_000_000 if observed_link_bps > 0 else 0.0
+
+        cap_utilization_pct = (
+            (observed_link_bps / configured_capacity_bps) * 100
+            if configured_capacity_bps > 0 and observed_link_bps > 0
+            else 0.0
+        )
+
+        offered_vs_observed_ratio = (
+            (offered_bps / observed_link_bps)
+            if observed_link_bps > 0
+            else 0.0
+        )
+
+        bottleneck_applied = observed_link_bps > 0
+        bottleneck_limiting = offered_bps > 0 and observed_link_bps > 0 and offered_bps > (observed_link_bps * 1.2)
+        near_configured_cap = (
+            configured_capacity_bps > 0
+            and observed_link_bps > 0
+            and observed_link_bps <= (configured_capacity_bps * 1.15)
+        )
+
+        network_probe = {}
+        if isinstance(self.network_config, dict):
+            probe = self.network_config.get("network_rtt_probe", {})
+            if isinstance(probe, dict):
+                network_probe = probe
+
+        return {
+            "bottleneck_applied": bottleneck_applied,
+            "bottleneck_limiting_traffic": bottleneck_limiting,
+            "observed_rate_near_configured_cap": near_configured_cap,
+            "configured_capacity_bps": configured_capacity_bps,
+            "configured_capacity_mbps": configured_capacity_mbps,
+            "observed_link_throughput_bps": observed_link_bps,
+            "observed_link_throughput_mbps": observed_link_mbps,
+            "total_offered_throughput_bps": offered_bps,
+            "total_offered_throughput_mbps": offered_mbps,
+            "cap_utilization_percent": cap_utilization_pct,
+            "offered_to_observed_ratio": offered_vs_observed_ratio,
+            "network_only_rtt_probe": network_probe,
         }
 
     def export_json(self, output_dir: str = "output") -> str:
@@ -226,6 +357,74 @@ class MultiConnectionResult:
 
         with open(filepath, "w") as f:
             json.dump(epoch_data, f, indent=2)
+
+        return str(filepath)
+
+    def export_bottleneck_summary(self, output_dir: str = "output") -> str:
+        """
+        Export a compact bottleneck-specific summary for quick verification.
+
+        Returns the path to the exported file.
+        """
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        filename = f"bottleneck_summary_{self.simulation_id}.json"
+        filepath = output_path / filename
+
+        data = {
+            "simulation_id": self.simulation_id,
+            "network_scenario": self.network_scenario,
+            "bottleneck_summary": self.get_bottleneck_summary(),
+            "robust_metrics_summary": self.get_robust_metrics_summary(),
+        }
+
+        with open(filepath, "w") as f:
+            json.dump(data, f, indent=2)
+
+        return str(filepath)
+
+    def export_median_metrics_summary(self, output_dir: str = "output") -> str:
+        """
+        Export only trimmed-median metrics for quick comparison.
+
+        Returns the path to the exported file.
+        """
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        filename = f"median_metrics_summary_{self.simulation_id}.json"
+        filepath = output_path / filename
+
+        robust = self.get_robust_metrics_summary()
+        per_connection = robust.get("per_connection", {})
+
+        compact_connections: Dict[str, Any] = {}
+        for conn_id, conn_data in per_connection.items():
+            med = conn_data.get("trimmed_medians", {})
+            compact_connections[str(conn_id)] = {
+                "application_type": conn_data.get("application_type", ""),
+                "offered_throughput_median_mbps": med.get("offered_throughput_median_mbps", 0.0),
+                "rtt_median_ms": med.get("rtt_median_ms", 0.0),
+                "latency_median_ms": med.get("latency_median_ms", 0.0),
+                "jitter_median_ms": med.get("jitter_median_ms", 0.0),
+                "packet_loss_rate_median": med.get("packet_loss_rate_median", 0.0),
+                "samples_used": med.get("samples_used", 0),
+                "samples_total": med.get("samples_total", 0),
+            }
+
+        data = {
+            "simulation_id": self.simulation_id,
+            "network_scenario": self.network_scenario,
+            "method": robust.get("method", "trimmed_median"),
+            "warmup_ratio": robust.get("warmup_ratio", 0.2),
+            "cooldown_ratio": robust.get("cooldown_ratio", 0.1),
+            "network_only_rtt_probe": self.get_bottleneck_summary().get("network_only_rtt_probe", {}),
+            "connections": compact_connections,
+        }
+
+        with open(filepath, "w") as f:
+            json.dump(data, f, indent=2)
 
         return str(filepath)
 

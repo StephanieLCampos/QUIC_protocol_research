@@ -106,6 +106,7 @@ class QuicServer:
 
     async def start(self):
         """Start the QUIC server."""
+        print(f"[Server] Starting QUIC server on {self.host}:{self.port}", flush=True)
         configuration = QuicConfiguration(
             is_client=False,
             max_datagram_frame_size=65536,
@@ -120,7 +121,8 @@ class QuicServer:
         # Set max ACK delay
         configuration.max_ack_delay = self.max_ack_delay
 
-        # serve() is a coroutine that returns a Server object
+        # serve() starts the server and keeps accepting connections.
+        # It returns a Server object that needs to be kept alive.
         self._server = await serve(
             self.host,
             self.port,
@@ -128,6 +130,7 @@ class QuicServer:
             create_protocol=self._create_protocol,
         )
         self._running = True
+        print(f"[Server] QUIC server started successfully", flush=True)
 
     async def stop(self):
         """Stop the QUIC server."""

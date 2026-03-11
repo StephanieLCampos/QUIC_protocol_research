@@ -21,19 +21,59 @@ Usage:
 import argparse
 import asyncio
 import sys
+import os
+import signal
+import atexit
+import json
+import re
+import statistics
+import subprocess
 from pathlib import Path
-
-# Add parent directory to path for wireless_bottleneck import
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config.multi_connection_config import MultiConnectionConfig
 from simulation.process_orchestrator import ProcessOrchestrator
 
+# Import wireless bottleneck scenarios
+try:
+    from wireless_bottleneck import get_scenario, SCENARIOS
+    HAS_WIRELESS_BOTTLENECK = True
+except ImportError:
+    HAS_WIRELESS_BOTTLENECK = False
+    SCENARIOS = {}
+
+# Global reference for cleanup on exit
+_orchestrator = None
+
+
+def _cleanup_on_exit():
+    """Cleanup function called at exit (via atexit)."""
+    if _orchestrator:
+        for process in _orchestrator.workers.values():
+            if process.is_alive():
+                process.terminate()
+                process.join(timeout=1)
+                if process.is_alive():
+                    process.kill()
+
+
+def _signal_handler(signum, frame):
+    """Handle Ctrl+C and other signals."""
+    print("\n[Main] Received interrupt signal, shutting down gracefully...")
+    _cleanup_on_exit()
+    sys.exit(0)
+
 
 def cmd_run(args):
     """Run 3 concurrent connections."""
+    global _orchestrator
+    
     print("QUIC 3-Connection Simulation")
     print("=" * 50)
+
+    # Setup signal handlers for Ctrl+C
+    signal.signal(signal.SIGINT, _signal_handler)
+    signal.signal(signal.SIGTERM, _signal_handler)
+    atexit.register(_cleanup_on_exit)
 
     # Load config
     if args.config:
@@ -55,6 +95,7 @@ def cmd_run(args):
     # Setup network scenario
     network_config = {}
     scenario_name = args.scenario
+    scenario = None
 
     try:
         from wireless_bottleneck import get_scenario, WirelessBottleneck
@@ -76,39 +117,34 @@ def cmd_run(args):
             from ml_callbacks.fairness_optimizer import fairness_optimizer
             ml_callback = fairness_optimizer
 
-    # Create orchestrator
-    orchestrator = ProcessOrchestrator(
+    # Create orchestrator (store globally for signal handler)
+    _orchestrator = ProcessOrchestrator(
         config=config,
         ml_callback=ml_callback,
         metrics_interval=args.metrics_interval,
         network_scenario=scenario_name,
         network_config=network_config,
+        scenario=scenario,  # Pass full scenario object for bottleneck setup
     )
 
     # Run with or without UI
     try:
         if args.ui:
-            asyncio.run(run_with_ui(orchestrator, args))
+            asyncio.run(run_with_ui(_orchestrator, args))
         else:
-            asyncio.run(run_headless(orchestrator, args, scenario))
+            asyncio.run(run_headless(_orchestrator, args, scenario))
     except KeyboardInterrupt:
         print("\nInterrupted by user")
+    finally:
+        # Ensure cleanup happens
+        _cleanup_on_exit()
 
     return 0
 
 
 async def run_headless(orchestrator, args, scenario):
     """Run simulation without UI."""
-    try:
-        from wireless_bottleneck import WirelessBottleneck
-        if scenario:
-            with WirelessBottleneck(scenario.config, interface="lo") as bottleneck:
-                result = await orchestrator.run()
-        else:
-            result = await orchestrator.run()
-    except (ImportError, Exception):
-        result = await orchestrator.run()
-
+    result = await orchestrator.run()
     # Export results
     export_results(result, args)
 
@@ -121,14 +157,6 @@ async def run_with_ui(orchestrator, args):
 
     # Start orchestrator in background
     async def run_simulation():
-        try:
-            from wireless_bottleneck import get_scenario, WirelessBottleneck
-            scenario = get_scenario(args.scenario)
-            if scenario:
-                with WirelessBottleneck(scenario.config, interface="lo") as bottleneck:
-                    return await orchestrator.run()
-        except (ImportError, Exception):
-            pass
         return await orchestrator.run()
 
     # Run server and simulation concurrently
@@ -177,19 +205,319 @@ def export_results(result, args):
     epoch_file = result.export_epoch_histories(str(output_path))
     print(f"Epoch histories saved to: {epoch_file}")
 
+    bottleneck_file = result.export_bottleneck_summary(str(output_path))
+    print(f"Bottleneck summary saved to: {bottleneck_file}")
+
+    median_file = result.export_median_metrics_summary(str(output_path))
+    print(f"Median metrics summary saved to: {median_file}")
+
     # Summary
     print(f"\nSimulation Complete")
     print(f"Network Scenario: {args.scenario}")
     print(f"Duration: {args.duration}s")
     print(f"Fairness Index: {result.fairness_index:.3f}")
-    print(f"Total Throughput: {result.total_throughput / 1e6:.2f} Mbps")
+    print(f"Total Offered Throughput (app): {(result.total_throughput * 8) / 1e6:.2f} Mbps")
+    bottleneck = result.get_bottleneck_summary()
+    if bottleneck.get("bottleneck_applied"):
+        print(f"Observed Link Throughput (tc): {bottleneck.get('observed_link_throughput_mbps', 0):.2f} Mbps")
+        print(f"Bottleneck limiting traffic: {bottleneck.get('bottleneck_limiting_traffic', False)}")
     print()
 
     for conn_id, conn_result in result.connection_results.items():
         print(f"  Connection {conn_id} ({conn_result.application_type}):")
-        print(f"    Throughput: {conn_result.final_metrics.get('throughput', 0) / 1e6:.2f} Mbps")
+        print(f"    Offered Throughput (app): {(conn_result.final_metrics.get('throughput', 0) * 8) / 1e6:.2f} Mbps")
         print(f"    RTT: {conn_result.final_metrics.get('rtt', 0) * 1000:.1f} ms")
         print(f"    Epochs: {conn_result.get_epoch_count()}")
+
+
+def cmd_server(args):
+    """Run server only - waits for client connections and applies bottleneck."""
+    print(f"\n{'='*70}")
+    print("QUIC SERVER MODE - Multi-Container Setup")
+    print(f"{'='*70}\n")
+    
+    # Load scenario
+    if not HAS_WIRELESS_BOTTLENECK:
+        print("Error: wireless_bottleneck module not found. Install wireless_bottleneck package.")
+        return 1
+    
+    scenario = SCENARIOS.get(args.scenario)
+    if not scenario:
+        print(f"Error: Unknown scenario '{args.scenario}'")
+        print(f"Available scenarios: {', '.join(SCENARIOS.keys())}")
+        return 1
+    
+    print(f"Network Scenario: {args.scenario}")
+    print(f"Duration: {args.duration}s")
+    print(f"Bottleneck: {scenario.config.capacity_bps / 1e6:.1f} Mbps, "
+          f"{scenario.config.propagation_delay * 2000:.0f}ms RTT, "
+          f"{scenario.config.loss_rate * 100:.2f}% loss\n")
+    
+    # Create server-only config - listen on docker network IP or localhost
+    # In multi-container setup, docker will expose this to the network
+    config = MultiConnectionConfig(
+        server_host="0.0.0.0",  # Listen on all interfaces
+        server_port=4433,
+    )
+    
+    # Run server with bottleneck on eth0 (inter-container interface)
+    orchestrator = ProcessOrchestrator(
+        config=config,
+        network_scenario=args.scenario,
+        network_config=scenario.config.to_dict() if hasattr(scenario.config, "to_dict") else {},
+        scenario=scenario,
+        server_only=True,  # New parameter
+    )
+    
+    loop = asyncio.get_event_loop()
+    
+    def signal_handler(sig, frame):
+        print("\nShutting down server...")
+        orchestrator.stop()
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    try:
+        loop.run_until_complete(orchestrator.run(args.duration))
+        print("\nServer run completed successfully")
+    except Exception as e:
+        print(f"\nError running server: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+    
+    return 0
+
+
+def cmd_clients(args):
+    """Run clients only - connects to remote server."""
+    print(f"\n{'='*70}")
+    print("QUIC CLIENTS MODE - Multi-Container Setup")
+    print(f"{'='*70}\n")
+    
+    print(f"[DEBUG] cmd_clients called with args: {args}")
+    
+    print(f"Server: {args.server}:4433")
+    print(f"Duration: {args.duration}s")
+    print(f"Scenario: {args.scenario}\n")
+    
+    # Load scenario for client-side shaping
+    if not HAS_WIRELESS_BOTTLENECK:
+        print("Warning: wireless_bottleneck module not found. Client-side shaping disabled.")
+        scenario = None
+    else:
+        scenario = SCENARIOS.get(args.scenario)
+        if not scenario:
+            print(f"Warning: Unknown scenario '{args.scenario}', client-side shaping disabled")
+            scenario = None
+        else:
+            print(f"Network Scenario: {args.scenario}")
+            print(f"Client egress shaping: {scenario.config.capacity_bps / 1e6:.1f} Mbps\n")
+    
+    # Create clients-only config pointing to remote server
+    config = MultiConnectionConfig(
+        server_host=args.server,  # Remote server IP
+        server_port=4433,
+    )
+    
+    # Set RUN_MODE for clients to enable client-side shaping on eth0
+    os.environ["RUN_MODE"] = "clients"
+    
+    # Run clients with client-side shaping
+    orchestrator = ProcessOrchestrator(
+        config=config,
+        network_scenario=args.scenario,
+        network_config=scenario.config.to_dict() if scenario and hasattr(scenario.config, "to_dict") else {},
+        scenario=scenario,  # Enable ingress policing
+        clients_only=True,  # New parameter
+    )
+    
+    loop = asyncio.get_event_loop()
+    
+    # Track if we should stop early
+    should_stop = False
+    
+    def signal_handler(sig, frame):
+        nonlocal should_stop
+        should_stop = True
+        print("\n[Clients] Received stop signal, finishing up...")
+        # Don't call sys.exit() - let the code complete naturally
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    print("[DEBUG] Starting orchestrator.run()...")
+    try:
+        result = loop.run_until_complete(orchestrator.run(args.duration))
+        print(f"[DEBUG] orchestrator.run() completed with result: {result}")
+        print(f"[DEBUG] Result type: {type(result)}")
+        
+        if result:
+            # Merge sidecar probe output if available
+            output_path = Path(args.output_dir)
+            probe_latest_path = output_path / f"network_probe_{args.scenario}_latest.json"
+            if probe_latest_path.exists():
+                try:
+                    probe_data = json.loads(probe_latest_path.read_text())
+                    probe_summary = probe_data.get("network_only_rtt_probe", {})
+                    if isinstance(result.network_config, dict) and isinstance(probe_summary, dict) and probe_summary:
+                        result.network_config["network_rtt_probe"] = probe_summary
+                        print(f"[Clients] Loaded sidecar probe: {probe_latest_path.name}")
+                except Exception as e:
+                    print(f"[Clients] Warning: failed to load sidecar probe: {e}")
+
+            # Export results to files
+            output_path.mkdir(parents=True, exist_ok=True)
+            
+            result_file = result.export_json(str(output_path))
+            metrics_file = result.export_metrics_history(str(output_path))
+            epoch_file = result.export_epoch_histories(str(output_path))
+            bottleneck_file = result.export_bottleneck_summary(str(output_path))
+            median_file = result.export_median_metrics_summary(str(output_path))
+            
+            print(f"\n✓ Results exported to: {output_path}/")
+            print(f"  - {Path(result_file).name}")
+            print(f"  - {Path(metrics_file).name}")
+            print(f"  - {Path(epoch_file).name}")
+            print(f"  - {Path(bottleneck_file).name}")
+            print(f"  - {Path(median_file).name}")
+            
+            # Display results
+            print("\n" + "="*70)
+            print("RESULTS")
+            print("="*70)
+            print(f"Total Offered Throughput (app): {(result.total_throughput * 8) / 1e6:.2f} Mbps")
+            tc_observed = result.network_config.get("tc_observed_throughput_bps", 0) if isinstance(result.network_config, dict) else 0
+            if tc_observed > 0:
+                print(f"Observed Link Throughput (tc): {tc_observed / 1e6:.2f} Mbps")
+            bottleneck = result.get_bottleneck_summary()
+            print(f"Bottleneck limiting traffic: {bottleneck.get('bottleneck_limiting_traffic', False)}")
+            print()
+            
+            for conn_id, conn_result in result.connection_results.items():
+                print(f"  Connection {conn_id} ({conn_result.application_type}):")
+                print(f"    Offered Throughput (app): {(conn_result.final_metrics.get('throughput', 0) * 8) / 1e6:.2f} Mbps")
+                print(f"    RTT: {conn_result.final_metrics.get('rtt', 0) * 1000:.1f} ms")
+                print(f"    Epochs: {conn_result.get_epoch_count()}")
+        else:
+            print("\n[Clients] No results object returned (server may not have completed)")
+        
+    except Exception as e:
+        print(f"\nError running clients: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+    finally:
+        print("[DEBUG] cmd_clients finally block executed")
+    
+    return 0
+
+
+def cmd_probe(args):
+    """Run a standalone network RTT probe and export compact JSON output."""
+    print(f"\n{'='*70}")
+    print("NETWORK PROBE MODE - Sidecar RTT Probe")
+    print(f"{'='*70}\n")
+
+    target = args.target
+    duration = float(args.duration)
+    interval = float(args.interval)
+    count = max(5, int(duration / interval))
+    deadline = max(5, int(duration) + 5)
+
+    print(f"Target: {target}")
+    print(f"Scenario: {args.scenario}")
+    print(f"Duration: {duration}s (count={count}, interval={interval}s)\n")
+
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    probe_summary = {
+        "available": False,
+        "error": "not_run",
+    }
+
+    cmd = [
+        "ping",
+        "-n",
+        "-i", str(interval),
+        "-c", str(count),
+        "-w", str(deadline),
+        target,
+    ]
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        output = (result.stdout or "") + "\n" + (result.stderr or "")
+
+        rtt_samples_ms = [float(v) for v in re.findall(r"time[=<]([0-9]*\.?[0-9]+)\s*ms", output)]
+        packet_loss_match = re.search(r"([0-9]*\.?[0-9]+)%\s*packet loss", output)
+        packet_loss_pct = float(packet_loss_match.group(1)) if packet_loss_match else None
+
+        if rtt_samples_ms:
+            sorted_samples = sorted(rtt_samples_ms)
+            p95_index = max(0, min(len(sorted_samples) - 1, int(0.95 * (len(sorted_samples) - 1))))
+            if len(rtt_samples_ms) >= 2:
+                deltas = [abs(b - a) for a, b in zip(rtt_samples_ms[:-1], rtt_samples_ms[1:])]
+                jitter_ms = float(statistics.mean(deltas)) if deltas else 0.0
+            else:
+                jitter_ms = 0.0
+
+            probe_summary = {
+                "available": True,
+                "target_host": target,
+                "sample_count": len(rtt_samples_ms),
+                "rtt_min_ms": float(min(rtt_samples_ms)),
+                "rtt_median_ms": float(statistics.median(rtt_samples_ms)),
+                "rtt_avg_ms": float(statistics.mean(rtt_samples_ms)),
+                "rtt_p95_ms": float(sorted_samples[p95_index]),
+                "rtt_max_ms": float(max(rtt_samples_ms)),
+                "jitter_ms": float(jitter_ms),
+                "packet_loss_percent": float(packet_loss_pct) if packet_loss_pct is not None else None,
+            }
+        else:
+            probe_summary = {
+                "available": False,
+                "error": "no_rtt_samples",
+                "target_host": target,
+                "packet_loss_percent": float(packet_loss_pct) if packet_loss_pct is not None else None,
+            }
+    except FileNotFoundError:
+        probe_summary = {"available": False, "error": "ping_not_found", "target_host": target}
+    except Exception as e:
+        probe_summary = {"available": False, "error": f"probe_failed: {e}", "target_host": target}
+
+    payload = {
+        "network_scenario": args.scenario,
+        "network_only_rtt_probe": probe_summary,
+    }
+
+    # Use same timestamp format as results IDs for easier grouping
+    from datetime import datetime
+    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    out_file = output_dir / f"network_probe_{args.scenario}_{run_id}.json"
+    latest_file = output_dir / f"network_probe_{args.scenario}_latest.json"
+
+    out_file.write_text(json.dumps(payload, indent=2))
+    latest_file.write_text(json.dumps(payload, indent=2))
+
+    print(f"Probe output: {out_file}")
+    print(f"Probe latest: {latest_file}")
+    print(f"Probe available: {probe_summary.get('available', False)}")
+    if probe_summary.get("available"):
+        print(f"RTT median: {probe_summary.get('rtt_median_ms', 0):.2f} ms")
+        print(f"RTT p95: {probe_summary.get('rtt_p95_ms', 0):.2f} ms")
+        print(f"Jitter: {probe_summary.get('jitter_ms', 0):.2f} ms")
+        print(f"Packet loss: {probe_summary.get('packet_loss_percent', 0):.2f}%")
+    else:
+        print(f"Probe error: {probe_summary.get('error', 'unknown')}")
+
+    return 0
+    
+    return 0
 
 
 def main():
@@ -216,6 +544,34 @@ def main():
     run_parser.add_argument("--settling-time", type=float, default=2.0,
                            help="Settling time in seconds after parameter changes (default: 2.0, use 5-10 for network simulation)")
     run_parser.set_defaults(func=cmd_run)
+
+    # Server-only mode for multi-container setup
+    server_parser = subparsers.add_parser("server", help="Run server only (multi-container mode)")
+    server_parser.add_argument("--duration", type=float, default=60.0,
+                              help="Server run duration in seconds")
+    server_parser.add_argument("--scenario", default="congested_low",
+                              help="Network scenario for bottleneck")
+    server_parser.set_defaults(func=cmd_server)
+
+    # Clients-only mode for multi-container setup
+    clients_parser = subparsers.add_parser("clients", help="Run clients only (multi-container mode)")
+    clients_parser.add_argument("--server", required=True,
+                               help="Server IP address")
+    clients_parser.add_argument("--duration", type=float, default=30.0,
+                               help="Client run duration in seconds")
+    clients_parser.add_argument("--scenario", default="congested_low",
+                               help="Network scenario (for display only)")
+    clients_parser.add_argument("--output-dir", default="output",
+                               help="Output directory for results")
+    clients_parser.set_defaults(func=cmd_clients)
+
+    probe_parser = subparsers.add_parser("probe", help="Run standalone network RTT probe")
+    probe_parser.add_argument("--target", required=True, help="Probe target host/IP")
+    probe_parser.add_argument("--duration", type=float, default=30.0, help="Probe duration in seconds")
+    probe_parser.add_argument("--interval", type=float, default=0.5, help="Ping interval in seconds")
+    probe_parser.add_argument("--scenario", default="congested_low", help="Scenario label for output")
+    probe_parser.add_argument("--output-dir", default="output", help="Output directory for probe files")
+    probe_parser.set_defaults(func=cmd_probe)
 
     args = parser.parse_args()
     if hasattr(args, "func"):

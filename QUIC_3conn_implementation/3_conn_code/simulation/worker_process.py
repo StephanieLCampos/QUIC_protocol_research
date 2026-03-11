@@ -194,6 +194,7 @@ class ConnectionWorker:
 
     async def run(self, duration: float):
         """Main worker loop with epoch-based metrics collection."""
+        print(f"[Worker {self.config.connection_id}] run() started for {self.config.application_type}", flush=True)
         self._apply_initial_parameters()
         self._metrics_history = []
 
@@ -225,23 +226,29 @@ class ConnectionWorker:
             ),
         )
 
+        print(f"[Worker {self.config.connection_id}] Waiting at barrier...", flush=True)
         self.start_barrier.wait()
+        print(f"[Worker {self.config.connection_id}] Barrier released, starting connection", flush=True)
 
         self._running = True
         start_time = time.time()
         last_sample_time = start_time
 
-        try:
-            configuration = QuicConfiguration(is_client=True)
-            configuration.verify_mode = False
-            configuration.max_datagram_frame_size = 65536
-            configuration.max_ack_delay = self.config.max_ack_delay
+        print(f"[Worker {self.config.connection_id}] Starting {self.config.application_type} connection to {self.server_host}:{self.server_port}", flush=True)
 
+        configuration = QuicConfiguration(is_client=True)
+        configuration.verify_mode = False
+        configuration.max_datagram_frame_size = 65536
+        configuration.max_ack_delay = self.config.max_ack_delay
+
+        print(f"[Worker {self.config.connection_id}] Configuration created, connecting...", flush=True)
+        try:
             async with connect(
                 self.server_host,
                 self.server_port,
                 configuration=configuration,
             ) as protocol:
+                print(f"[Worker {self.config.connection_id}] Connected to server, starting to send data...", flush=True)
                 self._metrics_collector.connection = protocol._quic
                 self._metrics_collector.start()
                 self._metrics_collector.record_connection_ready()
@@ -323,8 +330,23 @@ class ConnectionWorker:
                 # Send finished with epoch history converted to dict
                 self._send_finished(final_metrics.to_dict(), epoch_history.to_dict())
 
+        except asyncio.TimeoutError:
+            error_msg = f"Connection timeout: Could not connect to {self.server_host}:{self.server_port} within 5 seconds"
+            print(f"[Worker {self.config.connection_id}] {error_msg}", flush=True)
+            self._send_error(error_msg)
+        except ConnectionError as e:
+            error_msg = f"Connection error: {str(e)}"
+            print(f"[Worker {self.config.connection_id}] {error_msg}", flush=True)
+            self._send_error(error_msg)
+        except OSError as e:
+            error_msg = f"OS error (likely connection refused): {str(e)}"
+            print(f"[Worker {self.config.connection_id}] {error_msg}", flush=True)
+            self._send_error(error_msg)
         except Exception as e:
-            self._send_error(f"Worker error: {str(e)}")
+            import traceback
+            error_msg = f"Worker error: {str(e)}\n{traceback.format_exc()}"
+            print(f"[Worker {self.config.connection_id}] {error_msg}", flush=True)
+            self._send_error(error_msg)
             raise
 
     def _get_rtt(self, protocol) -> Optional[float]:
@@ -347,15 +369,25 @@ def worker_process_entry(
     network_config: dict = None,
 ):
     """Entry point for worker process."""
-    config = ConnectionConfig.from_dict(config_dict)
-    worker = ConnectionWorker(
-        config=config,
-        server_host=server_host,
-        server_port=server_port,
-        command_pipe=command_pipe,
-        metrics_queue=metrics_queue,
-        start_barrier=start_barrier,
-        network_scenario=network_scenario,
-        network_config=network_config or {},
-    )
-    asyncio.run(worker.run(duration))
+    try:
+        print(f"[Worker Entry] Starting worker process for connection type", flush=True)
+        config = ConnectionConfig.from_dict(config_dict)
+        print(f"[Worker Entry] Connection ID: {config.connection_id}, Type: {config.application_type}", flush=True)
+        worker = ConnectionWorker(
+            config=config,
+            server_host=server_host,
+            server_port=server_port,
+            command_pipe=command_pipe,
+            metrics_queue=metrics_queue,
+            start_barrier=start_barrier,
+            network_scenario=network_scenario,
+            network_config=network_config or {},
+        )
+        print(f"[Worker Entry] Worker object created, starting run loop", flush=True)
+        asyncio.run(worker.run(duration))
+        print(f"[Worker Entry] Worker finished", flush=True)
+    except Exception as e:
+        import traceback
+        print(f"[Worker Entry] EXCEPTION: {e}", flush=True)
+        print(traceback.format_exc(), flush=True)
+        raise

@@ -43,6 +43,7 @@ for its traffic pattern:
 """
 
 import json
+import os
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -148,7 +149,15 @@ class MultiConnectionConfig:
         Called automatically after dataclass initialization.
         Creates ConnectionConfig instances for each connection type
         if not already provided, then applies shared start-only parameters.
+        
+        Also checks for USE_VETH_INTERFACE environment variable and switches
+        to veth0 IP (192.168.100.1) if running in Docker with veth.
         """
+        # Use veth0 IP instead of localhost when in Docker
+        if os.environ.get("USE_VETH_INTERFACE"):
+            self.server_host = "192.168.100.1"
+            print(f"[Config] Using veth0 interface: server will bind to {self.server_host}")
+        
         # Create video streaming config (Connection 1)
         # Optimized for LOW LATENCY
         if self.video_config is None:

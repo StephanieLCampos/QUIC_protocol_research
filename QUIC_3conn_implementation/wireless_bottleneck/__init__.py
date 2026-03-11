@@ -11,6 +11,9 @@ from .config import BottleneckConfig, LossModel, QueueDiscipline
 from .scenarios import WirelessScenario, PREDEFINED_SCENARIOS, get_scenario, list_scenarios
 from .monitor import BottleneckMonitor, BottleneckMetrics
 
+# Expose SCENARIOS for convenience
+SCENARIOS = PREDEFINED_SCENARIOS
+
 __all__ = [
     "WirelessBottleneck",
     "BottleneckConfig",
@@ -18,6 +21,7 @@ __all__ = [
     "QueueDiscipline",
     "WirelessScenario",
     "PREDEFINED_SCENARIOS",
+    "SCENARIOS",
     "get_scenario",
     "list_scenarios",
     "BottleneckMonitor",

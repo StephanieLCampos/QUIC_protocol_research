@@ -205,7 +205,14 @@ class MetricsExporter:
             "network_scenario": results.get("network_scenario", ""),
             "duration_seconds": results.get("duration_seconds", 0),
             "fairness_index": results.get("fairness_index", 0),
-            "total_throughput": results.get("total_throughput", 0),
+            "total_offered_throughput_Bps": results.get(
+                "total_offered_throughput_Bps",
+                results.get("total_throughput", 0),
+            ),
+            "total_offered_throughput_Mbps": results.get(
+                "total_offered_throughput_Mbps",
+                (results.get("total_throughput", 0) * 8) / 1_000_000,
+            ),
         }
 
         # Add per-connection final metrics

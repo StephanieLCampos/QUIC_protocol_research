@@ -1,0 +1,57 @@
+services:
+  # QUIC Server - accepts connections and applies bottleneck
+  server:
+    image: quic-wireless
+    container_name: quic-server
+    privileged: true  # Required for tc commands
+    networks:
+      quic-net:
+        ipv4_address: 192.168.200.10
+    environment:
+      - RUN_MODE=server
+      - SKIP_VETH=0  # Enable veth for bottleneck
+      - SCENARIO=${SCENARIO:-congested_low}
+    command: python -m main server --duration 40 --scenario ${SCENARIO:-congested_low}
+    
+  # QUIC Clients - 3 worker processes connecting to server
+  clients:
+    image: quic-wireless
+    container_name: quic-clients
+    cap_add:
+      - NET_ADMIN
+    depends_on:
+      - server
+    networks:
+      quic-net:
+        ipv4_address: 192.168.200.20
+    volumes:
+      - ./results:/app/3_conn_code/output
+      - ./results:/app/3_conn_code/reports
+    environment:
+      - RUN_MODE=clients
+      - SKIP_VETH=1  # Skip veth setup in client mode
+      - ENABLE_NETWORK_RTT_PROBE=0  # Use dedicated prober sidecar instead
+      - SCENARIO=${SCENARIO:-congested_low}
+    command: python -m main clients --server 192.168.200.10 --duration 30 --scenario ${SCENARIO:-congested_low} --output-dir output
+
+  # Network RTT prober sidecar - independent control-plane probe
+  prober:
+    image: quic-wireless
+    container_name: quic-prober
+    depends_on:
+      - server
+    networks:
+      quic-net:
+        ipv4_address: 192.168.200.30
+    volumes:
+      - ./results:/app/3_conn_code/output
+    environment:
+      - SCENARIO=${SCENARIO:-congested_low}
+    command: python -m main probe --target 192.168.200.10 --duration 30 --interval 0.5 --scenario ${SCENARIO:-congested_low} --output-dir output
+
+networks:
+  quic-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.200.0/24

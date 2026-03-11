@@ -12,6 +12,7 @@ a Linux VM.
 import subprocess
 import time
 import threading
+import shutil
 from typing import Optional
 from pathlib import Path
 
@@ -33,6 +34,7 @@ class WirelessBottleneck:
         config: BottleneckConfig,
         interface: str = "lo",  # loopback for localhost testing
         monitor: Optional[BottleneckMonitor] = None,
+        apply_ingress: bool = False,  # Apply ingress policing instead of egress shaping
     ):
         """
         Initialize the wireless bottleneck.
@@ -41,10 +43,12 @@ class WirelessBottleneck:
             config: Bottleneck configuration
             interface: Network interface to apply rules to
             monitor: Optional monitor for instrumentation
+            apply_ingress: If True, apply ingress policing instead of egress shaping
         """
         self.config = config
         self.interface = interface
         self.monitor = monitor or BottleneckMonitor()
+        self.apply_ingress = apply_ingress
         
         self._active = False
         self._variation_thread: Optional[threading.Thread] = None
@@ -55,23 +59,18 @@ class WirelessBottleneck:
         Set up the bottleneck using tc commands.
         
         This configures:
-        - Token bucket filter (TBF) for rate limiting
-        - netem for delay, loss, and jitter
-        - Queue discipline (FIFO, RED, CoDel, PIE)
+        - netem for delay, loss, and rate limiting (all in one qdisc)
         """
         # First, clear any existing tc rules
         self.teardown()
         
-        print(f"Setting up wireless bottleneck on {self.interface}...")
-        
-        # Create root qdisc
-        self._setup_qdisc()
-        
-        # Add netem for delay and loss
-        self._setup_netem()
-        
-        # Add rate limiting
-        self._setup_rate_limit()
+        if self.apply_ingress:
+            print(f"Setting up INGRESS policing on {self.interface}...")
+            self._setup_ingress_policing()
+        else:
+            print(f"Setting up EGRESS shaping on {self.interface}...")
+            # Use simplified netem-only approach (works better on veth)
+            self._setup_netem_with_rate()
         
         # Start time-varying behavior if enabled
         if self.config.time_varying:
@@ -81,9 +80,103 @@ class WirelessBottleneck:
         self.monitor.start()
         
         self._active = True
-        print(f"Bottleneck active: {self.config.capacity_bps / 1_000_000:.1f} Mbps, "
+        direction = "INGRESS" if self.apply_ingress else "EGRESS"
+        print(f"Bottleneck active ({direction}): {self.config.capacity_bps / 1_000_000:.1f} Mbps, "
               f"{self.config.propagation_delay * 1000:.1f}ms delay, "
               f"{self.config.loss_rate * 100:.1f}% loss")
+    
+    def _setup_netem_with_rate(self):
+        """Set up netem with HTB for rate limiting (more reliable approach)."""
+        # Convert values to tc format
+        delay_ms = int(self.config.propagation_delay * 1000)
+        rate_kbps = self.config.capacity_bps // 1000
+        loss_pct = self.config.loss_rate * 100
+        
+        # Step 1: Create HTB root qdisc for rate limiting
+        htb_params = [
+            "tc", "qdisc", "add", "dev", self.interface,
+            "root", "handle", "1:", "htb", "default", "11"
+        ]
+        
+        try:
+            self._run_tc_command(htb_params)
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Failed to set up HTB root: {e}")
+            raise
+        
+        # Step 2: Create HTB class for rate limiting
+        htb_class = [
+            "tc", "class", "add", "dev", self.interface,
+            "parent", "1:", "classid", "1:11", "htb",
+            "rate", f"{rate_kbps}kbit",
+            "ceil", f"{rate_kbps}kbit",  # Hard limit
+            "burst", "15k"  # Allow small bursts
+        ]
+        
+        try:
+            self._run_tc_command(htb_class)
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Failed to set up HTB class: {e}")
+            raise
+        
+        # Step 3: Add netem for delay and loss under HTB
+        netem_params = [
+            "tc", "qdisc", "add", "dev", self.interface,
+            "parent", "1:11", "handle", "10:", "netem",
+            "delay", f"{delay_ms}ms",
+            "limit", str(self.config.queue_size_packets)
+        ]
+        
+        # Add loss if configured
+        if self.config.loss_rate > 0:
+            netem_params.extend(["loss", f"{loss_pct}%"])
+        
+        try:
+            self._run_tc_command(netem_params)
+            print(f"Successfully configured bottleneck: {rate_kbps} kbit/s, {delay_ms}ms delay, {loss_pct}% loss")
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Failed to set up netem: {e}")
+            raise
+    
+    def _setup_ingress_policing(self):
+        """Set up ingress policing for rate limiting incoming traffic."""
+        rate_kbps = self.config.capacity_bps // 1000
+        burst_bytes = self.config.capacity_bps // 8  # 1 second worth of data
+        
+        # Remove any existing ingress qdisc
+        try:
+            self._run_tc_command(["tc", "qdisc", "del", "dev", self.interface, "ingress"])
+        except subprocess.CalledProcessError:
+            pass  # No existing ingress qdisc
+        
+        # Add ingress qdisc
+        ingress_qdisc = [
+            "tc", "qdisc", "add", "dev", self.interface,
+            "ingress"
+        ]
+        
+        try:
+            self._run_tc_command(ingress_qdisc)
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Failed to set up ingress qdisc: {e}")
+            raise
+        
+        # Add ingress policing with rate limit
+        police_filter = [
+            "tc", "filter", "add", "dev", self.interface,
+            "parent", "ffff:", "protocol", "ip", "prio", "1",
+            "u32", "match", "u32", "0", "0",
+            "police", "rate", f"{rate_kbps}kbit",
+            "burst", f"{burst_bytes}",
+            "drop", "flowid", ":1"
+        ]
+        
+        try:
+            self._run_tc_command(police_filter)
+            print(f"Successfully configured ingress policing: {rate_kbps} kbit/s")
+        except subprocess.CalledProcessError as e:
+            print(f"ERROR: Failed to set up ingress policing: {e}")
+            raise
     
     def _setup_qdisc(self):
         """Set up the queueing discipline."""
@@ -271,6 +364,8 @@ class WirelessBottleneck:
         except subprocess.CalledProcessError as e:
             # Try with sudo if permission denied
             if "Operation not permitted" in e.stderr or "Permission denied" in e.stderr:
+                if shutil.which("sudo") is None:
+                    raise
                 cmd_with_sudo = ["sudo"] + cmd
                 subprocess.run(cmd_with_sudo, check=True)
             else:
