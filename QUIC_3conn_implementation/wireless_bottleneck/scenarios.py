@@ -164,13 +164,152 @@ def asymmetric_link() -> WirelessScenario:
     )
 
 
+def per_ideal() -> WirelessScenario:
+    """
+    Ideal channel — zero packet error rate.
+
+    Characteristics:
+    - 50 Mbps capacity (mid-range baseline)
+    - 20ms RTT (10ms propagation)
+    - 0% loss rate  (perfect channel)
+    - 100-packet FIFO queue
+    - No time variation
+
+    Use as the reference point for the PER ladder.
+    """
+    return WirelessScenario(
+        name="per_ideal",
+        description="Ideal 50 Mbps channel — 0% packet error rate",
+        config=BottleneckConfig(
+            capacity_bps=50_000_000,   # 50 Mbps
+            propagation_delay=0.010,   # 10ms one-way (20ms RTT)
+            loss_rate=0.00,            # 0% PER
+            loss_model=LossModel.RANDOM,
+            queue_size_packets=100,
+            queue_discipline=QueueDiscipline.FIFO,
+            time_varying=False,
+        )
+    )
+
+
+def per_1pct() -> WirelessScenario:
+    """
+    Near-ideal channel — 1% packet error rate.
+
+    Characteristics:
+    - 50 Mbps capacity
+    - 20ms RTT (10ms propagation)
+    - 1% loss rate  (light channel noise / minor interference)
+    - 100-packet FIFO queue
+    - No time variation
+    """
+    return WirelessScenario(
+        name="per_1pct",
+        description="50 Mbps channel — 1% packet error rate (light noise)",
+        config=BottleneckConfig(
+            capacity_bps=50_000_000,
+            propagation_delay=0.010,
+            loss_rate=0.01,            # 1% PER
+            loss_model=LossModel.RANDOM,
+            queue_size_packets=100,
+            queue_discipline=QueueDiscipline.FIFO,
+            time_varying=False,
+        )
+    )
+
+
+def per_5pct() -> WirelessScenario:
+    """
+    Degraded channel — 5% packet error rate.
+
+    Characteristics:
+    - 50 Mbps capacity
+    - 20ms RTT (10ms propagation)
+    - 5% loss rate  (moderate congestion / interference)
+    - 100-packet FIFO queue
+    - No time variation
+    """
+    return WirelessScenario(
+        name="per_5pct",
+        description="50 Mbps channel — 5% packet error rate (moderate degradation)",
+        config=BottleneckConfig(
+            capacity_bps=50_000_000,
+            propagation_delay=0.010,
+            loss_rate=0.05,            # 5% PER
+            loss_model=LossModel.RANDOM,
+            queue_size_packets=100,
+            queue_discipline=QueueDiscipline.FIFO,
+            time_varying=False,
+        )
+    )
+
+
+def per_10pct() -> WirelessScenario:
+    """
+    Heavily degraded channel — 10% packet error rate.
+
+    Characteristics:
+    - 50 Mbps capacity
+    - 20ms RTT (10ms propagation)
+    - 10% loss rate  (heavy congestion / poor signal)
+    - 100-packet FIFO queue
+    - No time variation
+    """
+    return WirelessScenario(
+        name="per_10pct",
+        description="50 Mbps channel — 10% packet error rate (heavy degradation)",
+        config=BottleneckConfig(
+            capacity_bps=50_000_000,
+            propagation_delay=0.010,
+            loss_rate=0.10,            # 10% PER
+            loss_model=LossModel.RANDOM,
+            queue_size_packets=100,
+            queue_discipline=QueueDiscipline.FIFO,
+            time_varying=False,
+        )
+    )
+
+
+def per_20pct() -> WirelessScenario:
+    """
+    Severely degraded channel — 20% packet error rate.
+
+    Characteristics:
+    - 50 Mbps capacity
+    - 20ms RTT (10ms propagation)
+    - 20% loss rate  (extreme congestion / near-failure channel)
+    - 100-packet FIFO queue
+    - No time variation
+    """
+    return WirelessScenario(
+        name="per_20pct",
+        description="50 Mbps channel — 20% packet error rate (severe degradation)",
+        config=BottleneckConfig(
+            capacity_bps=50_000_000,
+            propagation_delay=0.010,
+            loss_rate=0.20,            # 20% PER
+            loss_model=LossModel.RANDOM,
+            queue_size_packets=100,
+            queue_discipline=QueueDiscipline.FIFO,
+            time_varying=False,
+        )
+    )
+
+
 # Predefined scenarios dictionary
 PREDEFINED_SCENARIOS: Dict[str, WirelessScenario] = {
+    # Original heterogeneous scenarios
     "stable_high": stable_high_capacity(),
     "congested_low": congested_low_capacity(),
     "varying": rapidly_varying_capacity(),
     "lossy": loss_dominated_link(),
     "asymmetric": asymmetric_link(),
+    # Packet Error Rate (PER) ladder — only loss_rate varies, all else fixed
+    "per_ideal": per_ideal(),
+    "per_1":     per_1pct(),
+    "per_5":     per_5pct(),
+    "per_10":    per_10pct(),
+    "per_20":    per_20pct(),
 }
 
 

@@ -164,10 +164,10 @@ class ConnectionConfig:
     # -------------------------------------------------------------------------
     # Dynamic Parameters (can be tuned per-connection via UI)
     # -------------------------------------------------------------------------
-    loss_reduction_factor: float = 0.7    # cwnd *= this on loss
-    cubic_c: float = 0.4                  # CUBIC aggressiveness
+    loss_reduction_factor: float = 0.3    # cwnd *= this on loss
+    cubic_c: float = 0.2                  # CUBIC aggressiveness
     minimum_window: int = 2               # Min cwnd (packets)
-    packet_threshold: int = 3             # Dup ACKs for fast retransmit
+    packet_threshold: int = 2             # Dup ACKs for fast retransmit
     time_threshold: float = 1.125         # RTT multiplier for loss detection
     cubic_max_idle_time: float = 2.0      # Idle timeout before cwnd reset (sec)
 

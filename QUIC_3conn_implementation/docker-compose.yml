@@ -47,7 +47,7 @@ services:
       - ./results:/app/3_conn_code/output
     environment:
       - SCENARIO=${SCENARIO:-congested_low}
-    command: python -m main probe --target 192.168.200.10 --duration 30 --interval 0.5 --scenario ${SCENARIO:-congested_low} --output-dir output
+    command: python -m main probe --target 192.168.200.10 --duration 25 --interval 0.5 --scenario ${SCENARIO:-congested_low} --output-dir output
 
 networks:
   quic-net:
