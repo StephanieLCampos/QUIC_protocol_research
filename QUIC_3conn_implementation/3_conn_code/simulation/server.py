@@ -6,6 +6,7 @@ synthesized data from clients for metric collection.
 """
 
 import asyncio
+import random
 from typing import Optional, Dict, Callable
 from pathlib import Path
 
@@ -22,13 +23,15 @@ class ServerProtocol(QuicConnectionProtocol):
     metrics during data reception.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, loss_rate: float = 0.0, delay_ms: float = 0.0, **kwargs):
         super().__init__(*args, **kwargs)
-        self.streams: Dict[int, bytes] = {}
+        self.streams: Dict[int, int] = {}  #stream_id to bytes received not the data itself
         self.total_bytes_received = 0
         self.handshake_complete = False
         self._data_received_callback: Optional[Callable] = None
         self._connection_callback: Optional[Callable] = None
+        self._loss_rate = loss_rate
+        self._delay_ms = delay_ms
 
     def set_data_received_callback(self, callback: Callable):
         """Set callback for when data is received."""
@@ -38,6 +41,20 @@ class ServerProtocol(QuicConnectionProtocol):
         """Set callback for connection events."""
         self._connection_callback = callback
 
+    def datagram_received(self, data, addr):
+        """Intercept datagrams to apply simulated loss and propagation delay."""
+        if self._loss_rate > 0 and random.random() < self._loss_rate:
+            return  #drop and quic will detect via missing ack and trigger loss recovery
+        if self._delay_ms > 0:
+            #gaussian jitter +/-20% around base delay for realistic variance
+            delay_s = max(0.0, random.gauss(self._delay_ms, self._delay_ms * 0.2)) / 1000.0
+            self._loop.call_later(delay_s, self._receive_delayed, data, addr)
+        else:
+            super().datagram_received(data, addr)
+
+    def _receive_delayed(self, data, addr):
+        super().datagram_received(data, addr)
+
     def quic_event_received(self, event):
         """Handle QUIC events."""
         if isinstance(event, HandshakeCompleted):
@@ -46,11 +63,12 @@ class ServerProtocol(QuicConnectionProtocol):
                 self._connection_callback("handshake_complete")
 
         elif isinstance(event, StreamDataReceived):
-            # Accumulate stream data
+            #count bytes but dont accumulate data appending bytes to a growing
+            #Python bytes object is O(n^2) and would block event loop at high tp
             stream_id = event.stream_id
             if stream_id not in self.streams:
-                self.streams[stream_id] = b""
-            self.streams[stream_id] += event.data
+                self.streams[stream_id] = 0
+            self.streams[stream_id] += len(event.data)
             self.total_bytes_received += len(event.data)
 
             # Notify callback
@@ -77,6 +95,8 @@ class QuicServer:
         cert_file: str = "certs/cert.pem",
         key_file: str = "certs/key.pem",
         max_ack_delay: float = 0.025,
+        loss_rate: float = 0.0,
+        delay_ms: float = 0.0,
     ):
         """
         Initialize the QUIC server.
@@ -93,6 +113,8 @@ class QuicServer:
         self.cert_file = Path(cert_file)
         self.key_file = Path(key_file)
         self.max_ack_delay = max_ack_delay
+        self.loss_rate = loss_rate
+        self.delay_ms = delay_ms
 
         self._server = None
         self._protocols: list = []
@@ -100,7 +122,7 @@ class QuicServer:
 
     def _create_protocol(self, *args, **kwargs) -> ServerProtocol:
         """Create a new server protocol instance."""
-        protocol = ServerProtocol(*args, **kwargs)
+        protocol = ServerProtocol(*args, loss_rate=self.loss_rate, delay_ms=self.delay_ms, **kwargs)
         self._protocols.append(protocol)
         return protocol
 
@@ -111,6 +133,12 @@ class QuicServer:
             is_client=False,
             max_datagram_frame_size=65536,
         )
+
+        #limit how much each client can have in flight (client to server direction)
+        #default 1MB causes CUBIC to fill a 1MB pipe at 30 Mbps = ~267ms one way queuing
+        #128KB at 30 Mbps = ~34ms one way to realistic ~50-100ms RTT.
+        configuration.max_data = 131072
+        configuration.max_stream_data_bidi_remote = 131072  #streams opened by client
 
         # Load certificates
         configuration.load_cert_chain(

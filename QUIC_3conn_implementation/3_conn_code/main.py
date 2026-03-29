@@ -103,7 +103,12 @@ def cmd_run(args):
         if scenario:
             network_config = scenario.config.to_dict() if hasattr(scenario.config, 'to_dict') else {}
     except ImportError:
-        print("Warning: wireless_bottleneck module not found. Running without network simulation.")
+        if not args.bandwidth_cap:
+            print("Warning: wireless_bottleneck module not found. Running without network simulation.")
+            print("  Tip: use --bandwidth-cap <Mbps> (ex. --bandwidth-cap 30) to simulate a shared")
+            print("  bandwidth limit so connections compete & Q-learning has something to optimize.")
+        else:
+            print(f"Note: wireless_bottleneck module not found. Using app-level cap: {args.bandwidth_cap} Mbps.")
         scenario = None
 
     # Setup ML callback
@@ -114,8 +119,10 @@ def cmd_run(args):
             module = __import__(module_name)
             ml_callback = getattr(module, func_name)
         else:
-            from ml_callbacks.fairness_optimizer import fairness_optimizer
-            ml_callback = fairness_optimizer
+            from ml_callbacks.q_learning_agent import q_learning_callback
+            ml_callback = q_learning_callback
+
+    bandwidth_cap_bps = args.bandwidth_cap * 1e6 if args.bandwidth_cap else None
 
     # Create orchestrator (store globally for signal handler)
     _orchestrator = ProcessOrchestrator(
@@ -125,6 +132,9 @@ def cmd_run(args):
         network_scenario=scenario_name,
         network_config=network_config,
         scenario=scenario,  # Pass full scenario object for bottleneck setup
+        bandwidth_cap_bps=bandwidth_cap_bps,
+        loss_rate=args.loss_rate,
+        delay_ms=args.delay_ms,
     )
 
     # Run with or without UI
@@ -165,7 +175,8 @@ async def run_with_ui(orchestrator, args):
     print("Press Ctrl+C to stop")
 
     settling_time = getattr(args, 'settling_time', 2.0)
-    server_task = asyncio.create_task(run_server(orchestrator, port=port, settling_time=settling_time))
+    server_holder = []
+    server_task = asyncio.create_task(run_server(orchestrator, port=port, settling_time=settling_time, _server_holder=server_holder))
     sim_task = asyncio.create_task(run_simulation())
 
     try:
@@ -182,12 +193,17 @@ async def run_with_ui(orchestrator, args):
     except KeyboardInterrupt:
         print("\nShutting down...")
     finally:
-        # Cancel server task
-        server_task.cancel()
+        # Signal uvicorn to exit gracefully (avoids CancelledError noise in logs)
+        if server_holder:
+            server_holder[0].should_exit = True
         try:
-            await server_task
-        except asyncio.CancelledError:
-            pass
+            await asyncio.wait_for(server_task, timeout=2.0)
+        except (asyncio.CancelledError, asyncio.TimeoutError):
+            server_task.cancel()
+            try:
+                await server_task
+            except asyncio.CancelledError:
+                pass
 
 
 def export_results(result, args):
@@ -543,6 +559,17 @@ def main():
                            help="Port for browser UI (default: 8000)")
     run_parser.add_argument("--settling-time", type=float, default=2.0,
                            help="Settling time in seconds after parameter changes (default: 2.0, use 5-10 for network simulation)")
+    run_parser.add_argument("--bandwidth-cap", type=float, default=0.0, metavar="MBPS",
+                           help="Shared bandwidth cap in Mbps across all connections (e.g. 30). "
+                                "Forces real competition between connections so Q-learning has "
+                                "something to optimize. Recommended when wireless_bottleneck is unavailable.")
+    run_parser.add_argument("--loss-rate", type=float, default=0.0, metavar="RATE",
+                           help="Simulated packet loss rate 0.0-1.0 (ex. 0.02 = 2%%). "
+                                "Triggers QUIC loss recovery, making loss_reduction_factor and "
+                                "packet_threshold observable to the Q-agent.")
+    run_parser.add_argument("--delay-ms", type=float, default=0.0, metavar="MS",
+                           help="Simulated one-way propagation delay in ms (ex. 25). "
+                                "Raises RTT into the Q-agent latency bins and makes cubic_c observable.")
     run_parser.set_defaults(func=cmd_run)
 
     # Server-only mode for multi-container setup

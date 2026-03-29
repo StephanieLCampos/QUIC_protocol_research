@@ -41,6 +41,7 @@ class ConnectionWorker:
         start_barrier,
         network_scenario: str = "",
         network_config: dict = None,
+        token_bucket=None,
     ):
         self.config = config
         self.server_host = server_host
@@ -50,6 +51,7 @@ class ConnectionWorker:
         self.start_barrier = start_barrier
         self.network_scenario = network_scenario
         self.network_config = network_config or {}
+        self._token_bucket = token_bucket  #SharedTokenBucket or None
 
         self._running = False
         self._metrics_collector = MetricsCollector()
@@ -186,7 +188,6 @@ class ConnectionWorker:
                 "final_metrics": final_metrics,
                 "param_history": self._param_history,
                 "epoch_history": epoch_history or {},
-                "metrics_history": self._metrics_history,
                 "success": True,
             },
         )
@@ -240,6 +241,12 @@ class ConnectionWorker:
         configuration.verify_mode = False
         configuration.max_datagram_frame_size = 65536
         configuration.max_ack_delay = self.config.max_ack_delay
+        #reduce flow control window to limit in flight data
+        #default 1MB at 30 Mbps = ~267ms one way queuing = ~1500ms smoothed RTT
+        #128KB at 30 Mbps = ~34ms one-way giving realistic ~100-200ms RTT
+        configuration.max_data = 131072
+        configuration.max_stream_data_bidi_local = 131072
+        configuration.max_stream_data_bidi_remote = 131072
 
         print(f"[Worker {self.config.connection_id}] Configuration created, connecting...", flush=True)
         try:
@@ -271,6 +278,10 @@ class ConnectionWorker:
 
                     if stream_closed:
                         break
+
+                    #enforce shared bandwidth cap before sending
+                    if self._token_bucket is not None:
+                        await self._token_bucket.consume_async(packet.size)
 
                     # Send data with proper error handling
                     try:
@@ -367,6 +378,7 @@ def worker_process_entry(
     duration: float,
     network_scenario: str = "",
     network_config: dict = None,
+    token_bucket=None,
 ):
     """Entry point for worker process."""
     try:
@@ -382,9 +394,19 @@ def worker_process_entry(
             start_barrier=start_barrier,
             network_scenario=network_scenario,
             network_config=network_config or {},
+            token_bucket=token_bucket,
         )
         print(f"[Worker Entry] Worker object created, starting run loop", flush=True)
-        asyncio.run(worker.run(duration))
+        #cancel_join_thread() prevents the worker from blocking at exit waiting for unread items to drain through the pipe and avoids deadlock with main process
+        metrics_queue.cancel_join_thread()
+
+        async def _run():
+            try:
+                await asyncio.wait_for(worker.run(duration), timeout=duration + 8)
+            except asyncio.TimeoutError:
+                print(f"[Worker Entry] Timed out after {duration + 8:.0f}s, forcing exit", flush=True)
+
+        asyncio.run(_run())
         print(f"[Worker Entry] Worker finished", flush=True)
     except Exception as e:
         import traceback

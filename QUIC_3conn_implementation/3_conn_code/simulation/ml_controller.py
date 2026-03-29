@@ -28,6 +28,7 @@ class MLController:
         self.metrics_history: List[Dict] = []
         self.command_pipes: Dict[int, Connection] = {}
         self.metrics_queue: Optional[Queue] = None
+        self.final_results: Dict[int, dict] = {}  #FINISHED messages captured during control loop
 
     def set_ipc_channels(self, command_pipes: Dict[int, Connection], metrics_queue: Queue):
         """Set IPC channels after process creation."""
@@ -72,6 +73,8 @@ class MLController:
                 msg = self.metrics_queue.get_nowait()
                 if msg.msg_type == MessageType.METRICS:
                     self.latest_metrics[msg.connection_id] = msg.payload
+                elif msg.msg_type == MessageType.FINISHED:
+                    self.final_results[msg.connection_id] = msg.payload
             except Exception:
                 break  # Queue empty or connection closed
 

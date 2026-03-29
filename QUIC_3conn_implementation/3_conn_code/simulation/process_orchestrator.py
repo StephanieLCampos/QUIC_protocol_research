@@ -5,6 +5,7 @@ Coordinates worker processes, handles IPC, and manages simulation lifecycle.
 """
 
 import asyncio
+import queue as _queue
 import threading
 import time
 import os
@@ -19,6 +20,7 @@ from .server import QuicServer
 from .ml_controller import MLController
 from .result import MultiConnectionResult, ConnectionResult
 from .ipc_messages import IPCMessage, MessageType
+from .token_bucket import SharedTokenBucket
 
 # Optional wireless bottleneck import
 try:
@@ -51,6 +53,9 @@ class ProcessOrchestrator:
         scenario: Optional[object] = None,
         server_only: bool = False,
         clients_only: bool = False,
+        bandwidth_cap_bps: Optional[float] = None,
+        loss_rate: float = 0.0,
+        delay_ms: float = 0.0,
     ):
         self.config = config
         self.ml_callback = ml_callback
@@ -71,6 +76,11 @@ class ProcessOrchestrator:
         self.final_results: Dict[int, dict] = {}
         self.epoch_histories: Dict[int, List[Dict]] = {}  # Per-connection epoch data
         self.bottleneck: Optional[object] = None  # Will hold WirelessBottleneck if used
+        self.token_bucket: Optional[SharedTokenBucket] = (
+            SharedTokenBucket(bandwidth_cap_bps) if bandwidth_cap_bps else None
+        )
+        self.loss_rate = loss_rate
+        self.delay_ms = delay_ms
 
         # Initialize for UI access
         self._latest_metrics: Dict[int, dict] = {}
@@ -84,7 +94,12 @@ class ProcessOrchestrator:
             # In regular mode, use the configured host
             listen_host = self.config.server_host if self.config.server_host != "0.0.0.0" else "[::]"
             
-            self.server = QuicServer(host=self.config.server_host, port=self.config.server_port)
+            self.server = QuicServer(
+                host=self.config.server_host,
+                port=self.config.server_port,
+                loss_rate=self.loss_rate,
+                delay_ms=self.delay_ms,
+            )
             await self.server.start()
             print(f"[Server] Started on {self.config.server_host}:{self.config.server_port} (listening on all interfaces)")
         
@@ -128,6 +143,7 @@ class ProcessOrchestrator:
                     duration,
                     self.network_scenario,
                     self.network_config,
+                    self.token_bucket,
                 ),
                 name=f"QUIC-{conn_config.application_type}",
             )
@@ -322,18 +338,35 @@ class ProcessOrchestrator:
             if self.ml_controller:
                 await self.ml_controller.run_control_loop(duration)
                 self.metrics_history = self.ml_controller.metrics_history
+                #merge any FINISHED messages captured during the control loop _collect_metrics consumes all queue messages including FINISHED which would otherwise be lost by time _collect_final_results runs
+                for conn_id, data in self.ml_controller.final_results.items():
+                    self.final_results[conn_id] = data
+                    if "epoch_history" in data:
+                        self.epoch_histories[conn_id] = data["epoch_history"]
             else:
                 await self._collect_metrics_loop(duration)
 
             print(f"[Orchestrator] Simulation duration complete, waiting for workers to finish...")
+            #start drain + joins in parallel then drain must run while workers are still writing FINISHED to the queue
+            drain_thread = threading.Thread(target=self._collect_final_results, daemon=True)
+            drain_thread.start()
+
+            join_threads = [
+                threading.Thread(target=p.join, args=(6,), daemon=True)
+                for p in self.workers.values()
+            ]
+            for t in join_threads:
+                t.start()
+            for t in join_threads:
+                t.join(timeout=8)  #slightly longer than 6s worker join
+
             for conn_id, process in self.workers.items():
-                process.join(timeout=duration + 5)
                 if process.is_alive():
                     print(f"[Orchestrator] Terminating worker {conn_id}")
                     process.terminate()
                     process.join(timeout=2)
 
-            self._collect_final_results()
+            drain_thread.join(timeout=2)  # wait for drain to finish (it runs for up to 4s but usually done by now)
 
             if self.bottleneck:
                 tc_stats = self.bottleneck.get_current_stats()
@@ -391,21 +424,34 @@ class ProcessOrchestrator:
             await asyncio.sleep(self.metrics_interval)
 
     def _collect_final_results(self):
-        """Collect any remaining messages from queue."""
-        while not self.metrics_queue.empty():
+        """Drain metrics queue collecting FINISHED messages called in a daemon thread so a partial pipe write from a terminated worker
+        (which blocks recv_bytes forever) cannot stall the main process.
+        """
+        deadline = time.time() + 4.0
+        while time.time() < deadline:
+            if len(self.final_results) == len(self.workers):
+                break  #got a FINISHED for every worker then done early
             try:
-                msg = self.metrics_queue.get_nowait()
+                msg = self.metrics_queue.get(timeout=0.2)
                 if msg.msg_type == MessageType.FINISHED:
                     self.final_results[msg.connection_id] = msg.payload
-                    # Extract epoch_history from finished payload
                     if "epoch_history" in msg.payload:
                         self.epoch_histories[msg.connection_id] = msg.payload["epoch_history"]
+            except _queue.Empty:
+                continue  #keep waiting until deadline
             except Exception:
-                break  # Queue empty or connection closed
+                break  #real error ex pipe broken by terminated worker
 
     def _build_results(self) -> MultiConnectionResult:
         """Build final result object from collected data."""
         connection_results = {}
+
+        #reconstruct per connection metrics_history from the orchestrator aggregated history metrics_history was removed from FINISHED payload to keep  message small enough to transit the IPC pipe reliably
+        per_conn_metrics: Dict[int, list] = {1: [], 2: [], 3: []}
+        for entry in self.metrics_history:
+            ts = entry.get("timestamp", 0)
+            for cid, m in entry.get("metrics", {}).items():
+                per_conn_metrics[int(cid)].append({"timestamp": ts, **m})
 
         for conn_id in [1, 2, 3]:
             if conn_id in self.final_results:
@@ -421,7 +467,7 @@ class ProcessOrchestrator:
                     final_metrics=result_data.get("final_metrics", {}),
                     param_history=result_data.get("param_history", []),
                     epoch_history=epochs_list,
-                    metrics_history=result_data.get("metrics_history", []),
+                    metrics_history=per_conn_metrics.get(conn_id, []),
                     network_scenario=self.network_scenario,
                     network_config=self.network_config,
                     success=result_data.get("success", False),

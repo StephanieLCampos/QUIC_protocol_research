@@ -114,11 +114,13 @@ def create_app(orchestrator, settling_time: float = 2.0) -> FastAPI:
     return app
 
 
-async def run_server(orchestrator, host: str = "0.0.0.0", port: int = 8000, settling_time: float = 2.0):
+async def run_server(orchestrator, host: str = "0.0.0.0", port: int = 8000, settling_time: float = 2.0, _server_holder: list = None):
     """Run the FastAPI server."""
     import uvicorn
 
     app = create_app(orchestrator, settling_time=settling_time)
     config = uvicorn.Config(app, host=host, port=port, log_level="info")
     server = uvicorn.Server(config)
+    if _server_holder is not None:
+        _server_holder.append(server)
     await server.serve()
