@@ -1,0 +1,28 @@
+[project]
+name = "quic-3conn-simulation"
+version = "1.0.0"
+description = "QUIC 3-Connection Simulation with Mid-Connection Parameter Control"
+requires-python = ">=3.12"
+dependencies = [
+    "aioquic>=1.0.0",
+    "cryptography>=41.0.0",
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "websockets>=12.0",
+]
+
+[project.scripts]
+quic-3conn = "main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["config", "simulation", "synthesizers", "metrics", "web", "ml_callbacks"]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]

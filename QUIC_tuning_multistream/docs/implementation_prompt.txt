@@ -1,0 +1,5 @@
+Based on the requirements_v3.md document, generate well documented python code, make sure the code is correct and is ready to be executed. 
+Create a quick_start.md document, describing how to run the code with the commands and details.
+Creatr a high_level_view.md document that describes how classes and components interact with each other.
+Please use the uv python tool to configure dependencies and execution
+Generate the code step, by step and at the end, perform a code review to ensure everything is correct and classes work together and adjust the code accordingly._

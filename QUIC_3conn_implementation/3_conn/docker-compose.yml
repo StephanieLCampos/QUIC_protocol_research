@@ -1,0 +1,87 @@
+# Docker Compose for QUIC 3-Connection System
+#
+# Usage:
+#   # Run with browser UI (open http://localhost:8000)
+#   docker-compose up quic-3conn-ui
+#
+#   # Run with specific scenario
+#   SCENARIO=lossy docker-compose up quic-3conn-ui
+#
+#   # Run headless (no UI)
+#   docker-compose run --rm quic-3conn-headless
+#
+#   # Validate wireless bottleneck setup
+#   docker-compose run --rm validate
+
+version: '3.8'
+
+services:
+  # Main service with browser UI
+  quic-3conn-ui:
+    build:
+      context: ..
+      dockerfile: 3_conn/Dockerfile
+    privileged: true  # REQUIRED for tc commands
+    ports:
+      - "8000:8000"   # Browser UI accessible at http://localhost:8000
+    environment:
+      - SCENARIO=${SCENARIO:-congested_low}
+      - DURATION=${DURATION:-30}
+    command: ["python", "-m", "main", "run", "--ui", "--scenario", "${SCENARIO:-congested_low}", "--duration", "${DURATION:-30}"]
+    volumes:
+      - ./output:/app/3_conn_code/output  # Persist results
+
+  # Headless service (no UI, just run and collect metrics)
+  quic-3conn-headless:
+    build:
+      context: ..
+      dockerfile: 3_conn/Dockerfile
+    privileged: true
+    environment:
+      - SCENARIO=${SCENARIO:-congested_low}
+      - DURATION=${DURATION:-30}
+    command: ["python", "-m", "main", "run", "--scenario", "${SCENARIO:-congested_low}", "--duration", "${DURATION:-30}"]
+    volumes:
+      - ./output:/app/3_conn_code/output
+
+  # With ML controller and browser UI
+  quic-3conn-ml:
+    build:
+      context: ..
+      dockerfile: 3_conn/Dockerfile
+    privileged: true
+    ports:
+      - "8000:8000"   # Browser UI accessible at http://localhost:8000
+    environment:
+      - SCENARIO=${SCENARIO:-congested_low}
+      - DURATION=${DURATION:-60}
+    command: ["python", "-m", "main", "run", "--ui", "--with-ml", "--scenario", "${SCENARIO:-congested_low}", "--duration", "${DURATION:-60}"]
+    volumes:
+      - ./output:/app/3_conn_code/output
+
+  # Validate wireless bottleneck setup
+  validate:
+    build:
+      context: ..
+      dockerfile: 3_conn/Dockerfile
+    privileged: true
+    command: ["python", "-m", "wireless_bottleneck.cli", "validate"]
+
+  # List available scenarios
+  list-scenarios:
+    build:
+      context: ..
+      dockerfile: 3_conn/Dockerfile
+    command: ["python", "-m", "wireless_bottleneck.cli", "list"]
+
+  # Test specific scenario
+  test-scenario:
+    build:
+      context: ..
+      dockerfile: 3_conn/Dockerfile
+    privileged: true
+    stdin_open: true
+    tty: true
+    environment:
+      - SCENARIO=${SCENARIO:-congested_low}
+    command: ["python", "-m", "wireless_bottleneck.cli", "test", "--scenario", "${SCENARIO:-congested_low}", "--interface", "lo"]

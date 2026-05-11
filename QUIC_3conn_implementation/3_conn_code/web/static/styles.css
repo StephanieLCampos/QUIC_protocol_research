@@ -1,0 +1,375 @@
+/* QUIC 3-Connection Dashboard Styles */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    min-height: 100vh;
+}
+
+header {
+    background: #16213e;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #0f3460;
+}
+
+header h1 {
+    font-size: 1.5rem;
+    color: #4CAF50;
+}
+
+#status-bar {
+    display: flex;
+    gap: 2rem;
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+.status-connected {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.status-disconnected {
+    color: #f44336;
+    font-weight: bold;
+}
+
+#dashboard {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    padding: 1rem;
+}
+
+@media (max-width: 1200px) {
+    #dashboard {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    #dashboard {
+        grid-template-columns: 1fr;
+    }
+}
+
+.connection-panel {
+    background: #16213e;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #0f3460;
+}
+
+.connection-panel h2 {
+    text-align: center;
+    margin-bottom: 0.5rem;
+    color: #4CAF50;
+    font-size: 1.1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #0f3460;
+}
+
+.priority-label {
+    text-align: center;
+    font-size: 0.85rem;
+    color: #aaa;
+    margin-bottom: 1rem;
+}
+
+.priority-label strong {
+    color: #FF9800;
+}
+
+.priority-direction {
+    color: #888;
+    font-size: 0.8rem;
+}
+
+.section {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #1a1a2e;
+    border-radius: 4px;
+}
+
+.section h3 {
+    font-size: 0.9rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+}
+
+/* Buffer visualization */
+.buffer-bar {
+    height: 24px;
+    background: #333;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.buffer-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #8BC34A);
+    width: 0%;
+    transition: width 0.2s ease;
+}
+
+.buffer-stats {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+.metric-card {
+    background: #0f3460;
+    border-radius: 4px;
+    padding: 0.75rem;
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #4CAF50;
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.metric-label {
+    font-size: 0.7rem;
+    color: #888;
+    margin-top: 0.25rem;
+}
+
+/* Parameters */
+.params-grid {
+    display: grid;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.param-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid #333;
+}
+
+.edit-btn {
+    width: 100%;
+    padding: 0.5rem;
+    background: #0f3460;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.edit-btn:hover {
+    background: #1a4a7a;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: #16213e;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90%;
+}
+
+.modal-content h2 {
+    margin-bottom: 1.5rem;
+    color: #4CAF50;
+}
+
+.param-row {
+    margin-bottom: 1rem;
+}
+
+.param-row label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+.param-row input {
+    width: 100%;
+    padding: 0.5rem;
+    background: #1a1a2e;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+    color: #fff;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.apply-btn, .cancel-btn {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.apply-btn {
+    background: #4CAF50;
+    color: #fff;
+}
+
+.cancel-btn {
+    background: #f44336;
+    color: #fff;
+}
+
+/* Snapshots Section */
+#snapshots-section {
+    padding: 1rem;
+    border-top: 2px solid #0f3460;
+    margin-top: 1rem;
+}
+
+#snapshots-section h2 {
+    color: #4CAF50;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+#snapshots-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 1200px) {
+    #snapshots-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    #snapshots-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.snapshot-panel {
+    background: #16213e;
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid #0f3460;
+}
+
+.snapshot-panel h3 {
+    color: #4CAF50;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #0f3460;
+}
+
+.snapshot-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.no-snapshots {
+    color: #666;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.snapshot-item {
+    background: #1a1a2e;
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.snapshot-item.baseline {
+    border-left: 3px solid #4CAF50;
+}
+
+.snapshot-item.changed {
+    border-left: 3px solid #FF9800;
+}
+
+.snapshot-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    color: #aaa;
+}
+
+.snapshot-label {
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+.snapshot-time {
+    font-size: 0.8rem;
+}
+
+.snapshot-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.snapshot-metrics span {
+    color: #ddd;
+}
+
+.snapshot-metrics .value {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.snapshot-params {
+    border-top: 1px solid #333;
+    padding-top: 0.5rem;
+    font-size: 0.8rem;
+    color: #888;
+}

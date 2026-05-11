@@ -1,0 +1,24 @@
+We are building a project that uses the QUIC protocol from the quic-go library to create a connection with multiple streams. 
+
+Its going to be implemented in golang and the team members know little about the language. We need a source code that is well documented so engineers can follow.
+
+we need to easily alter 3 QUIC parameters and should also be able to see metrics like jitter, throughput and RTT, after the connection is closed. 
+The connection should open multiple streams, but only one will be sending data based off of the kind of data I chose to send. 
+
+The data options are: video streaming (sending video data), file transfer, and conference calls. 
+
+To test we want 3 streams open, each data option correlating to a certain stream and the stream that is correlated to the certain data option I chose, will be the only one sending data.
+Each streaming will have simulated data being sent.
+
+
+This is a computer science undergrad research project used to explore how changes to the QUIC parameters values affect the set of selected metrics. 
+
+Please, research and select what are the best metrics to monitor.
+
+The 3 QUIC parameters I found that are the most vital and make the most difference are: Ack frequency, Max congestion Window and Initial congestion window
+Can you research and confirm that these are the most important parameters?
+
+The goal of this research project is to find the combination of parameters that produces:
+- the highest throughput for file transfer
+- the lowest latency for video streaming
+- the lowest jitter for conference calls

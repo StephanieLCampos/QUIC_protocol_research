@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUIC 3-Connection Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css?v=6">
+</head>
+<body>
+    <header>
+        <h1>QUIC 3-Connection Dashboard</h1>
+        <div id="status-bar">
+            <span id="status-indicator" class="status-connected">Connected</span>
+            <span id="duration">Duration: 0.0s</span>
+            <span id="total-tx">Total TX: 0 MB</span>
+        </div>
+    </header>
+
+    <main id="dashboard">
+        <!-- Connection 1: Video Streaming -->
+        <div class="connection-panel" id="conn-1">
+            <h2>Connection 1: Video Streaming</h2>
+            <p class="priority-label">Priority: <strong>Low Latency</strong> <span class="priority-direction">(↓ RTT)</span></p>
+
+            <div class="section metrics-section">
+                <h3>Live Metrics</h3>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="tp-1">0.00</div>
+                        <div class="metric-label">Throughput (Mbps)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="rtt-1">0.0</div>
+                        <div class="metric-label">RTT (ms)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="loss-1">0.0</div>
+                        <div class="metric-label">Loss (%)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="bytes-1">0</div>
+                        <div class="metric-label">Bytes Sent</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section params-section">
+                <h3>Dynamic Parameters</h3>
+                <div class="params-grid" id="params-1"></div>
+                <button class="edit-btn" onclick="openParamEditor(1)">Edit Parameters</button>
+            </div>
+        </div>
+
+        <!-- Connection 2: File Transfer -->
+        <div class="connection-panel" id="conn-2">
+            <h2>Connection 2: File Transfer</h2>
+            <p class="priority-label">Priority: <strong>High Throughput</strong> <span class="priority-direction">(↑ Mbps)</span></p>
+
+            <div class="section metrics-section">
+                <h3>Live Metrics</h3>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="tp-2">0.00</div>
+                        <div class="metric-label">Throughput (Mbps)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="rtt-2">0.0</div>
+                        <div class="metric-label">RTT (ms)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="loss-2">0.0</div>
+                        <div class="metric-label">Loss (%)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="bytes-2">0</div>
+                        <div class="metric-label">Bytes Sent</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section params-section">
+                <h3>Dynamic Parameters</h3>
+                <div class="params-grid" id="params-2"></div>
+                <button class="edit-btn" onclick="openParamEditor(2)">Edit Parameters</button>
+            </div>
+        </div>
+
+        <!-- Connection 3: Conference Call -->
+        <div class="connection-panel" id="conn-3">
+            <h2>Connection 3: Conference Call</h2>
+            <p class="priority-label">Priority: <strong>Low Jitter</strong> <span class="priority-direction">(↓ RTT variance)</span></p>
+
+            <div class="section metrics-section">
+                <h3>Live Metrics</h3>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="tp-3">0.00</div>
+                        <div class="metric-label">Throughput (Mbps)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="rtt-3">0.0</div>
+                        <div class="metric-label">RTT (ms)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="loss-3">0.0</div>
+                        <div class="metric-label">Loss (%)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="bytes-3">0</div>
+                        <div class="metric-label">Bytes Sent</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section params-section">
+                <h3>Dynamic Parameters</h3>
+                <div class="params-grid" id="params-3"></div>
+                <button class="edit-btn" onclick="openParamEditor(3)">Edit Parameters</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Snapshots Section -->
+    <section id="snapshots-section">
+        <h2>Parameter Snapshots (captured after 2s settling time)</h2>
+        <div id="snapshots-grid">
+            <div class="snapshot-panel">
+                <h3>Connection 1: Video Streaming</h3>
+                <div id="snapshots-1" class="snapshot-list">
+                    <p class="no-snapshots">Baseline will be captured after settling...</p>
+                </div>
+            </div>
+            <div class="snapshot-panel">
+                <h3>Connection 2: File Transfer</h3>
+                <div id="snapshots-2" class="snapshot-list">
+                    <p class="no-snapshots">Baseline will be captured after settling...</p>
+                </div>
+            </div>
+            <div class="snapshot-panel">
+                <h3>Connection 3: Conference Call</h3>
+                <div id="snapshots-3" class="snapshot-list">
+                    <p class="no-snapshots">Baseline will be captured after settling...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Parameter Editor Modal -->
+    <div id="param-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Edit Parameters - Connection <span id="modal-conn-id">1</span></h2>
+            <form id="param-form">
+                <div class="param-row">
+                    <label for="loss_reduction_factor">loss_reduction_factor (0.1-0.9)</label>
+                    <input type="number" id="loss_reduction_factor" step="0.1" min="0.1" max="0.9">
+                </div>
+                <div class="param-row">
+                    <label for="cubic_c">cubic_c (0.1-1.0)</label>
+                    <input type="number" id="cubic_c" step="0.1" min="0.1" max="1.0">
+                </div>
+                <div class="param-row">
+                    <label for="minimum_window">minimum_window (1-10)</label>
+                    <input type="number" id="minimum_window" step="1" min="1" max="10">
+                </div>
+                <div class="param-row">
+                    <label for="packet_threshold">packet_threshold (1-5)</label>
+                    <input type="number" id="packet_threshold" step="1" min="1" max="5">
+                </div>
+                <div class="param-row">
+                    <label for="time_threshold">time_threshold (1.0-2.0)</label>
+                    <input type="number" id="time_threshold" step="0.125" min="1.0" max="2.0">
+                </div>
+                <div class="param-row">
+                    <label for="cubic_max_idle_time">cubic_max_idle_time (0.5-5.0)</label>
+                    <input type="number" id="cubic_max_idle_time" step="0.5" min="0.5" max="5.0">
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="apply-btn">Apply</button>
+                    <button type="button" class="cancel-btn" onclick="closeParamEditor()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/dashboard.js?v=6"></script>
+</body>
+</html>
