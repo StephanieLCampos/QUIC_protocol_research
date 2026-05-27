@@ -78,7 +78,7 @@ class MultiConnectionConfig:
         How often to collect metrics in seconds. Default: 0.1 (100ms).
 
     shared_initial_cw : int
-        Initial congestion window for all connections (bytes). Default: 12000.
+        Initial congestion window for all connections (bytes). Default: 14720 (RFC 9002).
 
     shared_max_ack_delay : float
         Max ACK delay for all connections (seconds). Default: 0.025.
@@ -129,7 +129,7 @@ class MultiConnectionConfig:
     # SHARED Start-Only Parameters (CONSTANT for all 3 connections)
     # These cannot be changed mid-simulation
     # -------------------------------------------------------------------------
-    shared_initial_cw: int = 12000           # Initial cwnd (~10 packets)
+    shared_initial_cw: int = 14720           # Initial cwnd (RFC 9002 Section 7.2)
     shared_max_ack_delay: float = 0.025      # 25ms max ACK delay
     shared_max_data: int = 1_048_576         # 1 MB connection flow control
     shared_max_stream_data: int = 1_048_576  # 1 MB stream flow control
@@ -159,14 +159,16 @@ class MultiConnectionConfig:
             print(f"[Config] Using veth0 interface: server will bind to {self.server_host}")
         
         # Create video streaming config (Connection 1)
-        # Optimized for LOW LATENCY
+        # Optimized for LOW LATENCY while maintaining fair bandwidth share
+        # NOTE: In shared bottleneck, too-aggressive backing off causes starvation
         if self.video_config is None:
             self.video_config = ConnectionConfig(
                 connection_id=1,
                 application_type="video_streaming",
-                loss_reduction_factor=0.6,  # Quick recovery from loss
-                cubic_c=0.4,                # Moderate cwnd growth
-                minimum_window=4,           # Keep some throughput for smooth playback
+                loss_reduction_factor=0.5,  # Balanced - was 0.3 (too aggressive, caused starvation)
+                cubic_c=0.3,                # Moderate growth - was 0.2 (too slow to recover)
+                minimum_window=3,           # Maintain some throughput - was 2 (dropped too low)
+                packet_threshold=3,         # Faster detection - was 4 (too slow)
             )
 
         # Create file transfer config (Connection 2)
@@ -175,9 +177,10 @@ class MultiConnectionConfig:
             self.file_config = ConnectionConfig(
                 connection_id=2,
                 application_type="file_transfer",
-                loss_reduction_factor=0.7,  # Standard recovery
-                cubic_c=0.5,                # Slightly aggressive growth
-                minimum_window=2,           # Can drop low, will recover
+                loss_reduction_factor=0.7,  # Conservative reduction to maintain cwnd
+                cubic_c=0.4,                # Aggressive growth to maximize throughput
+                minimum_window=4,           # Maintain higher minimum
+                packet_threshold=3,         # Fast loss detection for quick recovery
             )
 
         # Create conference call config (Connection 3)
@@ -186,11 +189,11 @@ class MultiConnectionConfig:
             self.conference_config = ConnectionConfig(
                 connection_id=3,
                 application_type="conference_call",
-                loss_reduction_factor=0.5,  # Very quick recovery
-                cubic_c=0.3,                # Conservative growth (avoid spikes)
-                minimum_window=6,           # Never drop too low (audio quality)
-                packet_threshold=2,         # Fast loss detection
-                time_threshold=1.0,         # Aggressive time-based detection
+                loss_reduction_factor=0.5,  # Balanced recovery
+                cubic_c=0.2,                # Conservative growth (avoid spikes)
+                minimum_window=4,           # Maintain stability
+                packet_threshold=3,         # Moderate loss detection
+                time_threshold=1.125,       # Fixed value (not tuned by Q-learning)
             )
 
         # Apply shared start-only parameters to all configs

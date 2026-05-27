@@ -62,8 +62,8 @@ RUN if [ ! -f pyproject.toml ]; then \
     echo ']' >> pyproject.toml; \
     fi
 
-# Install dependencies
-RUN uv pip install --system aioquic fastapi uvicorn
+# Install dependencies (uvicorn[standard] includes websockets for real-time UI)
+RUN uv pip install --system aioquic fastapi "uvicorn[standard]" websockets
 
 # Expose port for browser UI
 EXPOSE 8000

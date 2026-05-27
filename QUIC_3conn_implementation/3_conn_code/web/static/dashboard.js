@@ -1,45 +1,26 @@
 /**
  * QUIC 3-Connection Dashboard - Real-time WebSocket client
+ * With Q-Learning visualization and per-epoch delta throughput
  */
 
 let ws = null;
 let startTime = Date.now();
 let currentConnId = 1;
 
-// Snapshot tracking
-let SETTLING_TIME = 2000; // Default 2 seconds in milliseconds (updated from server)
-let baselineCaptured = false;
-let pendingSnapshots = {}; // {connId: {timeout, params}}
-let snapshots = {1: [], 2: [], 3: []}; // Stored snapshots per connection
-let latestData = null; // Store latest data for snapshot capture
-let previousParams = {1: null, 2: null, 3: null}; // Track param changes
+// Q-Learning history tracking
+let lastHistoryLength = 0;
+
+// Connection names mapping
+const CONN_NAMES = {
+    1: "Video Streaming",
+    2: "File Transfer",
+    3: "Conference Call"
+};
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
-    // Fetch settling time from server
-    try {
-        const response = await fetch('/api/status');
-        const data = await response.json();
-        if (data.settling_time) {
-            SETTLING_TIME = data.settling_time * 1000; // Convert to milliseconds
-            console.log(`Settling time set to ${data.settling_time}s`);
-            // Update the UI to show settling time
-            document.querySelector('#snapshots-section h2').textContent =
-                `Parameter Snapshots (captured after ${data.settling_time}s settling time)`;
-        }
-    } catch (e) {
-        console.log('Using default settling time of 2s');
-    }
-
     connectWebSocket();
     setupFormHandler();
-
-    // Capture baseline after settling time
-    setTimeout(() => {
-        if (latestData) {
-            captureBaseline();
-        }
-    }, SETTLING_TIME);
 });
 
 function connectWebSocket() {
@@ -67,125 +48,15 @@ function connectWebSocket() {
     ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
         if (data.type === 'update') {
-            latestData = data;
             updateDashboard(data);
-            checkForParamChanges(data);
+            updateQLearningSection(data);
+            updateNetworkConfig(data);
         }
     };
 
     ws.onerror = (error) => {
         console.error('WebSocket error:', error);
     };
-}
-
-function captureBaseline() {
-    if (baselineCaptured || !latestData) return;
-
-    for (let connId = 1; connId <= 3; connId++) {
-        const metrics = latestData.metrics[connId] || {};
-        const params = latestData.params[connId] || {};
-
-        if (Object.keys(metrics).length > 0) {
-            const snapshot = createSnapshot('Baseline', metrics, params);
-            snapshots[connId].push(snapshot);
-            previousParams[connId] = JSON.stringify(params);
-        }
-    }
-
-    baselineCaptured = true;
-    renderAllSnapshots();
-}
-
-function checkForParamChanges(data) {
-    for (let connId = 1; connId <= 3; connId++) {
-        const params = data.params[connId] || {};
-        const paramsStr = JSON.stringify(params);
-
-        // Check if params changed (and we have previous params to compare)
-        if (previousParams[connId] && previousParams[connId] !== paramsStr) {
-            // Cancel any pending snapshot for this connection
-            if (pendingSnapshots[connId]) {
-                clearTimeout(pendingSnapshots[connId].timeout);
-            }
-
-            // Schedule new snapshot after settling time
-            pendingSnapshots[connId] = {
-                timeout: setTimeout(() => {
-                    captureParamChangeSnapshot(connId);
-                }, SETTLING_TIME),
-                params: {...params}
-            };
-        }
-
-        previousParams[connId] = paramsStr;
-    }
-}
-
-function captureParamChangeSnapshot(connId) {
-    if (!latestData) return;
-
-    const metrics = latestData.metrics[connId] || {};
-    const params = latestData.params[connId] || {};
-
-    const snapshotNum = snapshots[connId].length;
-    const snapshot = createSnapshot(`Change #${snapshotNum}`, metrics, params);
-    snapshots[connId].push(snapshot);
-
-    delete pendingSnapshots[connId];
-    renderSnapshots(connId);
-}
-
-function createSnapshot(label, metrics, params) {
-    const elapsed = (Date.now() - startTime) / 1000;
-    return {
-        label: label,
-        time: elapsed.toFixed(1),
-        metrics: {
-            throughput: ((metrics.throughput || metrics.throughput_bps || 0) / 1_000_000).toFixed(2),
-            rtt: ((metrics.rtt || 0) * 1000).toFixed(1),
-            loss: ((metrics.packet_loss_rate || 0) * 100).toFixed(1),
-            bytes: metrics.bytes_sent || 0
-        },
-        params: {...params}
-    };
-}
-
-function renderAllSnapshots() {
-    for (let connId = 1; connId <= 3; connId++) {
-        renderSnapshots(connId);
-    }
-}
-
-function renderSnapshots(connId) {
-    const container = document.getElementById(`snapshots-${connId}`);
-
-    if (snapshots[connId].length === 0) {
-        container.innerHTML = '<p class="no-snapshots">Baseline will be captured after settling...</p>';
-        return;
-    }
-
-    container.innerHTML = snapshots[connId].map((snap, idx) => {
-        const isBaseline = idx === 0;
-        return `
-            <div class="snapshot-item ${isBaseline ? 'baseline' : 'changed'}">
-                <div class="snapshot-header">
-                    <span class="snapshot-label">${snap.label}</span>
-                    <span class="snapshot-time">@ ${snap.time}s</span>
-                </div>
-                <div class="snapshot-metrics">
-                    <span>Throughput: <span class="value">${snap.metrics.throughput}</span> Mbps</span>
-                    <span>RTT: <span class="value">${snap.metrics.rtt}</span> ms</span>
-                    <span>Loss: <span class="value">${snap.metrics.loss}</span>%</span>
-                    <span>Bytes: <span class="value">${formatBytes(snap.metrics.bytes)}</span></span>
-                </div>
-                <div class="snapshot-params">
-                    ${Object.entries(snap.params).map(([k, v]) =>
-                        `${k}: ${typeof v === 'number' ? v.toFixed(3) : v}`
-                    ).join(' | ')}
-                </div>
-            </div>
-        `;
-    }).join('');
 }
 
 function updateDashboard(data) {
@@ -198,14 +69,22 @@ function updateDashboard(data) {
         const metrics = data.metrics[connId] || {};
         const params = data.params[connId] || {};
 
-        // Update metrics (simple text replacement - no accumulation)
-        const throughput = (metrics.throughput || metrics.throughput_bps || 0) / 1_000_000;
-        const rtt = (metrics.rtt || 0) * 1000;
+        // Use per-epoch delta throughput (throughput_acked_delta) for responsive display
+        // Fall back to cumulative throughput_acked if delta not available
+        // Do NOT fall back to 'throughput' - that's offered/send rate, not actual throughput
+        let throughputBps = metrics.throughput_acked_delta || metrics.throughput_acked || 0;
+        const throughputMbps = throughputBps / 1_000_000;  // Convert B/s to MB/s (displayed as Mbps)
+
+        const rtt = (metrics.rtt || 0) * 1000;  // Convert to ms
+        const latency = (metrics.latency || 0) * 1000;  // Convert to ms (one-way delay)
+        const jitter = (metrics.jitter || 0) * 1000;  // Convert to ms
         const loss = (metrics.packet_loss_rate || 0) * 100;
         const bytesSent = metrics.bytes_sent || 0;
 
-        document.getElementById(`tp-${connId}`).textContent = throughput.toFixed(2);
+        document.getElementById(`tp-${connId}`).textContent = throughputMbps.toFixed(2);
         document.getElementById(`rtt-${connId}`).textContent = rtt.toFixed(1);
+        document.getElementById(`latency-${connId}`).textContent = latency.toFixed(1);
+        document.getElementById(`jitter-${connId}`).textContent = jitter.toFixed(2);
         document.getElementById(`loss-${connId}`).textContent = loss.toFixed(1);
         document.getElementById(`bytes-${connId}`).textContent = formatBytes(bytesSent);
 
@@ -214,6 +93,11 @@ function updateDashboard(data) {
         // Update parameters display
         updateParamsDisplay(connId, params);
     }
+
+    // Update total throughput (sum of all 3 connections)
+    const totalThroughput = data.total_throughput || {};
+    const totalThroughputMbps = totalThroughput.total_throughput_mbps || 0;
+    document.getElementById('total-throughput').textContent = `Total Throughput: ${totalThroughputMbps.toFixed(2)} Mbps`;
 
     document.getElementById('total-tx').textContent = `Total TX: ${formatBytes(totalTx)}`;
 }
@@ -225,6 +109,174 @@ function updateParamsDisplay(connId, params) {
             typeof value === 'number' ? value.toFixed(3) : value
         }</span></div>`)
         .join('');
+}
+
+function updateQLearningSection(data) {
+    // Update Q-learning summary
+    const summary = data.qlearning_summary || {};
+    document.getElementById('ql-steps').textContent = `Steps: ${summary.steps || 0}`;
+    document.getElementById('ql-epsilon').textContent = `Exploration: ${((summary.epsilon || 0) * 100).toFixed(1)}%`;
+    document.getElementById('ql-states').textContent = `Q-States: ${summary.states_visited || 0}`;
+    document.getElementById('ql-avg-reward').textContent = `Avg Reward: ${(summary.avg_reward_last_100 || 0).toFixed(3)}`;
+
+    // Update Q-learning history
+    const history = data.qlearning_history || [];
+
+    // Only re-render if history has changed
+    if (history.length !== lastHistoryLength) {
+        lastHistoryLength = history.length;
+        renderQLearningHistory(history);
+    }
+}
+
+function updateNetworkConfig(data) {
+    const config = data.scenario_config || {};
+
+    // Update scenario name
+    const scenarioName = config.scenario_name || 'none';
+    document.getElementById('scenario-name').textContent = scenarioName;
+
+    // Update primary network parameters
+    const bandwidth = config.capacity_mbps || 0;
+    document.getElementById('config-bandwidth').textContent = bandwidth.toFixed(1);
+
+    const rtt = config.rtt_ms || 0;
+    document.getElementById('config-rtt').textContent = rtt.toFixed(0);
+
+    const loss = config.loss_percent || 0;
+    document.getElementById('config-loss').textContent = loss.toFixed(1);
+
+    const queueSize = config.queue_size || 0;
+    document.getElementById('config-queue').textContent = queueSize;
+
+    const discipline = config.queue_discipline || 'unknown';
+    document.getElementById('config-discipline').textContent = discipline.toUpperCase();
+
+    const timeVarying = config.time_varying || false;
+    let varyingText = timeVarying ? 'Yes' : 'No';
+    if (timeVarying && config.variation_info) {
+        const amp = config.variation_info.amplitude_percent || 0;
+        const period = config.variation_info.period_sec || 0;
+        varyingText = `Yes (±${amp.toFixed(0)}%, ${period}s)`;
+    }
+    document.getElementById('config-varying').textContent = varyingText;
+}
+
+function renderQLearningHistory(history) {
+    const container = document.getElementById('qlearning-history');
+
+    if (history.length === 0) {
+        container.innerHTML = '<p class="no-actions">Waiting for Q-learning actions...</p>';
+        return;
+    }
+
+    // Show most recent actions first (reverse order)
+    const reversedHistory = [...history].reverse();
+
+    container.innerHTML = reversedHistory.map((action, idx) => {
+        const actionNum = history.length - idx;
+        const connName = CONN_NAMES[action.connection_id] || `Conn ${action.connection_id}`;
+        const timestamp = ((action.timestamp - (startTime / 1000)) + (Date.now() - startTime) / 1000).toFixed(1);
+
+        // Get metrics for the affected connection
+        const metricsBefore = action.metrics_before[action.connection_id] || {};
+        const metricsAfter = action.metrics_after[action.connection_id] || {};
+
+        return `
+            <div class="ql-action ${action.direction}">
+                <div class="ql-action-header">
+                    <span class="ql-action-target">
+                        Action #${actionNum}: <span class="conn-name">${connName}</span>
+                    </span>
+                    <span class="ql-action-time">@ ${formatActionTime(action.timestamp)}s</span>
+                </div>
+
+                <div class="ql-param-change">
+                    <span class="ql-param-name">${action.param_name}</span>
+                    <span class="ql-param-value old">${formatParamValue(action.old_value)}</span>
+                    <span class="ql-arrow">→</span>
+                    <span class="ql-param-value new">${formatParamValue(action.new_value)}</span>
+                </div>
+
+                <div class="ql-metrics-comparison">
+                    <div class="ql-metrics-box before">
+                        <h4>Before</h4>
+                        ${renderMetricsBox(metricsBefore)}
+                    </div>
+                    <div class="ql-metrics-box after">
+                        <h4>After (settled)</h4>
+                        ${renderMetricsBox(metricsAfter, metricsBefore)}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderMetricsBox(metrics, compareTo = null) {
+    // Use delta throughput for display (don't fall back to offered 'throughput')
+    const throughputBps = metrics.throughput_acked_delta || metrics.throughput_acked || 0;
+    const throughputMbps = throughputBps / 1_000_000;
+    const rtt = (metrics.rtt || 0) * 1000;
+    const jitter = (metrics.jitter || 0) * 1000;
+    const loss = (metrics.packet_loss_rate || 0) * 100;
+
+    // Determine if metrics improved or degraded (for coloring)
+    let tpClass = '', rttClass = '', jitterClass = '', lossClass = '';
+    if (compareTo) {
+        const prevTp = (compareTo.throughput_acked_delta || compareTo.throughput_acked || 0) / 1_000_000;
+        const prevRtt = (compareTo.rtt || 0) * 1000;
+        const prevJitter = (compareTo.jitter || 0) * 1000;
+        const prevLoss = (compareTo.packet_loss_rate || 0) * 100;
+
+        // Higher throughput is better
+        if (throughputMbps > prevTp * 1.05) tpClass = 'improved';
+        else if (throughputMbps < prevTp * 0.95) tpClass = 'degraded';
+
+        // Lower RTT is better
+        if (rtt < prevRtt * 0.95) rttClass = 'improved';
+        else if (rtt > prevRtt * 1.05) rttClass = 'degraded';
+
+        // Lower jitter is better
+        if (jitter < prevJitter * 0.95) jitterClass = 'improved';
+        else if (jitter > prevJitter * 1.05) jitterClass = 'degraded';
+
+        // Lower loss is better
+        if (loss < prevLoss * 0.95) lossClass = 'improved';
+        else if (loss > prevLoss * 1.05) lossClass = 'degraded';
+    }
+
+    return `
+        <div class="ql-metric-row">
+            <span class="label">Throughput:</span>
+            <span class="value ${tpClass}">${throughputMbps.toFixed(2)} Mbps</span>
+        </div>
+        <div class="ql-metric-row">
+            <span class="label">RTT:</span>
+            <span class="value ${rttClass}">${rtt.toFixed(1)} ms</span>
+        </div>
+        <div class="ql-metric-row">
+            <span class="label">Jitter:</span>
+            <span class="value ${jitterClass}">${jitter.toFixed(1)} ms</span>
+        </div>
+        <div class="ql-metric-row">
+            <span class="label">Loss:</span>
+            <span class="value ${lossClass}">${loss.toFixed(2)}%</span>
+        </div>
+    `;
+}
+
+function formatActionTime(unixTimestamp) {
+    // Convert to relative time from page load
+    const relativeSeconds = unixTimestamp - (startTime / 1000);
+    return relativeSeconds.toFixed(1);
+}
+
+function formatParamValue(value) {
+    if (typeof value === 'number') {
+        return Number.isInteger(value) ? value.toString() : value.toFixed(2);
+    }
+    return value;
 }
 
 function openParamEditor(connId) {

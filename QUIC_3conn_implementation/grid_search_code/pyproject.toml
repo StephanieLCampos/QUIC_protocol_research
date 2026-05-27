@@ -1,0 +1,15 @@
+[project]
+name = "quic-grid-search"
+version = "0.1.0"
+description = "QUIC parameter grid search to find optimal congestion control configurations"
+requires-python = ">=3.10"
+dependencies = [
+    "aioquic>=1.0.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["config*", "runner*", "analysis*", "scheduler*"]
+exclude = ["output*"]
+
+[dependency-groups]
+dev = []

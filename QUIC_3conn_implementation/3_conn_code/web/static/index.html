@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QUIC 3-Connection Dashboard</title>
-    <link rel="stylesheet" href="/static/styles.css?v=6">
+    <link rel="stylesheet" href="/static/styles.css?v=11">
 </head>
 <body>
     <header>
@@ -12,9 +12,41 @@
         <div id="status-bar">
             <span id="status-indicator" class="status-connected">Connected</span>
             <span id="duration">Duration: 0.0s</span>
+            <span id="total-throughput">Total Throughput: 0.00 Mbps</span>
             <span id="total-tx">Total TX: 0 MB</span>
         </div>
     </header>
+
+    <!-- Network Scenario Configuration -->
+    <section id="network-config-section">
+        <h2>Network Scenario: <span id="scenario-name">none</span></h2>
+        <div id="network-config-grid">
+            <div class="network-config-item">
+                <span class="config-value" id="config-bandwidth">0</span>
+                <span class="config-label">Bandwidth (Mbps)</span>
+            </div>
+            <div class="network-config-item">
+                <span class="config-value" id="config-rtt">0</span>
+                <span class="config-label">RTT (ms)</span>
+            </div>
+            <div class="network-config-item">
+                <span class="config-value" id="config-loss">0</span>
+                <span class="config-label">Loss (%)</span>
+            </div>
+            <div class="network-config-item">
+                <span class="config-value" id="config-queue">0</span>
+                <span class="config-label">Queue (pkts)</span>
+            </div>
+            <div class="network-config-item">
+                <span class="config-value" id="config-discipline">FIFO</span>
+                <span class="config-label">Queue Type</span>
+            </div>
+            <div class="network-config-item">
+                <span class="config-value" id="config-varying">No</span>
+                <span class="config-label">Time Varying</span>
+            </div>
+        </div>
+    </section>
 
     <main id="dashboard">
         <!-- Connection 1: Video Streaming -->
@@ -25,10 +57,20 @@
             <div class="section metrics-section">
                 <h3>Live Metrics</h3>
                 <div class="metrics-grid">
+                    <!-- Row 1: Key metrics -->
                     <div class="metric-card">
                         <div class="metric-value" id="tp-1">0.00</div>
                         <div class="metric-label">Throughput (Mbps)</div>
                     </div>
+                    <div class="metric-card highlight-latency">
+                        <div class="metric-value" id="latency-1">0.0</div>
+                        <div class="metric-label">Latency (ms)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="jitter-1">0.0</div>
+                        <div class="metric-label">Jitter (ms)</div>
+                    </div>
+                    <!-- Row 2: Secondary metrics -->
                     <div class="metric-card">
                         <div class="metric-value" id="rtt-1">0.0</div>
                         <div class="metric-label">RTT (ms)</div>
@@ -59,10 +101,20 @@
             <div class="section metrics-section">
                 <h3>Live Metrics</h3>
                 <div class="metrics-grid">
-                    <div class="metric-card">
+                    <!-- Row 1: Key metrics -->
+                    <div class="metric-card highlight-throughput">
                         <div class="metric-value" id="tp-2">0.00</div>
                         <div class="metric-label">Throughput (Mbps)</div>
                     </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="latency-2">0.0</div>
+                        <div class="metric-label">Latency (ms)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="jitter-2">0.0</div>
+                        <div class="metric-label">Jitter (ms)</div>
+                    </div>
+                    <!-- Row 2: Secondary metrics -->
                     <div class="metric-card">
                         <div class="metric-value" id="rtt-2">0.0</div>
                         <div class="metric-label">RTT (ms)</div>
@@ -93,10 +145,20 @@
             <div class="section metrics-section">
                 <h3>Live Metrics</h3>
                 <div class="metrics-grid">
+                    <!-- Row 1: Key metrics -->
                     <div class="metric-card">
                         <div class="metric-value" id="tp-3">0.00</div>
                         <div class="metric-label">Throughput (Mbps)</div>
                     </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="latency-3">0.0</div>
+                        <div class="metric-label">Latency (ms)</div>
+                    </div>
+                    <div class="metric-card highlight-jitter">
+                        <div class="metric-value" id="jitter-3">0.0</div>
+                        <div class="metric-label">Jitter (ms)</div>
+                    </div>
+                    <!-- Row 2: Secondary metrics -->
                     <div class="metric-card">
                         <div class="metric-value" id="rtt-3">0.0</div>
                         <div class="metric-label">RTT (ms)</div>
@@ -120,28 +182,19 @@
         </div>
     </main>
 
-    <!-- Snapshots Section -->
-    <section id="snapshots-section">
-        <h2>Parameter Snapshots (captured after 2s settling time)</h2>
-        <div id="snapshots-grid">
-            <div class="snapshot-panel">
-                <h3>Connection 1: Video Streaming</h3>
-                <div id="snapshots-1" class="snapshot-list">
-                    <p class="no-snapshots">Baseline will be captured after settling...</p>
-                </div>
+    <!-- Q-Learning History Section -->
+    <section id="qlearning-section">
+        <h2>Q-Learning Actions (metrics captured after 1.5s settling)</h2>
+        <div id="qlearning-summary">
+            <div class="summary-stats">
+                <span id="ql-steps">Steps: 0</span>
+                <span id="ql-epsilon">Exploration: 0%</span>
+                <span id="ql-states">Q-States: 0</span>
+                <span id="ql-avg-reward">Avg Reward: 0.000</span>
             </div>
-            <div class="snapshot-panel">
-                <h3>Connection 2: File Transfer</h3>
-                <div id="snapshots-2" class="snapshot-list">
-                    <p class="no-snapshots">Baseline will be captured after settling...</p>
-                </div>
-            </div>
-            <div class="snapshot-panel">
-                <h3>Connection 3: Conference Call</h3>
-                <div id="snapshots-3" class="snapshot-list">
-                    <p class="no-snapshots">Baseline will be captured after settling...</p>
-                </div>
-            </div>
+        </div>
+        <div id="qlearning-history">
+            <p class="no-actions">Waiting for Q-learning actions...</p>
         </div>
     </section>
 
@@ -182,6 +235,6 @@
         </div>
     </div>
 
-    <script src="/static/dashboard.js?v=6"></script>
+    <script src="/static/dashboard.js?v=11"></script>
 </body>
 </html>

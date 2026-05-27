@@ -77,19 +77,22 @@ def congested_low_capacity() -> WirelessScenario:
 
 def rapidly_varying_capacity() -> WirelessScenario:
     """
-    Rapidly varying capacity link (simulates mobility/fading).
-    
+    Varying capacity link (simulates mobility/slow fading).
+
     Characteristics:
     - 20 Mbps average capacity
-    - Varies ±40% every 2 seconds (simulates fading)
+    - Varies ±40% every 6 seconds (simulates slow fading)
     - 20ms RTT (10ms propagation)
     - 1% loss rate
     - Medium queue (100 packets)
     - CoDel queueing
+
+    Note: 6-second variation period allows Q-learning agent (2s control interval)
+    to make 3 decisions per network state, enabling proper cause-effect learning.
     """
     return WirelessScenario(
         name="rapidly_varying_capacity",
-        description="20 Mbps link with ±40% capacity variation every 2s",
+        description="20 Mbps link with ±40% capacity variation every 6s",
         config=BottleneckConfig(
             capacity_bps=20_000_000,  # 20 Mbps average
             propagation_delay=0.010,  # 10ms (20ms RTT)
@@ -100,7 +103,7 @@ def rapidly_varying_capacity() -> WirelessScenario:
             codel_target_delay=0.005,  # 5ms
             codel_interval=0.100,  # 100ms
             time_varying=True,
-            variation_period=2.0,  # 2 second period
+            variation_period=6.0,  # 6 second period (3 Q-learning decisions per state)
             variation_amplitude=0.4,  # ±40%
         )
     )

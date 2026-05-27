@@ -56,6 +56,8 @@ class ProcessOrchestrator:
         bandwidth_cap_bps: Optional[float] = None,
         loss_rate: float = 0.0,
         delay_ms: float = 0.0,
+        output_dir: str = "output",
+        ml_agent_type: str = "default",  # "default" or "andy"
     ):
         self.config = config
         self.ml_callback = ml_callback
@@ -65,6 +67,8 @@ class ProcessOrchestrator:
         self.scenario = scenario  # Full scenario object for bottleneck setup
         self.server_only = server_only
         self.clients_only = clients_only
+        self.output_dir = output_dir
+        self.ml_agent_type = ml_agent_type  # Track which agent is being used
 
         self.workers: Dict[int, Process] = {}
         self.command_pipes: Dict[int, Pipe] = {}
@@ -85,6 +89,12 @@ class ProcessOrchestrator:
         # Initialize for UI access
         self._latest_metrics: Dict[int, dict] = {}
         self._buffer_states: Dict[int, dict] = {}
+
+        # Server-side metrics for receiver-side throughput measurement
+        self.server_metrics: Dict[int, Dict] = {}
+
+        # Track Q-learning export directory for reporting
+        self.qlearning_export_dir: Optional[str] = None
 
     async def setup(self):
         """Setup server and prepare for workers."""
@@ -111,6 +121,7 @@ class ProcessOrchestrator:
                 self.ml_controller = MLController(
                     decision_interval=self.metrics_interval,
                     ml_callback=self.ml_callback,
+                    ml_agent_type=self.ml_agent_type,
                 )
         
         # Create a background task to keep the server running
@@ -241,6 +252,9 @@ class ProcessOrchestrator:
 
     async def run(self, duration: Optional[float] = None) -> Optional[MultiConnectionResult]:
         """Run all connections concurrently with bottleneck if available."""
+        from datetime import datetime
+        self._start_timestamp = datetime.now().isoformat()
+        self._start_time_unix = time.time()  # For checking server metrics freshness
         duration = duration or self.config.simulation_duration
 
         # Setup bottleneck if scenario is provided
@@ -248,12 +262,25 @@ class ProcessOrchestrator:
             # Persist core scenario parameters for downstream reporting
             scenario_cfg = getattr(self.scenario, "config", None)
             if scenario_cfg is not None:
+                # Primary parameters (displayed on UI)
                 if hasattr(scenario_cfg, "capacity_bps"):
                     self.network_config["capacity_bps"] = getattr(scenario_cfg, "capacity_bps")
                 if hasattr(scenario_cfg, "propagation_delay"):
                     self.network_config["propagation_delay"] = getattr(scenario_cfg, "propagation_delay")
                 if hasattr(scenario_cfg, "loss_rate"):
                     self.network_config["loss_rate"] = getattr(scenario_cfg, "loss_rate")
+                if hasattr(scenario_cfg, "queue_size_packets"):
+                    self.network_config["queue_size_packets"] = getattr(scenario_cfg, "queue_size_packets")
+                if hasattr(scenario_cfg, "queue_discipline"):
+                    qd = getattr(scenario_cfg, "queue_discipline")
+                    self.network_config["queue_discipline"] = qd.value if hasattr(qd, "value") else str(qd)
+                if hasattr(scenario_cfg, "time_varying"):
+                    self.network_config["time_varying"] = getattr(scenario_cfg, "time_varying")
+                # Secondary parameters (for time-varying scenarios)
+                if hasattr(scenario_cfg, "variation_period"):
+                    self.network_config["variation_period"] = getattr(scenario_cfg, "variation_period")
+                if hasattr(scenario_cfg, "variation_amplitude"):
+                    self.network_config["variation_amplitude"] = getattr(scenario_cfg, "variation_amplitude")
 
             # Determine which interface to use based on deployment mode
             run_mode = os.environ.get("RUN_MODE", "")
@@ -281,7 +308,7 @@ class ProcessOrchestrator:
                 interface = "lo"
                 apply_ingress = False
                 print(f"[Orchestrator] Local mode: applying bottleneck on lo (RTT only)")
-            
+
             self.bottleneck = WirelessBottleneck(self.scenario.config, interface=interface, apply_ingress=apply_ingress)
             self.bottleneck.__enter__()
             print(f"[Orchestrator] Wireless bottleneck activated for scenario: {self.network_scenario}")
@@ -298,7 +325,7 @@ class ProcessOrchestrator:
                 print(f"[Orchestrator] Server ready and waiting for client connections...")
                 print(f"[Orchestrator] Bottleneck active: {self.scenario.config.capacity_bps / 1e6:.1f} Mbps, "
                       f"{self.scenario.config.propagation_delay * 2000:.0f}ms RTT, {self.scenario.config.loss_rate * 100:.2f}% loss")
-                
+
                 # Just keep server running for the specified duration
                 await asyncio.sleep(duration)
                 print(f"[Orchestrator] Server run duration complete")
@@ -309,14 +336,14 @@ class ProcessOrchestrator:
                 print(f"[Orchestrator] Setting up QUIC server on {self.config.server_host}:{self.config.server_port}")
             else:
                 print(f"[Orchestrator] Clients-only mode: connecting to {self.config.server_host}:{self.config.server_port}")
-            
+
             await self.setup()
-            
+
             if not self.clients_only:
                 print(f"[Orchestrator] Server setup complete")
                 # Give server time to fully initialize and start accepting connections
                 await asyncio.sleep(0.5)
-            
+
             self._spawn_workers(duration)
             print(f"[Orchestrator] Spawned {len(self.workers)} worker processes")
 
@@ -347,6 +374,20 @@ class ProcessOrchestrator:
                 await self._collect_metrics_loop(duration)
 
             print(f"[Orchestrator] Simulation duration complete, waiting for workers to finish...")
+
+            # Send STOP message to all workers to signal clean shutdown
+            for conn_id, pipe in self.command_pipes.items():
+                try:
+                    stop_msg = IPCMessage(
+                        msg_type=MessageType.STOP,
+                        connection_id=conn_id,
+                        timestamp=time.time(),
+                        payload={},
+                    )
+                    pipe.send(stop_msg.to_dict())
+                except Exception:
+                    pass  # Worker might already be finished
+
             #start drain + joins in parallel then drain must run while workers are still writing FINISHED to the queue
             drain_thread = threading.Thread(target=self._collect_final_results, daemon=True)
             drain_thread.start()
@@ -384,6 +425,16 @@ class ProcessOrchestrator:
                         "available": False,
                         "error": f"probe_failed: {exc}",
                     }
+
+            # Export Q-learning history if ML controller was used
+            if self.ml_controller:
+                try:
+                    self.qlearning_export_dir = self.ml_controller.export_qlearning_history(
+                        output_dir=self.output_dir,
+                        scenario=self.network_scenario
+                    )
+                except Exception as e:
+                    print(f"[Orchestrator] Failed to export Q-learning history: {e}")
 
             return self._build_results()
 
@@ -442,9 +493,168 @@ class ProcessOrchestrator:
             except Exception:
                 break  #real error ex pipe broken by terminated worker
 
+    def _load_server_metrics(self) -> bool:
+        """
+        Load server-side metrics from exported file.
+
+        Waits for FRESH metrics (export_timestamp > simulation start time)
+        to avoid loading stale data from a previous run.
+
+        Returns True if successfully loaded, False otherwise.
+        """
+        import json
+        from pathlib import Path
+
+        metrics_file = Path(self.output_dir) / "server_metrics_latest.json"
+
+        # Get simulation start time (set in run())
+        start_time = getattr(self, '_start_time_unix', 0)
+
+        # Wait for file with timeout (server runs longer than clients)
+        max_wait = 20.0  # Increased to allow for server export delay
+        wait_interval = 0.5
+        elapsed = 0.0
+
+        while elapsed < max_wait:
+            if metrics_file.exists():
+                try:
+                    with open(metrics_file, "r") as f:
+                        data = json.load(f)
+
+                    # Check if this is fresh data (from current run)
+                    export_timestamp = data.get("export_timestamp", 0)
+                    if export_timestamp < start_time:
+                        # Stale data from previous run, keep waiting
+                        if elapsed < 1.0:  # Only print once
+                            print(f"[Orchestrator] Found stale server metrics, waiting for fresh data...")
+                        time.sleep(wait_interval)
+                        elapsed += wait_interval
+                        continue
+
+                    # Extract per-connection metrics
+                    per_conn = data.get("per_connection", {})
+                    for conn_id_str, metrics in per_conn.items():
+                        conn_id = int(conn_id_str)
+                        self.server_metrics[conn_id] = metrics
+
+                    print(f"[Orchestrator] Loaded fresh server metrics for {len(self.server_metrics)} connections")
+                    return True
+
+                except json.JSONDecodeError:
+                    # File may still be writing, wait and retry
+                    pass
+                except Exception as e:
+                    print(f"[Orchestrator] Error loading server metrics: {e}")
+
+            time.sleep(wait_interval)
+            elapsed += wait_interval
+
+        print(f"[Orchestrator] Warning: Could not load fresh server metrics from {metrics_file}")
+        return False
+
+    def _match_server_to_client_connections(self) -> Dict[int, int]:
+        """
+        Match server protocols to client connections using bytes-based matching.
+
+        Strategy:
+        1. First pass: exact matching where bytes_sent ≈ bytes_received (within 10%)
+        2. Second pass: for unmatched connections, match by throughput ranking
+           (highest offered → highest received, etc.)
+
+        This handles bottleneck scenarios where file transfer sends 100x more
+        than arrives through the bottleneck.
+
+        Returns dict mapping client_conn_id -> server_conn_id.
+        """
+        if not self.server_metrics or not self.final_results:
+            return {}
+
+        matches: Dict[int, int] = {}
+        used_server_ids = set()
+
+        # Get client bytes_sent from final_results
+        client_bytes = {}
+        for conn_id, result_data in self.final_results.items():
+            final_metrics = result_data.get("final_metrics", {})
+            # bytes_sent is tracked by MetricsCollector
+            bytes_sent = final_metrics.get("bytes_sent", 0)
+            if bytes_sent == 0:
+                # Fallback: estimate from throughput * duration
+                throughput_Bps = final_metrics.get("throughput", 0)
+                duration = self.config.simulation_duration
+                bytes_sent = int(throughput_Bps * duration)
+            client_bytes[conn_id] = bytes_sent
+
+        # PASS 1: Exact matching (bytes_sent ≈ bytes_received)
+        # Sort clients by bytes_sent ascending (smallest first - more likely to match exactly)
+        sorted_clients_asc = sorted(
+            client_bytes.items(),
+            key=lambda x: x[1],
+            reverse=False
+        )
+
+        for client_id, client_sent in sorted_clients_asc:
+            best_match = None
+            best_diff = float("inf")
+
+            for server_id, server_data in self.server_metrics.items():
+                if server_id in used_server_ids:
+                    continue
+
+                server_received = server_data.get("bytes_received", 0)
+                diff = abs(client_sent - server_received)
+
+                # Allow 15% tolerance for protocol overhead and timing
+                tolerance = max(client_sent * 0.15, 10000)  # At least 10KB tolerance
+                if diff < tolerance and diff < best_diff:
+                    best_diff = diff
+                    best_match = server_id
+
+            if best_match is not None:
+                matches[client_id] = best_match
+                used_server_ids.add(best_match)
+
+        # PASS 2: Match remaining by throughput ranking
+        # For bottlenecked flows, the highest sender should match highest receiver
+        unmatched_clients = [cid for cid in client_bytes if cid not in matches]
+        unmatched_servers = [sid for sid in self.server_metrics if sid not in used_server_ids]
+
+        if unmatched_clients and unmatched_servers:
+            # Sort unmatched clients by bytes_sent descending
+            unmatched_clients_sorted = sorted(
+                unmatched_clients,
+                key=lambda cid: client_bytes[cid],
+                reverse=True
+            )
+
+            # Sort unmatched servers by bytes_received descending
+            unmatched_servers_sorted = sorted(
+                unmatched_servers,
+                key=lambda sid: self.server_metrics[sid].get("bytes_received", 0),
+                reverse=True
+            )
+
+            # Match by rank: highest sender → highest receiver
+            for client_id, server_id in zip(unmatched_clients_sorted, unmatched_servers_sorted):
+                matches[client_id] = server_id
+                print(f"[Orchestrator] Matched client {client_id} to server {server_id} by throughput ranking")
+
+        return matches
+
     def _build_results(self) -> MultiConnectionResult:
         """Build final result object from collected data."""
         connection_results = {}
+
+        # Try to load server metrics for receiver-side throughput
+        if self.clients_only and not self.server_metrics:
+            self._load_server_metrics()
+
+        # Match server connections to client connections
+        server_to_client_map = self._match_server_to_client_connections()
+        # Invert to get client_id -> server_id mapping
+        client_to_server_map = {v: k for k, v in server_to_client_map.items()}
+        # Actually we want client_id -> server_id, so the original is correct
+        # matches is client_id -> server_id
 
         #reconstruct per connection metrics_history from the orchestrator aggregated history metrics_history was removed from FINISHED payload to keep  message small enough to transit the IPC pipe reliably
         per_conn_metrics: Dict[int, list] = {1: [], 2: [], 3: []}
@@ -461,10 +671,20 @@ class ProcessOrchestrator:
                 epoch_history_data = self.epoch_histories.get(conn_id, {})
                 epochs_list = epoch_history_data.get("epochs", []) if isinstance(epoch_history_data, dict) else []
 
+                # Merge server-side metrics if available
+                final_metrics = result_data.get("final_metrics", {}).copy()
+                matched_server_id = server_to_client_map.get(conn_id)
+                if matched_server_id is not None and matched_server_id in self.server_metrics:
+                    server_data = self.server_metrics[matched_server_id]
+                    final_metrics["receiver_throughput_bps"] = server_data.get("throughput_bps", 0)
+                    final_metrics["receiver_throughput_mbps"] = server_data.get("throughput_mbps", 0)
+                    final_metrics["receiver_bytes"] = server_data.get("bytes_received", 0)
+                    final_metrics["receiver_duration"] = server_data.get("duration_seconds", 0)
+
                 connection_results[conn_id] = ConnectionResult(
                     connection_id=conn_id,
                     application_type=self.config.get_config(conn_id).application_type,
-                    final_metrics=result_data.get("final_metrics", {}),
+                    final_metrics=final_metrics,
                     param_history=result_data.get("param_history", []),
                     epoch_history=epochs_list,
                     metrics_history=per_conn_metrics.get(conn_id, []),
@@ -490,6 +710,7 @@ class ProcessOrchestrator:
                 "max_stream_data": self.config.shared_max_stream_data,
             },
             duration_seconds=self.config.simulation_duration,
+            start_timestamp=getattr(self, '_start_timestamp', ''),
         )
         result.finalize()
         return result
@@ -635,3 +856,114 @@ class ProcessOrchestrator:
                         self.epoch_histories[msg.connection_id] = msg.payload["epoch_history"]
             except Exception:
                 break  # Queue empty or connection closed
+
+    def get_qlearning_history(self) -> List[dict]:
+        """Get Q-learning action history with settled metrics."""
+        if self.ml_controller:
+            return self.ml_controller.get_qlearning_history()
+        return []
+
+    def get_qlearning_summary(self) -> dict:
+        """Get Q-learning agent summary if available."""
+        # Try Andy's agent first (if it was used, it will have state)
+        try:
+            from ml_callbacks.q_learning_agent_andy import get_agent as get_andy_agent
+            andy_agent = get_andy_agent()
+            if andy_agent.step_count > 0:
+                return andy_agent.summary()
+        except Exception:
+            pass
+
+        # Fall back to default agent
+        try:
+            from ml_callbacks.q_learning_agent import get_agent
+            agent = get_agent()
+            return agent.summary()
+        except Exception:
+            return {}
+
+    def get_total_throughput(self) -> dict:
+        """
+        Get total throughput across all 3 connections.
+
+        Returns dict with:
+        - total_throughput_mbps: Sum of all connections' throughput in Mbps
+        - total_throughput_bps: Sum in bytes/sec
+        - per_connection: Individual throughputs for breakdown
+        """
+        if self.ml_controller:
+            return self.ml_controller.get_total_throughput()
+
+        # Fallback if no ML controller
+        metrics = self.get_latest_metrics()
+        total_bps = 0.0
+        per_connection = {}
+
+        for conn_id in [1, 2, 3]:
+            conn_metrics = metrics.get(conn_id, {})
+            # Use cwnd-limited throughput (most accurate for bottleneck scenarios)
+            tp_bps = (conn_metrics.get("throughput_cwnd", 0) or
+                      conn_metrics.get("throughput_acked_delta", 0) or
+                      conn_metrics.get("throughput_acked", 0))
+            total_bps += tp_bps
+            per_connection[conn_id] = {
+                "throughput_bps": tp_bps,
+                "throughput_mbps": tp_bps * 8 / 1_000_000,
+            }
+
+        return {
+            "total_throughput_bps": total_bps,
+            "total_throughput_mbps": total_bps * 8 / 1_000_000,
+            "per_connection": per_connection,
+        }
+
+    def get_scenario_config(self) -> dict:
+        """
+        Get network scenario configuration for UI display.
+
+        Returns dict with primary network parameters:
+        - scenario_name: Name of the scenario (e.g., "congested_low")
+        - capacity_mbps: Bandwidth in Mbps
+        - rtt_ms: Round-trip time in ms (2 * propagation_delay)
+        - loss_percent: Packet loss rate as percentage
+        - queue_size: Queue size in packets
+        - queue_discipline: Queue algorithm (FIFO, RED, CoDel, PIE)
+        - time_varying: Whether bandwidth varies over time
+        - variation_info: Variation details if time_varying is True
+        """
+        config = {
+            "scenario_name": self.network_scenario or "none",
+            "capacity_mbps": 0.0,
+            "rtt_ms": 0.0,
+            "loss_percent": 0.0,
+            "queue_size": 0,
+            "queue_discipline": "unknown",
+            "time_varying": False,
+            "variation_info": None,
+        }
+
+        # Extract from network_config (populated in run())
+        if self.network_config:
+            capacity_bps = self.network_config.get("capacity_bps", 0)
+            config["capacity_mbps"] = capacity_bps / 1_000_000 if capacity_bps else 0.0
+
+            prop_delay = self.network_config.get("propagation_delay", 0)
+            config["rtt_ms"] = prop_delay * 2000 if prop_delay else 0.0  # 2x one-way delay, convert to ms
+
+            loss_rate = self.network_config.get("loss_rate", 0)
+            config["loss_percent"] = loss_rate * 100 if loss_rate else 0.0
+
+            config["queue_size"] = self.network_config.get("queue_size_packets", 0)
+            config["queue_discipline"] = self.network_config.get("queue_discipline", "unknown")
+            config["time_varying"] = self.network_config.get("time_varying", False)
+
+            # Add variation info if time-varying
+            if config["time_varying"]:
+                period = self.network_config.get("variation_period", 0)
+                amplitude = self.network_config.get("variation_amplitude", 0)
+                config["variation_info"] = {
+                    "period_sec": period,
+                    "amplitude_percent": amplitude * 100 if amplitude else 0,
+                }
+
+        return config

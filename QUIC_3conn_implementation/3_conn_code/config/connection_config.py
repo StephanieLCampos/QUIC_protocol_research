@@ -99,7 +99,7 @@ class ConnectionConfig:
         Type of traffic: "video_streaming", "file_transfer", or "conference_call".
 
     initial_cw : int
-        Initial congestion window in bytes. Default: 12000 (~10 packets).
+        Initial congestion window in bytes. Default: 14720 (RFC 9002 Section 7.2).
 
     max_ack_delay : float
         Maximum time (seconds) receiver waits before sending ACK. Default: 0.025.
@@ -155,7 +155,7 @@ class ConnectionConfig:
     # -------------------------------------------------------------------------
     # Start-Only Parameters (CONSTANT - same for all 3 connections)
     # -------------------------------------------------------------------------
-    initial_cw: int = 12000               # Initial congestion window (bytes)
+    initial_cw: int = 14720               # Initial congestion window (RFC 9002 Section 7.2)
     max_ack_delay: float = 0.025          # Max ACK delay (25ms)
     max_data: int = 1_048_576             # Connection flow control (1 MB)
     max_stream_data: int = 1_048_576      # Stream flow control (1 MB)

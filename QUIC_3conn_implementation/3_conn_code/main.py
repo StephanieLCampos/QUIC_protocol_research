@@ -11,11 +11,20 @@ Usage:
     # Run with browser UI dashboard
     uv run python -m main run --ui
 
-    # Run with ML controller
+    # Run with ML controller (default agent - 7-feature state)
     uv run python -m main run --with-ml
+
+    # Run with Andy's Q-Learning agent (14-feature state)
+    uv run python -m main run --with-ml --ml-agent andy
+
+    # Run with Hybrid Q-Learning agent (10-feature state)
+    uv run python -m main run --with-ml --ml-agent hybrid
 
     # Run with network scenario
     uv run python -m main run --scenario congested_low
+
+    # Full example with UI and Andy's agent
+    uv run python -m main run --ui --with-ml --ml-agent andy --scenario congested_low --duration 60
 """
 
 import argparse
@@ -32,6 +41,7 @@ from pathlib import Path
 
 from config.multi_connection_config import MultiConnectionConfig
 from simulation.process_orchestrator import ProcessOrchestrator
+from utils.debug import set_debug_mode, debug_print
 
 # Import wireless bottleneck scenarios
 try:
@@ -66,7 +76,10 @@ def _signal_handler(signum, frame):
 def cmd_run(args):
     """Run 3 concurrent connections."""
     global _orchestrator
-    
+
+    # Set debug mode from CLI flag (propagates to worker processes via env var)
+    set_debug_mode(getattr(args, 'debug', False))
+
     print("QUIC 3-Connection Simulation")
     print("=" * 50)
 
@@ -115,14 +128,28 @@ def cmd_run(args):
     ml_callback = None
     if args.with_ml:
         if args.ml_callback:
+            # Custom callback specified via module:function
             module_name, func_name = args.ml_callback.split(":")
             module = __import__(module_name)
             ml_callback = getattr(module, func_name)
         else:
-            from ml_callbacks.q_learning_agent import q_learning_callback
+            # Select agent based on --ml-agent flag
+            ml_agent = getattr(args, 'ml_agent', 'default')
+            if ml_agent == 'andy':
+                from ml_callbacks.q_learning_agent_andy import q_learning_callback
+                print("Using Andy's Q-Learning Agent (14-feature state design)")
+            elif ml_agent == 'hybrid':
+                from ml_callbacks.q_learning_agent_hybrid import q_learning_callback
+                print("Using Hybrid Q-Learning Agent (10-feature state design)")
+            else:
+                from ml_callbacks.q_learning_agent import q_learning_callback
+                print("Using Default Q-Learning Agent (8-feature state design)")
             ml_callback = q_learning_callback
 
     bandwidth_cap_bps = args.bandwidth_cap * 1e6 if args.bandwidth_cap else None
+
+    # Determine agent type for export tracking
+    ml_agent_type = getattr(args, 'ml_agent', 'default') if args.with_ml else "default"
 
     # Create orchestrator (store globally for signal handler)
     _orchestrator = ProcessOrchestrator(
@@ -135,6 +162,7 @@ def cmd_run(args):
         bandwidth_cap_bps=bandwidth_cap_bps,
         loss_rate=args.loss_rate,
         delay_ms=args.delay_ms,
+        ml_agent_type=ml_agent_type,
     )
 
     # Run with or without UI
@@ -155,8 +183,8 @@ def cmd_run(args):
 async def run_headless(orchestrator, args, scenario):
     """Run simulation without UI."""
     result = await orchestrator.run()
-    # Export results
-    export_results(result, args)
+    # Export results (pass Q-learning dir if ML was enabled)
+    export_results(result, args, qlearning_dir=orchestrator.qlearning_export_dir)
 
 
 async def run_with_ui(orchestrator, args):
@@ -182,7 +210,7 @@ async def run_with_ui(orchestrator, args):
     try:
         # Wait for simulation to complete
         result = await sim_task
-        export_results(result, args)
+        export_results(result, args, qlearning_dir=orchestrator.qlearning_export_dir)
 
         print("\nSimulation complete. Server stopping in 3 seconds...")
         print("(Press Ctrl+C to stop immediately)")
@@ -206,29 +234,22 @@ async def run_with_ui(orchestrator, args):
                 pass
 
 
-def export_results(result, args):
-    """Export simulation results."""
+def export_results(result, args, qlearning_dir: str = None):
+    """Export simulation results and print all output file paths."""
     output_path = Path(args.output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
     # Export all formats
     result_file = result.export_json(str(output_path))
-    print(f"Results saved to: {result_file}")
-
     metrics_file = result.export_metrics_history(str(output_path))
-    print(f"Metrics history saved to: {metrics_file}")
-
     epoch_file = result.export_epoch_histories(str(output_path))
-    print(f"Epoch histories saved to: {epoch_file}")
-
     bottleneck_file = result.export_bottleneck_summary(str(output_path))
-    print(f"Bottleneck summary saved to: {bottleneck_file}")
-
     median_file = result.export_median_metrics_summary(str(output_path))
-    print(f"Median metrics summary saved to: {median_file}")
 
     # Summary
-    print(f"\nSimulation Complete")
+    print(f"\n{'='*70}")
+    print("SIMULATION COMPLETE")
+    print(f"{'='*70}")
     print(f"Network Scenario: {args.scenario}")
     print(f"Duration: {args.duration}s")
     print(f"Fairness Index: {result.fairness_index:.3f}")
@@ -245,13 +266,61 @@ def export_results(result, args):
         print(f"    RTT: {conn_result.final_metrics.get('rtt', 0) * 1000:.1f} ms")
         print(f"    Epochs: {conn_result.get_epoch_count()}")
 
+    # Print all output file paths
+    print(f"\n{'='*70}")
+    print("OUTPUT FILES SAVED")
+    print(f"{'='*70}")
+    print(f"\n- Results Directory: {output_path.absolute()}/")
+    print(f"   ├── {Path(result_file).name}")
+    print(f"   ├── {Path(metrics_file).name}")
+    print(f"   ├── {Path(epoch_file).name}")
+    print(f"   ├── {Path(bottleneck_file).name}")
+    print(f"   └── {Path(median_file).name}")
+
+    # Print Q-learning files if ML was enabled
+    if qlearning_dir:
+        qlearning_path = Path(qlearning_dir)
+        print(f"\n- Q-Learning Results: {qlearning_path.absolute()}/")
+        qlearning_files = [
+            "README.md",
+            "qlearning_actions.json",
+            "qlearning_actions.csv",
+            "metrics.json",
+            "q_table.json",
+            "metrics_timeseries.csv",
+            "config.json",
+            "rewards.csv",
+        ]
+        for i, fname in enumerate(qlearning_files):
+            fpath = qlearning_path / fname
+            if fpath.exists():
+                prefix = "└──" if i == len(qlearning_files) - 1 else "├──"
+                print(f"   {prefix} {fname}")
+
+        # Print Q-table checkpoint path
+        ml_agent = getattr(args, 'ml_agent', 'default')
+        if ml_agent == 'andy':
+            checkpoint_name = "q_learning_checkpoint_andy.json"
+        elif ml_agent == 'hybrid':
+            checkpoint_name = "q_learning_checkpoint_hybrid.json"
+        else:
+            checkpoint_name = "q_learning_checkpoint.json"
+        checkpoint_path = output_path / checkpoint_name
+        if checkpoint_path.exists():
+            print(f"\n- Q-Learning Checkpoint: {checkpoint_path.absolute()}")
+
+    print()
+
 
 def cmd_server(args):
     """Run server only - waits for client connections and applies bottleneck."""
+    # Set debug mode from CLI flag
+    set_debug_mode(getattr(args, 'debug', False))
+
     print(f"\n{'='*70}")
     print("QUIC SERVER MODE - Multi-Container Setup")
     print(f"{'='*70}\n")
-    
+
     # Load scenario
     if not HAS_WIRELESS_BOTTLENECK:
         print("Error: wireless_bottleneck module not found. Install wireless_bottleneck package.")
@@ -298,22 +367,132 @@ def cmd_server(args):
     try:
         loop.run_until_complete(orchestrator.run(args.duration))
         print("\nServer run completed successfully")
+
+        # Export server-side metrics for receiver-side throughput measurement
+        if orchestrator.server:
+            output_path = Path("output")
+            output_path.mkdir(parents=True, exist_ok=True)
+            orchestrator.server.export_server_metrics(str(output_path))
+
     except Exception as e:
         print(f"\nError running server: {e}")
         import traceback
         traceback.print_exc()
         return 1
-    
+
+    return 0
+
+
+def _run_clients_with_ui(orchestrator, args):
+    """Run clients with browser UI dashboard."""
+    import asyncio
+    from web.server import run_server
+
+    async def run_with_ui():
+        # Start orchestrator in background
+        async def run_simulation():
+            return await orchestrator.run(args.duration)
+
+        # Run server and simulation concurrently
+        port = 8000
+        settling_time = 2.0
+
+        server_holder = []
+        server_task = asyncio.create_task(
+            run_server(orchestrator, port=port, settling_time=settling_time, _server_holder=server_holder)
+        )
+        sim_task = asyncio.create_task(run_simulation())
+
+        try:
+            # Wait for simulation to complete
+            result = await sim_task
+
+            if result:
+                # Export results
+                output_path = Path(args.output_dir)
+                output_path.mkdir(parents=True, exist_ok=True)
+
+                result_file = result.export_json(str(output_path))
+                metrics_file = result.export_metrics_history(str(output_path))
+                epoch_file = result.export_epoch_histories(str(output_path))
+                bottleneck_file = result.export_bottleneck_summary(str(output_path))
+                median_file = result.export_median_metrics_summary(str(output_path))
+
+                # Print all output file paths
+                print(f"\n{'='*70}")
+                print("OUTPUT FILES SAVED")
+                print(f"{'='*70}")
+                print(f"\n- Results Directory: {output_path.absolute()}/")
+                print(f"   ├── {Path(result_file).name}")
+                print(f"   ├── {Path(metrics_file).name}")
+                print(f"   ├── {Path(epoch_file).name}")
+                print(f"   ├── {Path(bottleneck_file).name}")
+                print(f"   └── {Path(median_file).name}")
+
+                # Print Q-learning files if ML was enabled
+                qlearning_dir = orchestrator.qlearning_export_dir
+                if qlearning_dir:
+                    qlearning_path = Path(qlearning_dir)
+                    print(f"\n- Q-Learning Results: {qlearning_path.absolute()}/")
+                    qlearning_files = [
+                        "README.md",
+                        "qlearning_actions.json",
+                        "qlearning_actions.csv",
+                        "metrics.json",
+                        "q_table.json",
+                        "metrics_timeseries.csv",
+                        "config.json",
+                        "rewards.csv",
+                    ]
+                    for i, fname in enumerate(qlearning_files):
+                        fpath = qlearning_path / fname
+                        if fpath.exists():
+                            prefix = "└──" if i == len(qlearning_files) - 1 else "├──"
+                            print(f"   {prefix} {fname}")
+
+                    # Print Q-table checkpoint path
+                    ml_agent = getattr(args, 'ml_agent', 'default')
+                    if ml_agent == 'andy':
+                        checkpoint_name = "q_learning_checkpoint_andy.json"
+                    elif ml_agent == 'hybrid':
+                        checkpoint_name = "q_learning_checkpoint_hybrid.json"
+                    else:
+                        checkpoint_name = "q_learning_checkpoint.json"
+                    checkpoint_path = output_path / checkpoint_name
+                    if checkpoint_path.exists():
+                        print(f"\n- Q-Learning Checkpoint: {checkpoint_path.absolute()}")
+
+                print()
+
+            print("\nSimulation complete. Server stopping in 3 seconds...")
+            await asyncio.sleep(3)
+
+        except asyncio.CancelledError:
+            pass
+        finally:
+            # Stop the server
+            if server_holder:
+                server_holder[0].should_exit = True
+            server_task.cancel()
+            try:
+                await server_task
+            except asyncio.CancelledError:
+                pass
+
+    asyncio.run(run_with_ui())
     return 0
 
 
 def cmd_clients(args):
     """Run clients only - connects to remote server."""
+    # Set debug mode from CLI flag
+    set_debug_mode(getattr(args, 'debug', False))
+
     print(f"\n{'='*70}")
     print("QUIC CLIENTS MODE - Multi-Container Setup")
     print(f"{'='*70}\n")
-    
-    print(f"[DEBUG] cmd_clients called with args: {args}")
+
+    debug_print(f"[DEBUG] cmd_clients called with args: {args}")
     
     print(f"Server: {args.server}:4433")
     print(f"Duration: {args.duration}s")
@@ -340,16 +519,39 @@ def cmd_clients(args):
     
     # Set RUN_MODE for clients to enable client-side shaping on eth0
     os.environ["RUN_MODE"] = "clients"
-    
+
+    # Setup ML callback if requested
+    ml_callback = None
+    ml_agent_type = getattr(args, 'ml_agent', 'default')
+    if getattr(args, 'with_ml', False):
+        if ml_agent_type == 'andy':
+            from ml_callbacks.q_learning_agent_andy import q_learning_callback
+            print("Q-Learning ML controller: ENABLED (Andy's 14-feature agent)\n")
+        elif ml_agent_type == 'hybrid':
+            from ml_callbacks.q_learning_agent_hybrid import q_learning_callback
+            print("Q-Learning ML controller: ENABLED (Hybrid 10-feature agent)\n")
+        else:
+            from ml_callbacks.q_learning_agent import q_learning_callback
+            print("Q-Learning ML controller: ENABLED (Default 8-feature agent)\n")
+        ml_callback = q_learning_callback
+
     # Run clients with client-side shaping
     orchestrator = ProcessOrchestrator(
         config=config,
+        ml_callback=ml_callback,
         network_scenario=args.scenario,
         network_config=scenario.config.to_dict() if scenario and hasattr(scenario.config, "to_dict") else {},
         scenario=scenario,  # Enable ingress policing
         clients_only=True,  # New parameter
+        output_dir=args.output_dir,  # For loading server metrics
+        ml_agent_type=ml_agent_type,
     )
-    
+
+    # Check if UI is requested
+    if getattr(args, 'ui', False):
+        print(f"Browser UI: http://localhost:8000\n")
+        return _run_clients_with_ui(orchestrator, args)
+
     loop = asyncio.get_event_loop()
     
     # Track if we should stop early
@@ -364,11 +566,11 @@ def cmd_clients(args):
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    print("[DEBUG] Starting orchestrator.run()...")
+    debug_print("[DEBUG] Starting orchestrator.run()...")
     try:
         result = loop.run_until_complete(orchestrator.run(args.duration))
-        print(f"[DEBUG] orchestrator.run() completed with result: {result}")
-        print(f"[DEBUG] Result type: {type(result)}")
+        debug_print(f"[DEBUG] orchestrator.run() completed with result: {result}")
+        debug_print(f"[DEBUG] Result type: {type(result)}")
         
         if result:
             # Merge sidecar probe output if available
@@ -386,19 +588,51 @@ def cmd_clients(args):
 
             # Export results to files
             output_path.mkdir(parents=True, exist_ok=True)
-            
+
             result_file = result.export_json(str(output_path))
             metrics_file = result.export_metrics_history(str(output_path))
             epoch_file = result.export_epoch_histories(str(output_path))
             bottleneck_file = result.export_bottleneck_summary(str(output_path))
             median_file = result.export_median_metrics_summary(str(output_path))
-            
-            print(f"\n✓ Results exported to: {output_path}/")
-            print(f"  - {Path(result_file).name}")
-            print(f"  - {Path(metrics_file).name}")
-            print(f"  - {Path(epoch_file).name}")
-            print(f"  - {Path(bottleneck_file).name}")
-            print(f"  - {Path(median_file).name}")
+
+            # Print all output file paths
+            print(f"\n{'='*70}")
+            print("OUTPUT FILES SAVED")
+            print(f"{'='*70}")
+            print(f"\n- Results Directory: {output_path.absolute()}/")
+            print(f"   ├── {Path(result_file).name}")
+            print(f"   ├── {Path(metrics_file).name}")
+            print(f"   ├── {Path(epoch_file).name}")
+            print(f"   ├── {Path(bottleneck_file).name}")
+            print(f"   └── {Path(median_file).name}")
+
+            # Print Q-learning files if ML was enabled
+            qlearning_dir = orchestrator.qlearning_export_dir
+            if qlearning_dir:
+                qlearning_path = Path(qlearning_dir)
+                print(f"\n- Q-Learning Results: {qlearning_path.absolute()}/")
+                qlearning_files = [
+                    "README.md",
+                    "qlearning_actions.json",
+                    "qlearning_actions.csv",
+                    "metrics.json",
+                    "q_table.json",
+                    "metrics_timeseries.csv",
+                    "config.json",
+                    "rewards.csv",
+                ]
+                for i, fname in enumerate(qlearning_files):
+                    fpath = qlearning_path / fname
+                    if fpath.exists():
+                        prefix = "└──" if i == len(qlearning_files) - 1 else "├──"
+                        print(f"   {prefix} {fname}")
+
+                # Print Q-table checkpoint path
+                ml_agent = getattr(args, 'ml_agent', 'default')
+                checkpoint_name = "q_learning_checkpoint_andy.json" if ml_agent == 'andy' else "q_learning_checkpoint.json"
+                checkpoint_path = output_path / checkpoint_name
+                if checkpoint_path.exists():
+                    print(f"\n- Q-Learning Checkpoint: {checkpoint_path.absolute()}")
             
             # Display results
             print("\n" + "="*70)
@@ -415,6 +649,9 @@ def cmd_clients(args):
             for conn_id, conn_result in result.connection_results.items():
                 print(f"  Connection {conn_id} ({conn_result.application_type}):")
                 print(f"    Offered Throughput (app): {(conn_result.final_metrics.get('throughput', 0) * 8) / 1e6:.2f} Mbps")
+                receiver_mbps = conn_result.final_metrics.get('receiver_throughput_mbps', 0)
+                if receiver_mbps > 0:
+                    print(f"    Receiver Throughput: {receiver_mbps:.2f} Mbps")
                 print(f"    RTT: {conn_result.final_metrics.get('rtt', 0) * 1000:.1f} ms")
                 print(f"    Epochs: {conn_result.get_epoch_count()}")
         else:
@@ -426,13 +663,16 @@ def cmd_clients(args):
         traceback.print_exc()
         return 1
     finally:
-        print("[DEBUG] cmd_clients finally block executed")
+        debug_print("[DEBUG] cmd_clients finally block executed")
     
     return 0
 
 
 def cmd_probe(args):
     """Run a standalone network RTT probe and export compact JSON output."""
+    # Set debug mode from CLI flag
+    set_debug_mode(getattr(args, 'debug', False))
+
     print(f"\n{'='*70}")
     print("NETWORK PROBE MODE - Sidecar RTT Probe")
     print(f"{'='*70}\n")
@@ -512,7 +752,7 @@ def cmd_probe(args):
 
     # Use same timestamp format as results IDs for easier grouping
     from datetime import datetime
-    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_id = datetime.now().strftime("%d-%m-%Y_%I-%M-%S%p")
 
     out_file = output_dir / f"network_probe_{args.scenario}_{run_id}.json"
     latest_file = output_dir / f"network_probe_{args.scenario}_latest.json"
@@ -552,7 +792,9 @@ def main():
                            help="Network scenario (stable_high, congested_low, varying, lossy, asymmetric)")
     run_parser.add_argument("--with-ml", action="store_true",
                            help="Enable ML controller")
-    run_parser.add_argument("--ml-callback", help="Custom ML callback (module:function)")
+    run_parser.add_argument("--ml-agent", choices=["default", "andy", "hybrid"], default="default",
+                           help="Q-Learning agent to use: 'default' (8-feature), 'andy' (14-feature), or 'hybrid' (10-feature)")
+    run_parser.add_argument("--ml-callback", help="Custom ML callback (module:function) - overrides --ml-agent")
     run_parser.add_argument("--ui", action="store_true",
                            help="Enable browser UI dashboard")
     run_parser.add_argument("--port", type=int, default=8000,
@@ -570,6 +812,8 @@ def main():
     run_parser.add_argument("--delay-ms", type=float, default=0.0, metavar="MS",
                            help="Simulated one-way propagation delay in ms (ex. 25). "
                                 "Raises RTT into the Q-agent latency bins and makes cubic_c observable.")
+    run_parser.add_argument("--debug", action="store_true",
+                           help="Enable verbose debug output")
     run_parser.set_defaults(func=cmd_run)
 
     # Server-only mode for multi-container setup
@@ -578,6 +822,8 @@ def main():
                               help="Server run duration in seconds")
     server_parser.add_argument("--scenario", default="congested_low",
                               help="Network scenario for bottleneck")
+    server_parser.add_argument("--debug", action="store_true",
+                              help="Enable verbose debug output")
     server_parser.set_defaults(func=cmd_server)
 
     # Clients-only mode for multi-container setup
@@ -590,6 +836,14 @@ def main():
                                help="Network scenario (for display only)")
     clients_parser.add_argument("--output-dir", default="output",
                                help="Output directory for results")
+    clients_parser.add_argument("--with-ml", action="store_true",
+                               help="Enable Q-learning ML controller")
+    clients_parser.add_argument("--ml-agent", choices=["default", "andy", "hybrid"], default="default",
+                               help="Q-Learning agent to use: 'default' (8-feature), 'andy' (14-feature), or 'hybrid' (10-feature)")
+    clients_parser.add_argument("--ui", action="store_true",
+                               help="Enable browser UI dashboard on port 8000")
+    clients_parser.add_argument("--debug", action="store_true",
+                               help="Enable verbose debug output")
     clients_parser.set_defaults(func=cmd_clients)
 
     probe_parser = subparsers.add_parser("probe", help="Run standalone network RTT probe")
@@ -598,6 +852,8 @@ def main():
     probe_parser.add_argument("--interval", type=float, default=0.5, help="Ping interval in seconds")
     probe_parser.add_argument("--scenario", default="congested_low", help="Scenario label for output")
     probe_parser.add_argument("--output-dir", default="output", help="Output directory for probe files")
+    probe_parser.add_argument("--debug", action="store_true",
+                             help="Enable verbose debug output")
     probe_parser.set_defaults(func=cmd_probe)
 
     args = parser.parse_args()

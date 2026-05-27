@@ -138,21 +138,41 @@ class ConnectionWorker:
     def _send_metrics(self):
         """Send current metrics to main process."""
         metrics = self._metrics_collector.calculate_metrics()
+
+        # Get delta throughput (per-epoch, responsive to changes)
+        throughput_acked_delta = self._metrics_collector.get_throughput_acked_delta()
+
+        # Calculate cwnd-limited throughput (theoretical max given cwnd and RTT)
+        # This is more accurate than bytes_acked when there's buffering
+        cwnd_samples = self._metrics_collector.cwnd_samples
+        rtt_samples = self._metrics_collector.rtt_samples
+        throughput_cwnd = 0.0
+        if cwnd_samples and rtt_samples:
+            avg_cwnd = sum(cwnd_samples[-20:]) / len(cwnd_samples[-20:])
+            avg_rtt = sum(rtt_samples[-20:]) / len(rtt_samples[-20:])
+            if avg_rtt > 0:
+                throughput_cwnd = avg_cwnd / avg_rtt  # bytes/sec
+
         msg = IPCMessage(
             msg_type=MessageType.METRICS,
             connection_id=self.config.connection_id,
             timestamp=time.time(),
             payload={
                 "throughput": metrics.throughput,
+                "throughput_acked": metrics.throughput_acked,
+                "throughput_acked_delta": throughput_acked_delta,  # Per-epoch delta
+                "throughput_cwnd": throughput_cwnd,  # Cwnd-limited estimate (more accurate)
                 "rtt": metrics.rtt,
                 "latency": metrics.latency,
                 "jitter": metrics.jitter,
                 "packet_loss_rate": metrics.packet_loss_rate,
                 "bytes_sent": self._metrics_collector.bytes_sent,
+                "bytes_acked": metrics.bytes_acked,
                 "current_params": {
                     "loss_reduction_factor": self.config.loss_reduction_factor,
                     "cubic_c": self.config.cubic_c,
                     "minimum_window": self.config.minimum_window,
+                    "packet_threshold": self.config.packet_threshold,
                 },
             },
         )
@@ -273,6 +293,9 @@ class ConnectionWorker:
                 stream_closed = False
 
                 async for packet in synthesizer.generate():
+                    # Check for stop signals frequently
+                    self._check_commands()
+
                     if not self._running or (time.time() - start_time) >= duration:
                         break
 
@@ -281,7 +304,17 @@ class ConnectionWorker:
 
                     #enforce shared bandwidth cap before sending
                     if self._token_bucket is not None:
-                        await self._token_bucket.consume_async(packet.size)
+                        # Add timeout to avoid getting stuck waiting for tokens
+                        try:
+                            await asyncio.wait_for(
+                                self._token_bucket.consume_async(packet.size),
+                                timeout=1.0
+                            )
+                        except asyncio.TimeoutError:
+                            # Check if we should stop
+                            if not self._running or (time.time() - start_time) >= duration:
+                                break
+                            continue  # Try again
 
                     # Send data with proper error handling
                     try:
@@ -303,9 +336,19 @@ class ConnectionWorker:
 
                     self._metrics_collector.record_packet_sent(packet.size)
 
-                    rtt = self._get_rtt(protocol)
+                    # Sample RTT for average RTT calculation
+                    rtt = self._get_rtt_latest(protocol)
                     if rtt and rtt > 0:
                         self._metrics_collector.record_rtt_sample(rtt)
+
+                    # Sample RTTVAR directly for jitter calculation
+                    # RTTVAR is aioquic's measure of RTT variation (RFC 6298)
+                    rttvar = self._get_rtt_variance(protocol)
+                    if rttvar is not None:
+                        self._metrics_collector.record_rtt_variance(rttvar)
+
+                    # Sample network metrics for ACK-verified throughput
+                    self._sample_network_metrics(protocol)
 
                     self._check_commands()
 
@@ -361,11 +404,114 @@ class ConnectionWorker:
             raise
 
     def _get_rtt(self, protocol) -> Optional[float]:
-        """Get current RTT from aioquic."""
+        """Get current smoothed RTT from aioquic (for display)."""
         try:
             return protocol._quic._loss._rtt_smoothed
         except AttributeError:
             return None
+
+    def _get_rtt_latest(self, protocol) -> Optional[float]:
+        """Get latest RTT sample from aioquic (for jitter calculation)."""
+        try:
+            # _rtt_latest shows actual RTT variation, better for jitter
+            return protocol._quic._loss._rtt_latest
+        except AttributeError:
+            try:
+                return protocol._quic._loss._rtt_smoothed
+            except AttributeError:
+                return None
+
+    def _get_rtt_variance(self, protocol) -> Optional[float]:
+        """
+        Get RTT variance (RTTVAR) from aioquic for direct jitter measurement.
+
+        RTTVAR from RFC 6298 represents the variation in RTT, which is
+        essentially what jitter measures. This is more reliable than
+        trying to calculate jitter from consecutive smoothed RTT samples.
+        """
+        try:
+            return protocol._quic._loss._rtt_variance
+        except AttributeError:
+            return None
+
+    def _sample_network_metrics(self, protocol) -> None:
+        """
+        Sample network metrics from aioquic for ACK-verified throughput.
+
+        Accesses congestion_window and bytes_in_flight from aioquic's
+        loss recovery module to calculate bytes_acked.
+        """
+        try:
+            loss = protocol._quic._loss
+            cwnd = getattr(loss, "congestion_window", 0)
+            bytes_in_flight = getattr(loss, "bytes_in_flight", 0)
+
+            if cwnd > 0:
+                self._metrics_collector.cwnd_samples.append(cwnd)
+            if bytes_in_flight >= 0:
+                self._metrics_collector.bytes_in_flight_samples.append(bytes_in_flight)
+
+            # Compute bytes acknowledged: bytes_sent - bytes_in_flight
+            current_acked = self._metrics_collector.bytes_sent - bytes_in_flight
+            if current_acked > self._metrics_collector.bytes_acked:
+                self._metrics_collector.bytes_acked = current_acked
+
+            # Track loss indicators from aioquic's loss recovery module
+            # Method 1: PTO count (Probe Timeout - indicates packet loss)
+            pto_count = getattr(loss, "_pto_count", 0)
+
+            # Method 2: Check ssthresh changes (set when loss detected)
+            # ssthresh < cwnd indicates loss has occurred
+            ssthresh = getattr(loss, "ssthresh", float('inf'))
+            if ssthresh < float('inf') and cwnd > 0:
+                # Loss has occurred - ssthresh is set
+                # Estimate lost packets based on cwnd reduction
+                if not hasattr(self, '_last_ssthresh'):
+                    self._last_ssthresh = ssthresh
+                if ssthresh < self._last_ssthresh:
+                    # ssthresh dropped - new loss event
+                    # Estimate ~2-5 packets lost per event
+                    self._metrics_collector.packets_lost += 3
+                self._last_ssthresh = ssthresh
+
+            # Method 3: Track cwnd reductions as loss indicator
+            # More sensitive threshold (15% drop) to catch continuous low-rate loss
+            if not hasattr(self, '_prev_cwnd'):
+                self._prev_cwnd = cwnd
+                self._cwnd_drop_cooldown = 0
+            # Only count if cwnd actually dropped and we're not in cooldown
+            if cwnd < self._prev_cwnd * 0.85 and self._prev_cwnd > 1000 and self._cwnd_drop_cooldown <= 0:
+                # cwnd drop (>15%) indicates loss event
+                drop_ratio = 1 - (cwnd / self._prev_cwnd)
+                estimated_lost = max(1, int(drop_ratio * 5))
+                self._metrics_collector.packets_lost += estimated_lost
+                self._cwnd_drop_cooldown = 5  # Cooldown to avoid double-counting
+            elif self._cwnd_drop_cooldown > 0:
+                self._cwnd_drop_cooldown -= 1
+            self._prev_cwnd = max(cwnd, self._prev_cwnd * 0.95)  # Slowly decay reference
+
+            # Method 4: PTO events
+            if pto_count > 0:
+                # Each PTO typically means packets weren't ACKed
+                new_ptos = pto_count - getattr(self, '_last_pto_count', 0)
+                if new_ptos > 0:
+                    self._metrics_collector.packets_lost += new_ptos * 3
+                self._last_pto_count = pto_count
+
+            # Method 5: Try to get loss stats from congestion controller
+            cc = getattr(loss, "_cc", None)
+            if cc is not None:
+                # Check for direct loss counters
+                packets_lost = getattr(cc, "packets_lost", 0) or getattr(cc, "_packets_lost", 0)
+                if packets_lost > self._metrics_collector.packets_lost:
+                    self._metrics_collector.packets_lost = packets_lost
+
+                bytes_lost = getattr(cc, "bytes_lost", 0) or getattr(cc, "_bytes_lost", 0)
+                if bytes_lost > 0:
+                    self._metrics_collector.bytes_lost = bytes_lost
+
+        except AttributeError:
+            pass
 
 
 def worker_process_entry(

@@ -98,7 +98,7 @@ class MultiConnectionResult:
     def __post_init__(self):
         """Generate simulation ID if not provided."""
         if not self.simulation_id:
-            self.simulation_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.simulation_id = datetime.now().strftime("%d-%m-%Y_%I-%M-%S%p")
         if not self.start_timestamp:
             self.start_timestamp = datetime.now().isoformat()
 
@@ -186,6 +186,7 @@ class MultiConnectionResult:
             values = [float(item.get(key, 0) or 0) for item in trimmed]
             return float(statistics.median(values)) if values else 0.0
 
+        # Offered throughput (application send rate)
         offered_bps_med = median_of("throughput") * 8
 
         return {
@@ -225,6 +226,120 @@ class MultiConnectionResult:
             "cooldown_ratio": cooldown_ratio,
             "per_connection": per_connection,
         }
+
+    def _estimate_actual_throughput_per_connection(
+        self, observed_link_bps: float
+    ) -> Dict[str, Any]:
+        """
+        Estimate actual throughput per connection based on tc bottleneck.
+
+        Logic:
+        - Connections that offered less than their share of tc capacity
+          likely got ALL their data through (actual ≈ offered)
+        - Bottlenecked connections share the remaining tc capacity
+          proportionally based on their offered load
+
+        Returns dict with per-connection offered and actual throughput.
+        """
+        per_connection_throughput: Dict[str, Any] = {}
+
+        # Calculate offered bytes per second for each connection
+        per_conn_offered_bps: Dict[int, float] = {}
+        for conn_id, result in self.connection_results.items():
+            offered_Bps = result.final_metrics.get("throughput", 0)  # bytes/sec
+            per_conn_offered_bps[conn_id] = offered_Bps * 8  # bits/sec
+
+        total_offered_bps = sum(per_conn_offered_bps.values())
+
+        # If no tc data or no offered throughput, return offered as actual
+        if observed_link_bps <= 0 or total_offered_bps <= 0:
+            for conn_id, result in self.connection_results.items():
+                offered_bps = per_conn_offered_bps.get(conn_id, 0)
+                receiver_mbps = result.final_metrics.get("receiver_throughput_mbps", 0)
+                receiver_bytes = result.final_metrics.get("receiver_bytes", 0)
+                bytes_sent = result.final_metrics.get("bytes_sent", 0)
+                delivery_ratio = (receiver_bytes / bytes_sent * 100) if bytes_sent > 0 else 0
+
+                # Get client-side ACK-verified throughput
+                acked_throughput = result.final_metrics.get("throughput_acked", 0)
+                acked_mbps = acked_throughput * 8 / 1_000_000  # Convert bytes/s to Mbps
+
+                per_connection_throughput[str(conn_id)] = {
+                    "application_type": result.application_type,
+                    "client_offered_mbps": offered_bps / 1_000_000,
+                    "client_acked_mbps": acked_mbps,
+                    "server_received_mbps": receiver_mbps,
+                    "delivery_ratio_percent": delivery_ratio,
+                }
+            return per_connection_throughput
+
+        # If total offered <= observed (no bottleneck), actual ≈ offered
+        if total_offered_bps <= observed_link_bps * 1.1:  # 10% tolerance
+            for conn_id, result in self.connection_results.items():
+                offered_bps = per_conn_offered_bps.get(conn_id, 0)
+                receiver_mbps = result.final_metrics.get("receiver_throughput_mbps", 0)
+                receiver_bytes = result.final_metrics.get("receiver_bytes", 0)
+                bytes_sent = result.final_metrics.get("bytes_sent", 0)
+                delivery_ratio = (receiver_bytes / bytes_sent * 100) if bytes_sent > 0 else 0
+
+                # Get client-side ACK-verified throughput
+                acked_throughput = result.final_metrics.get("throughput_acked", 0)
+                acked_mbps = acked_throughput * 8 / 1_000_000  # Convert bytes/s to Mbps
+
+                per_connection_throughput[str(conn_id)] = {
+                    "application_type": result.application_type,
+                    "client_offered_mbps": offered_bps / 1_000_000,
+                    "client_acked_mbps": acked_mbps,
+                    "server_received_mbps": receiver_mbps,
+                    "delivery_ratio_percent": delivery_ratio,
+                }
+            return per_connection_throughput
+
+        # Bottleneck is active - estimate per-connection actual throughput
+        # Use PROPORTIONAL distribution based on offered load
+        # This reflects real network behavior without fair queuing:
+        # - Aggressive senders (file transfer) dominate the bottleneck
+        # - Smaller flows get starved proportionally
+        # The Q-learning's job is to optimize parameters to improve fairness
+
+        actual_bps: Dict[int, float] = {}
+
+        for conn_id, offered_bps in per_conn_offered_bps.items():
+            # Each connection gets a share of tc capacity proportional to its offered load
+            proportion = offered_bps / total_offered_bps if total_offered_bps > 0 else 0
+            actual_bps[conn_id] = observed_link_bps * proportion
+
+        # Build result
+        for conn_id, result in self.connection_results.items():
+            offered_bps = per_conn_offered_bps.get(conn_id, 0)
+            conn_actual_bps = actual_bps.get(conn_id, offered_bps)
+
+            # Ensure actual doesn't exceed offered
+            conn_actual_bps = min(conn_actual_bps, offered_bps)
+
+            # Check for receiver-side throughput (actual measurement from server)
+            receiver_mbps = result.final_metrics.get("receiver_throughput_mbps", 0)
+            receiver_bytes = result.final_metrics.get("receiver_bytes", 0)
+            bytes_sent = result.final_metrics.get("bytes_sent", 0)
+
+            # Calculate delivery ratio if we have both values
+            delivery_ratio = 0.0
+            if bytes_sent > 0 and receiver_bytes > 0:
+                delivery_ratio = (receiver_bytes / bytes_sent) * 100
+
+            # Get client-side ACK-verified throughput
+            acked_throughput = result.final_metrics.get("throughput_acked", 0)
+            acked_mbps = acked_throughput * 8 / 1_000_000  # Convert bytes/s to Mbps
+
+            per_connection_throughput[str(conn_id)] = {
+                "application_type": result.application_type,
+                "client_offered_mbps": offered_bps / 1_000_000,
+                "client_acked_mbps": acked_mbps,
+                "server_received_mbps": receiver_mbps,
+                "delivery_ratio_percent": delivery_ratio,
+            }
+
+        return per_connection_throughput
 
     def get_bottleneck_summary(self) -> Dict[str, Any]:
         """Build a bottleneck-focused summary that is easy to interpret."""
@@ -267,6 +382,11 @@ class MultiConnectionResult:
             if isinstance(probe, dict):
                 network_probe = probe
 
+        # Calculate per-connection throughput (offered vs actual through bottleneck)
+        per_connection_throughput = self._estimate_actual_throughput_per_connection(
+            observed_link_bps
+        )
+
         return {
             "bottleneck_applied": bottleneck_applied,
             "bottleneck_limiting_traffic": bottleneck_limiting,
@@ -280,6 +400,7 @@ class MultiConnectionResult:
             "cap_utilization_percent": cap_utilization_pct,
             "offered_to_observed_ratio": offered_vs_observed_ratio,
             "network_only_rtt_probe": network_probe,
+            "per_connection_throughput": per_connection_throughput,
         }
 
     def export_json(self, output_dir: str = "output") -> str:
@@ -399,12 +520,25 @@ class MultiConnectionResult:
         robust = self.get_robust_metrics_summary()
         per_connection = robust.get("per_connection", {})
 
+        # Get tc-based actual throughput from bottleneck summary
+        bottleneck_summary = self.get_bottleneck_summary()
+        per_conn_throughput = bottleneck_summary.get("per_connection_throughput", {})
+
         compact_connections: Dict[str, Any] = {}
         for conn_id, conn_data in per_connection.items():
             med = conn_data.get("trimmed_medians", {})
+            # Get throughput data from bottleneck summary
+            throughput_data = per_conn_throughput.get(str(conn_id), {})
+            client_acked_mbps = throughput_data.get("client_acked_mbps", 0.0)
+            server_received_mbps = throughput_data.get("server_received_mbps", 0.0)
+            delivery_ratio = throughput_data.get("delivery_ratio_percent", 0.0)
+
             compact_connections[str(conn_id)] = {
                 "application_type": conn_data.get("application_type", ""),
-                "offered_throughput_median_mbps": med.get("offered_throughput_median_mbps", 0.0),
+                "client_offered_median_mbps": med.get("offered_throughput_median_mbps", 0.0),
+                "client_acked_mbps": client_acked_mbps,
+                "server_received_mbps": server_received_mbps,
+                "delivery_ratio_percent": delivery_ratio,
                 "rtt_median_ms": med.get("rtt_median_ms", 0.0),
                 "latency_median_ms": med.get("latency_median_ms", 0.0),
                 "jitter_median_ms": med.get("jitter_median_ms", 0.0),
@@ -419,7 +553,7 @@ class MultiConnectionResult:
             "method": robust.get("method", "trimmed_median"),
             "warmup_ratio": robust.get("warmup_ratio", 0.2),
             "cooldown_ratio": robust.get("cooldown_ratio", 0.1),
-            "network_only_rtt_probe": self.get_bottleneck_summary().get("network_only_rtt_probe", {}),
+            "network_only_rtt_probe": bottleneck_summary.get("network_only_rtt_probe", {}),
             "connections": compact_connections,
         }
 

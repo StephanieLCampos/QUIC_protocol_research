@@ -44,6 +44,59 @@ header h1 {
     font-weight: bold;
 }
 
+/* Network Scenario Configuration Section */
+#network-config-section {
+    background: #16213e;
+    padding: 1rem 2rem;
+    border-bottom: 2px solid #0f3460;
+}
+
+#network-config-section h2 {
+    font-size: 1rem;
+    color: #aaa;
+    margin-bottom: 0.75rem;
+    font-weight: normal;
+}
+
+#network-config-section h2 #scenario-name {
+    color: #4CAF50;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+#network-config-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.network-config-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.config-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #FF9800;
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.config-label {
+    font-size: 0.7rem;
+    color: #888;
+    margin-top: 0.25rem;
+    text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+    #network-config-grid {
+        justify-content: center;
+    }
+}
+
 #dashboard {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -129,11 +182,17 @@ header h1 {
     color: #888;
 }
 
-/* Metrics Grid */
+/* Metrics Grid - 3 columns for 6 metrics */
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 0.5rem;
+}
+
+@media (max-width: 1400px) {
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 .metric-card {
@@ -154,6 +213,34 @@ header h1 {
     font-size: 0.7rem;
     color: #888;
     margin-top: 0.25rem;
+}
+
+/* Highlight important metrics per connection type */
+.highlight-throughput {
+    border: 2px solid #4CAF50;
+    background: linear-gradient(135deg, #0f3460 0%, #1a3a5c 100%);
+}
+
+.highlight-throughput .metric-value {
+    color: #4CAF50;
+}
+
+.highlight-latency {
+    border: 2px solid #FF9800;
+    background: linear-gradient(135deg, #0f3460 0%, #1a3a5c 100%);
+}
+
+.highlight-latency .metric-value {
+    color: #FF9800;
+}
+
+.highlight-jitter {
+    border: 2px solid #2196F3;
+    background: linear-gradient(135deg, #0f3460 0%, #1a3a5c 100%);
+}
+
+.highlight-jitter .metric-value {
+    color: #2196F3;
 }
 
 /* Parameters */
@@ -262,114 +349,182 @@ header h1 {
     color: #fff;
 }
 
-/* Snapshots Section */
-#snapshots-section {
+/* Q-Learning Section */
+#qlearning-section {
     padding: 1rem;
     border-top: 2px solid #0f3460;
     margin-top: 1rem;
 }
 
-#snapshots-section h2 {
+#qlearning-section h2 {
     color: #4CAF50;
     margin-bottom: 1rem;
     font-size: 1.2rem;
 }
 
-#snapshots-grid {
+#qlearning-summary {
+    background: #16213e;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid #0f3460;
+}
+
+.summary-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    font-size: 0.95rem;
+}
+
+.summary-stats span {
+    color: #aaa;
+}
+
+.summary-stats span::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #4CAF50;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+}
+
+#qlearning-history {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 1rem;
+    max-height: 500px;
+    overflow-y: auto;
 }
 
-@media (max-width: 1200px) {
-    #snapshots-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+.no-actions {
+    color: #666;
+    font-style: italic;
+    font-size: 0.9rem;
+    grid-column: 1 / -1;
 }
 
-@media (max-width: 768px) {
-    #snapshots-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.snapshot-panel {
+.ql-action {
     background: #16213e;
     border-radius: 8px;
     padding: 1rem;
     border: 1px solid #0f3460;
+    font-size: 0.85rem;
 }
 
-.snapshot-panel h3 {
-    color: #4CAF50;
-    font-size: 1rem;
+.ql-action.increase {
+    border-left: 4px solid #4CAF50;
+}
+
+.ql-action.decrease {
+    border-left: 4px solid #FF9800;
+}
+
+.ql-action-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 0.75rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #0f3460;
 }
 
-.snapshot-list {
-    max-height: 400px;
-    overflow-y: auto;
+.ql-action-target {
+    font-weight: bold;
+    color: #4CAF50;
 }
 
-.no-snapshots {
-    color: #666;
-    font-style: italic;
-    font-size: 0.9rem;
+.ql-action-target .conn-name {
+    color: #FF9800;
 }
 
-.snapshot-item {
+.ql-action-time {
+    color: #888;
+    font-size: 0.8rem;
+}
+
+.ql-param-change {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem;
     background: #1a1a2e;
     border-radius: 4px;
-    padding: 0.75rem;
+}
+
+.ql-param-name {
+    color: #ddd;
+    flex: 1;
+}
+
+.ql-param-value {
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.ql-param-value.old {
+    color: #888;
+    text-decoration: line-through;
+}
+
+.ql-param-value.new {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.ql-arrow {
+    color: #666;
+}
+
+.ql-metrics-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.ql-metrics-box {
+    padding: 0.5rem;
+    background: #1a1a2e;
+    border-radius: 4px;
+}
+
+.ql-metrics-box h4 {
+    font-size: 0.75rem;
+    color: #888;
     margin-bottom: 0.5rem;
-    font-size: 0.85rem;
+    text-transform: uppercase;
 }
 
-.snapshot-item.baseline {
-    border-left: 3px solid #4CAF50;
+.ql-metrics-box.before h4 {
+    color: #888;
 }
 
-.snapshot-item.changed {
-    border-left: 3px solid #FF9800;
+.ql-metrics-box.after h4 {
+    color: #4CAF50;
 }
 
-.snapshot-header {
+.ql-metric-row {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
+}
+
+.ql-metric-row .label {
     color: #aaa;
 }
 
-.snapshot-label {
-    font-weight: bold;
-    color: #4CAF50;
-}
-
-.snapshot-time {
-    font-size: 0.8rem;
-}
-
-.snapshot-metrics {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.25rem;
-    margin-bottom: 0.5rem;
-}
-
-.snapshot-metrics span {
+.ql-metric-row .value {
     color: #ddd;
+    font-family: 'Monaco', 'Consolas', monospace;
 }
 
-.snapshot-metrics .value {
+.ql-metric-row .value.improved {
     color: #4CAF50;
-    font-weight: bold;
 }
 
-.snapshot-params {
-    border-top: 1px solid #333;
-    padding-top: 0.5rem;
-    font-size: 0.8rem;
-    color: #888;
+.ql-metric-row .value.degraded {
+    color: #f44336;
 }

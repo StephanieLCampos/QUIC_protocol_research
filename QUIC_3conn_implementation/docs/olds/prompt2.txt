@@ -1,7 +1,0 @@
-Review the requirements in requirements_v1.md file and adjust it to include only these 3 parameters to be adjusted in the simulation.
-
-| Initial Congestion Window | `src/aioquic/quic/recovery.py` | `K_INITIAL_WINDOW` (default: 10 * 1200 bytes) |
-| Minimum Congestion Window | `src/aioquic/quic/recovery.py` | `K_MINIMUM_WINDOW` (default: 2 * 1200 bytes) |
-| ACK Delay Exponent | `src/aioquic/quic/configuration.py` | `ack_delay_exponent` (default: 3) |
-
-

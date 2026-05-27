@@ -1,17 +1,22 @@
 services:
   # QUIC Server - accepts connections and applies bottleneck
   server:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: quic-wireless
     container_name: quic-server
     privileged: true  # Required for tc commands
     networks:
       quic-net:
         ipv4_address: 192.168.200.10
+    volumes:
+      - ./results:/app/3_conn_code/output  # Shared volume for server metrics export
     environment:
       - RUN_MODE=server
       - SKIP_VETH=0  # Enable veth for bottleneck
       - SCENARIO=${SCENARIO:-congested_low}
-    command: python -m main server --duration 40 --scenario ${SCENARIO:-congested_low}
+    command: python -m main server --duration ${DURATION:-30} --scenario ${SCENARIO:-congested_low}
     
   # QUIC Clients - 3 worker processes connecting to server
   clients:
@@ -21,6 +26,8 @@ services:
       - NET_ADMIN
     depends_on:
       - server
+    ports:
+      - "8000:8000"  # Expose UI port to host
     networks:
       quic-net:
         ipv4_address: 192.168.200.20
@@ -32,7 +39,10 @@ services:
       - SKIP_VETH=1  # Skip veth setup in client mode
       - ENABLE_NETWORK_RTT_PROBE=0  # Use dedicated prober sidecar instead
       - SCENARIO=${SCENARIO:-congested_low}
-    command: python -m main clients --server 192.168.200.10 --duration 30 --scenario ${SCENARIO:-congested_low} --output-dir output
+      - ML_AGENT=${ML_AGENT:-default}  # Q-learning agent: 'default' or 'andy'
+      - CLEAR_QTABLE=${CLEAR_QTABLE:-}  # Set to '1' to clear Q-table checkpoint
+      - TZ=America/Los_Angeles
+    command: python -m main clients --server 192.168.200.10 --duration ${DURATION:-30} --scenario ${SCENARIO:-congested_low} --output-dir output --with-ml --ml-agent ${ML_AGENT:-default} --ui
 
   # Network RTT prober sidecar - independent control-plane probe
   prober:
@@ -47,7 +57,8 @@ services:
       - ./results:/app/3_conn_code/output
     environment:
       - SCENARIO=${SCENARIO:-congested_low}
-    command: python -m main probe --target 192.168.200.10 --duration 25 --interval 0.5 --scenario ${SCENARIO:-congested_low} --output-dir output
+      - TZ=America/Los_Angeles
+    command: python -m main probe --target 192.168.200.10 --duration ${DURATION:-30} --interval 0.5 --scenario ${SCENARIO:-congested_low} --output-dir output
 
 networks:
   quic-net:

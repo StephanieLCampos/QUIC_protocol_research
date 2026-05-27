@@ -6,8 +6,10 @@ synthesized data from clients for metric collection.
 """
 
 import asyncio
+import json
 import random
-from typing import Optional, Dict, Callable
+import time
+from typing import Optional, Dict, Callable, Any, List
 from pathlib import Path
 
 from aioquic.asyncio import serve, QuicConnectionProtocol
@@ -32,6 +34,11 @@ class ServerProtocol(QuicConnectionProtocol):
         self._connection_callback: Optional[Callable] = None
         self._loss_rate = loss_rate
         self._delay_ms = delay_ms
+
+        # Receiver-side throughput tracking
+        self.connection_id: Optional[int] = None  # Assigned by QuicServer
+        self.first_data_time: Optional[float] = None
+        self.last_data_time: Optional[float] = None
 
     def set_data_received_callback(self, callback: Callable):
         """Set callback for when data is received."""
@@ -66,18 +73,55 @@ class ServerProtocol(QuicConnectionProtocol):
             #count bytes but dont accumulate data appending bytes to a growing
             #Python bytes object is O(n^2) and would block event loop at high tp
             stream_id = event.stream_id
+            data_len = len(event.data)
+            current_time = time.time()
+
+            # Track timing for receiver-side throughput
+            if self.first_data_time is None:
+                self.first_data_time = current_time
+            self.last_data_time = current_time
+
             if stream_id not in self.streams:
                 self.streams[stream_id] = 0
-            self.streams[stream_id] += len(event.data)
-            self.total_bytes_received += len(event.data)
+            self.streams[stream_id] += data_len
+            self.total_bytes_received += data_len
 
             # Notify callback
             if self._data_received_callback:
-                self._data_received_callback(stream_id, len(event.data))
+                self._data_received_callback(stream_id, data_len)
 
         elif isinstance(event, ConnectionTerminated):
             if self._connection_callback:
                 self._connection_callback("connection_terminated")
+
+    def get_duration(self) -> float:
+        """Get connection duration in seconds."""
+        if self.first_data_time is None or self.last_data_time is None:
+            return 0.0
+        return self.last_data_time - self.first_data_time
+
+    def get_receiver_throughput_bps(self) -> float:
+        """Calculate receiver-side throughput in bits per second."""
+        duration = self.get_duration()
+        if duration <= 0:
+            return 0.0
+        return (self.total_bytes_received * 8) / duration
+
+    def get_metrics(self) -> Dict[str, Any]:
+        """Get all receiver-side metrics for this connection."""
+        duration = self.get_duration()
+        throughput_bps = self.get_receiver_throughput_bps()
+
+        return {
+            "connection_id": self.connection_id,
+            "bytes_received": self.total_bytes_received,
+            "duration_seconds": duration,
+            "throughput_bps": throughput_bps,
+            "throughput_mbps": throughput_bps / 1_000_000,
+            "first_data_time": self.first_data_time,
+            "last_data_time": self.last_data_time,
+            "stream_count": len(self.streams),
+        }
 
 
 class QuicServer:
@@ -174,3 +218,43 @@ class QuicServer:
     def get_total_bytes_received(self) -> int:
         """Get total bytes received across all connections."""
         return sum(p.total_bytes_received for p in self._protocols)
+
+    def get_all_connection_metrics(self) -> Dict[int, Dict[str, Any]]:
+        """Get metrics for all connections."""
+        metrics = {}
+        for idx, protocol in enumerate(self._protocols):
+            # Assign connection ID if not set (based on connection order)
+            if protocol.connection_id is None:
+                protocol.connection_id = idx + 1
+            metrics[protocol.connection_id] = protocol.get_metrics()
+        return metrics
+
+    def export_server_metrics(self, output_dir: str = "output") -> str:
+        """
+        Export server-side metrics to JSON file.
+
+        Uses fixed filename for easy discovery by clients container.
+        Returns the path to the exported file.
+        """
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        # Use fixed filename (overwritten each run)
+        filename = "server_metrics_latest.json"
+        filepath = output_path / filename
+
+        metrics = {
+            "total_connections": len(self._protocols),
+            "total_bytes_received": self.get_total_bytes_received(),
+            "per_connection": self.get_all_connection_metrics(),
+            "export_timestamp": time.time(),
+        }
+
+        # Atomic write: write to temp file, then rename
+        temp_filepath = filepath.with_suffix(".tmp")
+        with open(temp_filepath, "w") as f:
+            json.dump(metrics, f, indent=2)
+        temp_filepath.rename(filepath)  # Atomic on most filesystems
+
+        print(f"[Server] Exported metrics to {filepath}")
+        return str(filepath)

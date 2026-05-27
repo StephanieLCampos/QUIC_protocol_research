@@ -81,6 +81,10 @@ def create_app(orchestrator, settling_time: float = 2.0) -> FastAPI:
             "params": orchestrator.get_current_params(),
             "running": orchestrator.is_running(),
             "settling_time": settling_time,
+            "qlearning_history": orchestrator.get_qlearning_history(),
+            "qlearning_summary": orchestrator.get_qlearning_summary(),
+            "total_throughput": orchestrator.get_total_throughput(),
+            "scenario_config": orchestrator.get_scenario_config(),
         }
 
     @app.post("/api/params")
@@ -106,9 +110,19 @@ def create_app(orchestrator, settling_time: float = 2.0) -> FastAPI:
                     "metrics": orchestrator.get_latest_metrics(),
                     "buffers": orchestrator.get_buffer_states(),
                     "params": orchestrator.get_current_params(),
+                    "qlearning_history": orchestrator.get_qlearning_history(),
+                    "qlearning_summary": orchestrator.get_qlearning_summary(),
+                    "total_throughput": orchestrator.get_total_throughput(),
+                    "scenario_config": orchestrator.get_scenario_config(),
                 }
                 await websocket.send_json(data)
         except WebSocketDisconnect:
+            manager.disconnect(websocket)
+        except asyncio.CancelledError:
+            # Gracefully handle shutdown - don't log error
+            manager.disconnect(websocket)
+        except Exception:
+            # Handle any other unexpected errors during shutdown
             manager.disconnect(websocket)
 
     return app
