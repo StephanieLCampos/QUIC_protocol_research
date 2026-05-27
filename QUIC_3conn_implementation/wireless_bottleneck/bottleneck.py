@@ -282,12 +282,14 @@ class WirelessBottleneck:
             print(f"Warning: Failed to set up rate limit: {e}")
     
     def _start_capacity_variation(self):
-        """Start thread for time-varying capacity."""
+        """Start thread for time-varying capacity (or realistic multi-param variation)."""
         self._stop_variation.clear()
-        self._variation_thread = threading.Thread(
-            target=self._vary_capacity,
-            daemon=True
+        target = (
+            self._vary_realistic_conditions
+            if self.config.channel_quality_variation
+            else self._vary_capacity
         )
+        self._variation_thread = threading.Thread(target=target, daemon=True)
         self._variation_thread.start()
     
     def _vary_capacity(self):
@@ -304,6 +306,85 @@ class WirelessBottleneck:
             
             time.sleep(update_interval)
     
+    def _update_htb_rate(self, new_capacity_bps: int):
+        """Update the HTB class rate limit dynamically."""
+        rate_kbps = new_capacity_bps // 1000
+        try:
+            self._run_tc_command([
+                "tc", "class", "change", "dev", self.interface,
+                "parent", "1:", "classid", "1:11", "htb",
+                "rate", f"{rate_kbps}kbit",
+                "ceil", f"{rate_kbps}kbit",
+                "burst", "15k"
+            ])
+        except subprocess.CalledProcessError as e:
+            print(f"Warning: Failed to update HTB rate: {e}")
+
+    def _update_netem(self, delay_ms: int, jitter_ms: int, loss_pct: float):
+        """Update netem delay, jitter, and loss dynamically via tc qdisc change."""
+        try:
+            self._run_tc_command([
+                "tc", "qdisc", "change", "dev", self.interface,
+                "parent", "1:11", "handle", "10:", "netem",
+                "delay", f"{delay_ms}ms", f"{jitter_ms}ms",
+                "loss", f"{loss_pct:.3f}%",
+                "limit", str(self.config.queue_size_packets)
+            ])
+        except subprocess.CalledProcessError as e:
+            print(f"Warning: Failed to update netem: {e}")
+
+    def _vary_realistic_conditions(self):
+        """
+        Thread function: evolve all link parameters together via a single
+        channel-quality proxy q ∈ [0, 1] using an Ornstein-Uhlenbeck
+        (mean-reverting random walk) process.
+
+        Parameter mappings (calibrated against LTE/802.11 field data):
+          bandwidth ∝ q^0.8          (sub-linear — MCS step function approximation)
+          loss      ∝ (1-q)^1.5      (super-linear — rare at high SNR, severe at low)
+          delay, jitter: linear in q
+        """
+        import random
+        rng = random.Random(self.config.channel_quality_seed)
+        q = float(self.config.channel_quality_initial)
+        cfg = self.config
+        update_interval = 0.5   # seconds per tick
+        theta = 0.08            # mean-reversion strength
+        mu = 0.65               # long-run mean quality (slightly below mid-range)
+
+        while not self._stop_variation.is_set():
+            # Ornstein-Uhlenbeck step: dq = θ(μ − q) + σ·N(0,1)
+            dq = theta * (mu - q) + cfg.channel_quality_step * rng.gauss(0, 1)
+            q = max(0.0, min(1.0, q + dq))
+
+            # Derive parameters from q
+            capacity = int(
+                cfg.cqv_min_capacity_bps
+                + (cfg.cqv_max_capacity_bps - cfg.cqv_min_capacity_bps) * (q ** 0.8)
+            )
+            delay_ms = int(
+                cfg.cqv_max_delay_ms
+                - (cfg.cqv_max_delay_ms - cfg.cqv_min_delay_ms) * q
+            )
+            jitter_ms = max(1, int(
+                cfg.cqv_max_jitter_ms
+                - (cfg.cqv_max_jitter_ms - cfg.cqv_min_jitter_ms) * q
+            ))
+            loss_pct = (
+                cfg.cqv_min_loss_rate
+                + (cfg.cqv_max_loss_rate - cfg.cqv_min_loss_rate) * ((1.0 - q) ** 1.5)
+            ) * 100.0
+
+            self._update_htb_rate(capacity)
+            self._update_netem(delay_ms, jitter_ms, loss_pct)
+
+            print(
+                f"[RealisticChannel] q={q:.2f}  "
+                f"bw={capacity // 1_000_000:.1f}Mbps  "
+                f"delay={delay_ms}ms  jitter={jitter_ms}ms  loss={loss_pct:.2f}%"
+            )
+            time.sleep(update_interval)
+
     def _update_rate_limit(self, new_capacity_bps: int):
         """Update the rate limit dynamically."""
         # First delete existing TBF

@@ -84,7 +84,30 @@ class BottleneckConfig:
     # Variation period for fading/mobility simulation
     variation_period: float = 1.0  # seconds
     variation_amplitude: float = 0.3  # fraction (0.3 = ±30%)
-    
+
+    # -----------------------------------------------------------------------
+    # Channel-quality-driven random walk (realistic multi-parameter variation)
+    # -----------------------------------------------------------------------
+    # When channel_quality_variation=True a single SNR proxy q ∈ [0, 1] is
+    # evolved as an Ornstein-Uhlenbeck (mean-reverting random walk) each tick.
+    # All four link parameters (bandwidth, delay, jitter, loss) are derived
+    # from q via nonlinear mappings calibrated against published LTE/802.11
+    # field measurements. Requires time_varying=True.
+    channel_quality_variation: bool = False
+    channel_quality_initial: float = 0.7      # starting quality [0=poor, 1=excellent]
+    channel_quality_step: float = 0.04        # Gaussian σ of OU diffusion per 500 ms tick
+    channel_quality_seed: Optional[int] = None  # RNG seed — None = non-deterministic
+
+    # Bounds used when channel_quality_variation=True
+    cqv_max_capacity_bps: int = 50_000_000    # bandwidth at q=1.0  (50 Mbps)
+    cqv_min_capacity_bps: int = 1_000_000     # bandwidth at q=0.0  ( 1 Mbps)
+    cqv_max_delay_ms: float = 80.0            # one-way delay at q=0.0 (ms)
+    cqv_min_delay_ms: float = 5.0             # one-way delay at q=1.0 (ms)
+    cqv_max_jitter_ms: float = 25.0           # jitter (netem σ) at q=0.0 (ms)
+    cqv_min_jitter_ms: float = 1.0            # jitter (netem σ) at q=1.0 (ms)
+    cqv_max_loss_rate: float = 0.15           # loss rate at q=0.0  (15 %)
+    cqv_min_loss_rate: float = 0.001          # loss rate at q=1.0  ( 0.1 %)
+
     def get_capacity_at_time(self, elapsed_time: float) -> int:
         """
         Get link capacity at a given time (for time-varying links).

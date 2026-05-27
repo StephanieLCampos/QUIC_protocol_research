@@ -296,6 +296,64 @@ def per_20pct() -> WirelessScenario:
     )
 
 
+def realistic_mobile_channel() -> WirelessScenario:
+    """
+    Realistic mobile wireless channel with correlated multi-parameter variation.
+
+    All four link parameters (bandwidth, one-way delay, jitter, loss rate) are
+    derived from a single channel-quality proxy q ∈ [0, 1] that evolves as an
+    Ornstein-Uhlenbeck (mean-reverting random walk) process, updated every 500 ms.
+
+    This ensures physical realism: parameters cannot contradict each other the
+    way independent random draws would (e.g. high throughput AND high loss cannot
+    co-occur, matching real radio behaviour where both degrade together as SNR falls).
+
+    Parameter bounds (calibrated against published LTE / 802.11ac field measurements):
+      q = 1.0  →  50 Mbps,  5 ms delay,  1 ms jitter,   0.1% loss  (excellent signal)
+      q = 0.65 →  ~25 Mbps, 32 ms delay, 11 ms jitter,  ~1% loss   (typical urban LTE)
+      q = 0.0  →   1 Mbps,  80 ms delay, 25 ms jitter,  15% loss   (cell edge / deep fade)
+
+    Ornstein-Uhlenbeck parameters:
+      θ = 0.08   (mean-reversion strength → ~6 s half-life)
+      μ = 0.65   (long-run mean quality → typical urban mobile environment)
+      σ = 0.04   (diffusion per 500 ms tick → visible fluctuation every ~2–3 s)
+    """
+    return WirelessScenario(
+        name="realistic_mobile_channel",
+        description=(
+            "Correlated multi-parameter variation driven by a single SNR proxy "
+            "(Ornstein-Uhlenbeck random walk). Bandwidth 1–50 Mbps, delay 5–80 ms, "
+            "jitter 1–25 ms, loss 0.1–15 %. Calibrated against LTE / 802.11ac measurements."
+        ),
+        config=BottleneckConfig(
+            # Initial / fallback static values (used during setup before first tick)
+            capacity_bps=25_000_000,     # 25 Mbps — mid-range starting point
+            propagation_delay=0.032,     # 32 ms one-way (64 ms RTT) — typical urban LTE
+            loss_rate=0.01,              # 1% — typical urban starting point
+            loss_model=LossModel.RANDOM,
+            queue_size_packets=150,
+            queue_discipline=QueueDiscipline.CODEL,  # AQM for buferbloat control
+            codel_target_delay=0.005,    # 5 ms target queue delay
+            codel_interval=0.100,        # 100 ms CoDel interval
+            # Enable channel-quality random walk
+            time_varying=True,
+            channel_quality_variation=True,
+            channel_quality_initial=0.65,    # start at typical urban quality
+            channel_quality_step=0.04,       # σ per 500 ms tick
+            channel_quality_seed=None,       # non-deterministic by default
+            # Parameter bounds
+            cqv_max_capacity_bps=50_000_000, # 50 Mbps at q=1
+            cqv_min_capacity_bps=1_000_000,  #  1 Mbps at q=0
+            cqv_max_delay_ms=80.0,           # 80 ms one-way at q=0
+            cqv_min_delay_ms=5.0,            #  5 ms one-way at q=1
+            cqv_max_jitter_ms=25.0,          # 25 ms jitter at q=0
+            cqv_min_jitter_ms=1.0,           #  1 ms jitter at q=1
+            cqv_max_loss_rate=0.15,          # 15% loss at q=0
+            cqv_min_loss_rate=0.001,         #  0.1% loss at q=1
+        )
+    )
+
+
 # Predefined scenarios dictionary
 PREDEFINED_SCENARIOS: Dict[str, WirelessScenario] = {
     # Original heterogeneous scenarios
@@ -310,6 +368,8 @@ PREDEFINED_SCENARIOS: Dict[str, WirelessScenario] = {
     "per_5":     per_5pct(),
     "per_10":    per_10pct(),
     "per_20":    per_20pct(),
+    # Realistic correlated multi-parameter variation
+    "realistic_scenario": realistic_mobile_channel(),
 }
 
 
