@@ -5,14 +5,36 @@ Coordinates worker processes, handles IPC, and manages simulation lifecycle.
 """
 
 import asyncio
+import json
 import queue as _queue
 import threading
 import time
 import os
 import re
 import statistics
+import urllib.request
 from multiprocessing import Process, Pipe, Queue, Barrier
 from typing import Dict, List, Optional, Callable
+
+# URL of the server container's internal bottleneck control endpoint.
+# Set SERVER_CONTROL_URL=http://192.168.200.10:9001 in the clients container
+# so slider commands are forwarded to the download-side bottleneck.
+_SERVER_CONTROL_URL: str = os.environ.get("SERVER_CONTROL_URL", "")
+
+
+def _forward_to_server(url: str, payload: bytes) -> None:
+    """Fire-and-forget POST to the server-side control endpoint (runs in a daemon thread)."""
+    try:
+        req = urllib.request.Request(
+            url, data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            _ = resp.read()  # drain
+    except Exception as e:
+        print(f"[Orchestrator] server-side forward failed: {e}")
+
 
 from config.multi_connection_config import MultiConnectionConfig
 from .worker_process import worker_process_entry
@@ -782,6 +804,73 @@ class ProcessOrchestrator:
                 "cubic_max_idle_time": config.cubic_max_idle_time,
             }
         return params
+
+    def update_network_conditions(
+        self,
+        bandwidth_mbps: float,
+        delay_ms: int,
+        jitter_ms: int,
+        loss_pct: float,
+    ) -> bool:
+        """
+        Apply manual network conditions via the UI slider.
+        Calls through to the live WirelessBottleneck instance (client-side egress)
+        AND forwards the command to the server-side control endpoint (download egress)
+        when SERVER_CONTROL_URL is set.
+        Returns False if no local bottleneck is active (simulation not running).
+        """
+        if not self.bottleneck:
+            return False
+        try:
+            self.bottleneck.apply_manual_override(
+                bandwidth_mbps=bandwidth_mbps,
+                delay_ms=int(delay_ms),
+                jitter_ms=max(1, int(jitter_ms)),
+                loss_pct=float(loss_pct),
+            )
+            # Keep network_config in sync so the UI display reflects changes
+            self.network_config["capacity_bps"] = int(bandwidth_mbps * 1_000_000)
+            self.network_config["propagation_delay"] = delay_ms / 1000.0
+            self.network_config["loss_rate"] = loss_pct / 100.0
+
+            # Forward to server-side (download) bottleneck in a daemon thread
+            if _SERVER_CONTROL_URL:
+                payload = json.dumps({
+                    "bandwidth_mbps": bandwidth_mbps,
+                    "delay_ms": int(delay_ms),
+                    "jitter_ms": max(1, int(jitter_ms)),
+                    "loss_pct": float(loss_pct),
+                }).encode()
+                threading.Thread(
+                    target=_forward_to_server,
+                    args=(_SERVER_CONTROL_URL + "/control", payload),
+                    daemon=True,
+                ).start()
+
+            return True
+        except Exception as e:
+            print(f"[Orchestrator] update_network_conditions failed: {e}")
+            return False
+
+    def release_network_override(self) -> bool:
+        """Resume automatic variation after manual slider override."""
+        if not self.bottleneck:
+            return False
+        try:
+            self.bottleneck.release_manual_override()
+
+            # Forward release to server-side bottleneck
+            if _SERVER_CONTROL_URL:
+                payload = json.dumps({"release": True}).encode()
+                threading.Thread(
+                    target=_forward_to_server,
+                    args=(_SERVER_CONTROL_URL + "/control", payload),
+                    daemon=True,
+                ).start()
+
+            return True
+        except Exception:
+            return False
 
     def update_parameter(self, connection_id: int, param_name: str, value: float) -> bool:
         """

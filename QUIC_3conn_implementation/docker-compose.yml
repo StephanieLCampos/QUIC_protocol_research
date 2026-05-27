@@ -42,6 +42,7 @@ services:
       - ML_AGENT=${ML_AGENT:-default}  # Q-learning agent: 'default' or 'andy'
       - CLEAR_QTABLE=${CLEAR_QTABLE:-}  # Set to '1' to clear Q-table checkpoint
       - TZ=America/Los_Angeles
+      - SERVER_CONTROL_URL=http://192.168.200.10:9001  # Forward slider cmds to server bottleneck
     command: python -m main clients --server 192.168.200.10 --duration ${DURATION:-30} --scenario ${SCENARIO:-congested_low} --output-dir output --with-ml --ml-agent ${ML_AGENT:-default} --ui
 
   # Network RTT prober sidecar - independent control-plane probe

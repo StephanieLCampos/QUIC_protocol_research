@@ -354,6 +354,14 @@ def cmd_server(args):
         server_only=True,  # New parameter
     )
     
+    # Start the internal bottleneck control server so the clients container can
+    # forward slider commands to the server-side (download) bottleneck.
+    try:
+        from web.control_server import start_control_server
+        start_control_server(orchestrator, port=9001)
+    except Exception as e:
+        print(f"[Server] Warning: could not start control server: {e}")
+
     loop = asyncio.get_event_loop()
     
     def signal_handler(sig, frame):

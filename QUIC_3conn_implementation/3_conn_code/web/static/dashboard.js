@@ -10,12 +10,101 @@ let currentConnId = 1;
 // Q-Learning history tracking
 let lastHistoryLength = 0;
 
+// Network slider state
+let sliderOverrideActive = false;
+let sliderDebounceTimer = null;
+
 // Connection names mapping
 const CONN_NAMES = {
     1: "Video Streaming",
     2: "File Transfer",
     3: "Conference Call"
 };
+
+// Quality → parameter mapping (mirrors Python CQV mappings in bottleneck.py)
+// quality is 0–100; matches: 100=stable_high-like, 0=congested_low-like
+function qualityToParams(quality) {
+    const q = quality / 100;  // normalise to [0,1]
+    return {
+        bandwidth_mbps: parseFloat((1 + (50 - 1) * Math.pow(q, 0.8)).toFixed(1)),
+        delay_ms:       Math.round(80 - (80 - 5) * q),
+        jitter_ms:      Math.max(1, Math.round(25 - (25 - 1) * q)),
+        loss_pct:       parseFloat((0.1 + (15 - 0.1) * Math.pow(1 - q, 1.5)).toFixed(2)),
+    };
+}
+
+function onMasterSlider(value) {
+    const quality = parseInt(value);
+    document.getElementById('master-quality-val').textContent = quality;
+    const p = qualityToParams(quality);
+    // Push derived values into individual sliders
+    document.getElementById('sl-bandwidth').value = p.bandwidth_mbps;
+    document.getElementById('sl-bandwidth-val').textContent = p.bandwidth_mbps.toFixed(1);
+    document.getElementById('sl-delay').value = p.delay_ms;
+    document.getElementById('sl-delay-val').textContent = p.delay_ms;
+    document.getElementById('sl-jitter').value = p.jitter_ms;
+    document.getElementById('sl-jitter-val').textContent = p.jitter_ms;
+    document.getElementById('sl-loss').value = p.loss_pct;
+    document.getElementById('sl-loss-val').textContent = p.loss_pct.toFixed(1);
+    scheduleNetworkUpdate();
+}
+
+function onIndividualSlider() {
+    // Update display values
+    const bw  = parseFloat(document.getElementById('sl-bandwidth').value);
+    const dl  = parseInt(document.getElementById('sl-delay').value);
+    const jit = parseInt(document.getElementById('sl-jitter').value);
+    const ls  = parseFloat(document.getElementById('sl-loss').value);
+    document.getElementById('sl-bandwidth-val').textContent = bw.toFixed(1);
+    document.getElementById('sl-delay-val').textContent = dl;
+    document.getElementById('sl-jitter-val').textContent = jit;
+    document.getElementById('sl-loss-val').textContent = ls.toFixed(1);
+    scheduleNetworkUpdate();
+}
+
+function scheduleNetworkUpdate() {
+    // Debounce: send at most one request per 200ms while dragging
+    clearTimeout(sliderDebounceTimer);
+    sliderDebounceTimer = setTimeout(sendNetworkOverride, 200);
+}
+
+async function sendNetworkOverride() {
+    const payload = {
+        bandwidth_mbps: parseFloat(document.getElementById('sl-bandwidth').value),
+        delay_ms:       parseInt(document.getElementById('sl-delay').value),
+        jitter_ms:      parseInt(document.getElementById('sl-jitter').value),
+        loss_pct:       parseFloat(document.getElementById('sl-loss').value),
+        release:        false,
+    };
+    try {
+        const res = await fetch('/api/network', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (data.success) {
+            sliderOverrideActive = true;
+            document.getElementById('override-badge').classList.remove('hidden');
+            document.getElementById('release-override-btn').classList.remove('hidden');
+        }
+    } catch (e) {
+        console.warn('Network override request failed (simulation may not be running):', e);
+    }
+}
+
+async function releaseOverride() {
+    try {
+        await fetch('/api/network', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bandwidth_mbps: 0, delay_ms: 0, jitter_ms: 0, loss_pct: 0, release: true }),
+        });
+    } catch (e) { /* ignore */ }
+    sliderOverrideActive = false;
+    document.getElementById('override-badge').classList.add('hidden');
+    document.getElementById('release-override-btn').classList.add('hidden');
+}
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {

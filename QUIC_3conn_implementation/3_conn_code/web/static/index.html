@@ -48,6 +48,62 @@
         </div>
     </section>
 
+    <!-- Network Condition Sliders -->
+    <section id="network-sliders-section">
+        <div id="network-sliders-header">
+            <h2>Network Conditions
+                <span id="override-badge" class="override-badge hidden">MANUAL OVERRIDE</span>
+            </h2>
+            <button id="release-override-btn" class="release-btn hidden" onclick="releaseOverride()">
+                Resume Auto
+            </button>
+        </div>
+
+        <!-- Master quality slider -->
+        <div class="master-slider-row">
+            <span class="slider-endpoint-label bad">Congested (0)</span>
+            <div class="master-slider-wrap">
+                <label class="slider-main-label">Channel Quality</label>
+                <input type="range" id="master-quality" min="0" max="100" value="70"
+                       oninput="onMasterSlider(this.value)">
+                <span class="slider-value-display" id="master-quality-val">70</span>
+            </div>
+            <span class="slider-endpoint-label good">Stable (100)</span>
+        </div>
+
+        <!-- Individual parameter sliders -->
+        <div id="individual-sliders-grid">
+            <div class="slider-row">
+                <label>Bandwidth</label>
+                <input type="range" id="sl-bandwidth" min="1" max="50" step="0.5" value="25"
+                       oninput="onIndividualSlider()">
+                <span class="slider-val" id="sl-bandwidth-val">25.0</span>
+                <span class="slider-unit">Mbps</span>
+            </div>
+            <div class="slider-row">
+                <label>Delay (one-way)</label>
+                <input type="range" id="sl-delay" min="5" max="80" step="1" value="32"
+                       oninput="onIndividualSlider()">
+                <span class="slider-val" id="sl-delay-val">32</span>
+                <span class="slider-unit">ms</span>
+            </div>
+            <div class="slider-row">
+                <label>Jitter</label>
+                <input type="range" id="sl-jitter" min="1" max="25" step="1" value="11"
+                       oninput="onIndividualSlider()">
+                <span class="slider-val" id="sl-jitter-val">11</span>
+                <span class="slider-unit">ms</span>
+            </div>
+            <div class="slider-row">
+                <label>Packet Loss</label>
+                <input type="range" id="sl-loss" min="0" max="15" step="0.1" value="1.0"
+                       oninput="onIndividualSlider()">
+                <span class="slider-val" id="sl-loss-val">1.0</span>
+                <span class="slider-unit">%</span>
+            </div>
+        </div>
+    </section>
+
     <main id="dashboard">
         <!-- Connection 1: Video Streaming -->
         <div class="connection-panel" id="conn-1">

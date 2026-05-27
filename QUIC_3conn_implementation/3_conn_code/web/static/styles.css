@@ -6,6 +6,160 @@
     padding: 0;
 }
 
+/* ── Network Condition Sliders ───────────────────────────────────────────── */
+
+#network-sliders-section {
+    background: #16213e;
+    padding: 1rem 2rem 1.25rem;
+    border-bottom: 2px solid #0f3460;
+}
+
+#network-sliders-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.9rem;
+}
+
+#network-sliders-header h2 {
+    font-size: 1rem;
+    color: #aaa;
+    font-weight: normal;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.override-badge {
+    background: #FF9800;
+    color: #000;
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+}
+
+.release-btn {
+    padding: 0.3rem 0.8rem;
+    background: #555;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.2s;
+}
+
+.release-btn:hover { background: #777; }
+
+.hidden { display: none !important; }
+
+/* Master slider row */
+.master-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.slider-endpoint-label {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    min-width: 90px;
+    text-align: center;
+}
+
+.slider-endpoint-label.bad  { color: #f44336; }
+.slider-endpoint-label.good { color: #4CAF50; }
+
+.master-slider-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.slider-main-label {
+    font-size: 0.8rem;
+    color: #ccc;
+    white-space: nowrap;
+    min-width: 110px;
+}
+
+.master-slider-wrap input[type=range] {
+    flex: 1;
+    accent-color: #4CAF50;
+    height: 6px;
+    cursor: pointer;
+}
+
+.slider-value-display {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #4CAF50;
+    font-family: 'Monaco', 'Consolas', monospace;
+    min-width: 32px;
+    text-align: right;
+}
+
+/* Individual sliders grid */
+#individual-sliders-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem 1.5rem;
+}
+
+@media (max-width: 1100px) {
+    #individual-sliders-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+    #individual-sliders-grid { grid-template-columns: 1fr; }
+}
+
+.slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.slider-row label {
+    font-size: 0.72rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.slider-row input[type=range] {
+    accent-color: #FF9800;
+    cursor: pointer;
+    width: 100%;
+}
+
+.slider-row-values {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+}
+
+.slider-val {
+    font-family: 'Monaco', 'Consolas', monospace;
+    color: #FF9800;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.slider-unit {
+    color: #666;
+    font-size: 0.75rem;
+    align-self: flex-end;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #1a1a2e;

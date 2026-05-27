@@ -53,6 +53,7 @@ class WirelessBottleneck:
         self._active = False
         self._variation_thread: Optional[threading.Thread] = None
         self._stop_variation = threading.Event()
+        self._manual_override = False  # When True, OU walk skips tc commands
     
     def setup(self):
         """
@@ -293,19 +294,57 @@ class WirelessBottleneck:
         self._variation_thread.start()
     
     def _vary_capacity(self):
-        """Thread function to vary capacity over time."""
+        """Thread function to vary capacity over time (sinusoidal or step patterns)."""
         start_time = time.time()
         update_interval = 0.5  # Update every 500ms
-        
+
         while not self._stop_variation.is_set():
             elapsed = time.time() - start_time
             new_capacity = self.config.get_capacity_at_time(elapsed)
-            
-            # Update rate limit
-            self._update_rate_limit(new_capacity)
-            
+
+            if not self._manual_override:
+                self._update_htb_rate(new_capacity)
+
             time.sleep(update_interval)
-    
+
+    def apply_manual_override(self, bandwidth_mbps: float, delay_ms: int,
+                              jitter_ms: int, loss_pct: float):
+        """
+        Apply manual network conditions from the UI slider.
+        Pauses the OU random walk (if running) while override is active.
+        """
+        self._manual_override = True
+        capacity_bps = int(bandwidth_mbps * 1_000_000)
+        self._update_htb_rate(capacity_bps)
+        self._update_netem(delay_ms, jitter_ms, loss_pct)
+        print(
+            f"[ManualOverride] bw={bandwidth_mbps:.1f}Mbps  "
+            f"delay={delay_ms}ms  jitter={jitter_ms}ms  loss={loss_pct:.2f}%"
+        )
+
+    def release_manual_override(self):
+        """
+        Resume automatic variation (OU walk or sinusoidal).
+        For static (non-time-varying) scenarios also restores tc to the original
+        scenario settings immediately, since there is no background thread that
+        would do it on the next tick.
+        """
+        self._manual_override = False
+        # Restore original tc settings for static scenarios
+        if not self.config.time_varying:
+            orig_capacity_bps = self.config.capacity_bps
+            orig_delay_ms = int(self.config.propagation_delay * 1000)
+            orig_loss_pct = self.config.loss_rate * 100
+            self._update_htb_rate(orig_capacity_bps)
+            self._update_netem(orig_delay_ms, jitter_ms=0, loss_pct=orig_loss_pct)
+            print(
+                f"[ManualOverride] Released — restored original settings: "
+                f"bw={orig_capacity_bps/1e6:.1f}Mbps  delay={orig_delay_ms}ms  "
+                f"loss={orig_loss_pct:.2f}%"
+            )
+        else:
+            print("[ManualOverride] Released — automatic variation will resume on next tick")
+
     def _update_htb_rate(self, new_capacity_bps: int):
         """Update the HTB class rate limit dynamically."""
         rate_kbps = new_capacity_bps // 1000

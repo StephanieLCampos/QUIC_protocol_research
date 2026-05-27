@@ -21,6 +21,15 @@ class ParameterUpdate(BaseModel):
     value: float
 
 
+class NetworkOverride(BaseModel):
+    """Request model for manual network condition overrides."""
+    bandwidth_mbps: float   # 1.0 – 50.0
+    delay_ms: int           # 5 – 80
+    jitter_ms: int          # 1 – 25
+    loss_pct: float         # 0.0 – 15.0
+    release: bool = False   # If True, release override and resume auto variation
+
+
 class ConnectionManager:
     """Manages WebSocket connections for broadcasting updates."""
 
@@ -96,6 +105,30 @@ def create_app(orchestrator, settling_time: float = 2.0) -> FastAPI:
             update.value
         )
         return {"success": success, "connection_id": update.connection_id}
+
+    @app.post("/api/network")
+    async def update_network(override: NetworkOverride):
+        """Apply or release a manual network condition override from the UI sliders."""
+        if override.release:
+            success = orchestrator.release_network_override()
+            return {"success": success, "mode": "auto"}
+
+        success = orchestrator.update_network_conditions(
+            bandwidth_mbps=override.bandwidth_mbps,
+            delay_ms=override.delay_ms,
+            jitter_ms=override.jitter_ms,
+            loss_pct=override.loss_pct,
+        )
+        return {
+            "success": success,
+            "mode": "manual",
+            "applied": {
+                "bandwidth_mbps": override.bandwidth_mbps,
+                "delay_ms": override.delay_ms,
+                "jitter_ms": override.jitter_ms,
+                "loss_pct": override.loss_pct,
+            },
+        }
 
     @app.websocket("/ws")
     async def websocket_endpoint(websocket: WebSocket):
