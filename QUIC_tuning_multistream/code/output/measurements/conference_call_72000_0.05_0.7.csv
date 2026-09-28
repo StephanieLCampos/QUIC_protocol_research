@@ -1,2 +1,0 @@
-initial_congestion_window,max_ack_delay,loss_reduction_factor,throughput,rtt,latency,jitter,packet_loss_rate,connection_establishment_time
-72000,0.05,0.7,15673.90256884921,0.004515441637148848,0.002257720818574424,0.0012841664247166653,0.0,0.20650911331176758
