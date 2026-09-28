@@ -1,8 +1,32 @@
 """
-Metrics calculation utilities.
+Metric calculations for QUIC simulation runs.
 
-Provides functions for calculating the 6 key performance metrics
-from raw measurement data.
+Reduces the raw event data gathered by MetricsCollector into the six reported
+performance metrics, and defines the `MetricsResult` container that carries
+them through export and analysis.
+
+The six metrics:
+    1. throughput                       bytes per second
+    2. rtt                              mean round-trip time, seconds
+    3. latency                          one-way latency, estimated as RTT / 2
+    4. jitter                           stdev of inter-packet delay, seconds
+    5. packet_loss_rate                 fraction lost, 0.0 to 1.0
+    6. connection_establishment_time    handshake duration, seconds
+
+Two measurement caveats worth noting when reading results. Latency is derived
+from RTT rather than measured directly, which assumes a symmetric path; on the
+deliberately asymmetric bottleneck scenarios that assumption does not hold.
+Jitter is the standard deviation of inter-arrival gaps, so it reflects
+irregularity of delivery rather than deviation from any nominal interval.
+
+Every calculation guards its degenerate case (zero duration, fewer than two
+samples, zero packets sent) by returning 0.0 rather than raising, so that a
+failed or empty run still produces a well-formed row instead of aborting a
+long sweep.
+
+Connections:
+    Imports from: standard library only (statistics, typing, dataclasses)
+    Imported by:  metrics.collector, metrics.exporter, simulation.runner
 """
 
 import statistics
@@ -87,7 +111,11 @@ class MetricsCalculator:
         if len(packet_timestamps) < 2:
             return 0.0
 
-        # Calculate inter-packet delays
+        # Jitter here is the spread of the gaps between consecutive packets,
+        # not deviation from a nominal interval. A stream that is uniformly
+        # late but perfectly regular therefore scores near-zero jitter, which
+        # is the intended behaviour: steady pacing is what the conference-call
+        # workload cares about.
         delays = []
         for i in range(1, len(packet_timestamps)):
             delay = packet_timestamps[i] - packet_timestamps[i - 1]
@@ -96,7 +124,9 @@ class MetricsCalculator:
         if len(delays) < 2:
             return 0.0
 
-        # Jitter is the standard deviation of delays
+        # stdev needs at least two data points; the guard above covers that,
+        # but StatisticsError is still caught so that a degenerate sample set
+        # yields 0.0 instead of aborting an in-progress sweep.
         try:
             return statistics.stdev(delays)
         except statistics.StatisticsError:
@@ -120,6 +150,9 @@ class MetricsCalculator:
         if packets_sent <= 0:
             return 0.0
 
+        # Clamp at zero: the sent and received counts come from different
+        # sources (local counter vs. aioquic's recovery state) and can briefly
+        # disagree, which would otherwise yield a negative loss rate.
         packets_lost = packets_sent - packets_received
         if packets_lost < 0:
             packets_lost = 0

@@ -1,8 +1,21 @@
 """
-Metrics exporter for saving results to CSV files.
+CSV export of simulation metrics.
 
-Exports simulation metrics to CSV files with standardized naming
-convention for easy analysis.
+Writes one CSV file per completed parameter combination, using a filename that
+encodes the combination itself:
+
+    <application_type>_<initial_cw>_<max_ack_delay>_<loss_factor>.csv
+
+That convention is load-bearing rather than cosmetic. Because the parameters
+are recoverable from the filename, the presence of a file is itself the record
+that the combination has been run, which is what makes the grid search
+resumable after an interruption without a separate state database. The
+scheduler's completion check is `file_exists()` below.
+
+Connections:
+    Imports from: .calculator (MetricsResult)
+    Imported by:  metrics/__init__.py, grid_search.executor, grid_search.scheduler
+    Writes to:    output/measurements/ (consumed by results.analyzer)
 """
 
 import csv
@@ -200,5 +213,8 @@ class MetricsExporter:
         Returns:
             True if the file exists, False otherwise.
         """
+        # This existence check is the grid search's entire resumability
+        # mechanism: a present file means that combination already ran, so an
+        # interrupted sweep can be restarted with no separate state to reload.
         filepath = self.get_filepath(application_type, initial_cw, max_ack_delay, loss_factor)
         return filepath.exists()

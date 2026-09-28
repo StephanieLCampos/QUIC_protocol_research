@@ -1,9 +1,16 @@
 """
-Data synthesizers for QUIC Multi-Stream Research Project.
+Traffic synthesizer package for the QUIC Multi-Stream Research Project.
 
-This module provides synthesizers that generate traffic patterns
-for different application types (video streaming, file transfer,
-conference calls).
+Provides the three application traffic models used as simulation workloads,
+plus the abstract base class and factory that select between them.
+
+Each synthesizer reproduces the *size and timing* profile of a real
+application without carrying real media content, which is sufficient because
+QUIC's congestion control responds only to packet sizes and arrival timing.
+
+Connections:
+    Imports from: .base, .video_streaming, .file_transfer, .conference_call
+    Imported by:  simulation.runner, simulation.client
 """
 
 from .base import BaseSynthesizer, SynthesizerFactory

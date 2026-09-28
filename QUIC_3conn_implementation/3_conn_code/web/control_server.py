@@ -6,6 +6,35 @@ Runs as a daemon thread inside the server container, listening on :9001
 
 The clients container POSTs slider commands to http://192.168.200.10:9001/control,
 so bandwidth changes affect the server-egress (download) bottleneck.
+
+Why this exists
+---------------
+Under docker-compose the two directions of traffic are shaped by different
+containers: the clients container shapes upload, the server container shapes
+download. A bandwidth change made in the dashboard therefore has to reach both,
+but the dashboard only runs alongside the clients. This endpoint is the relay
+that lets it reach the server container's bottleneck as well.
+
+    browser -> dashboard (clients container) -> local bottleneck (upload)
+                                             -> POST :9001 -> this server
+                                                           -> bottleneck (download)
+
+Implemented on `http.server` rather than FastAPI deliberately: it carries two
+trivial routes inside a container that need not depend on the web stack, and
+runs on a daemon thread so it cannot delay process exit.
+
+    GET  /health   reports whether a bottleneck is currently active
+    POST /control  applies a network override, or releases one
+
+Security note: bound to the internal Docker network only and never published to
+the host. It performs no authentication, so it must not be exposed publicly.
+
+Connections
+-----------
+Imports from : standard library only (json, http.server, threading, typing)
+Imported by  : main.py (lazily, in server mode)
+Controls     : the server container's ProcessOrchestrator bottleneck
+Paired with  : simulation.process_orchestrator._forward_to_server (the caller)
 """
 
 import json

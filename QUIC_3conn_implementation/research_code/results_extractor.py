@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Extract the 27 metric values from experiment results and calculate ranges.
 
@@ -7,10 +8,25 @@ This script reads the results from all 3 configuration experiments and:
 2. Calculates min/max ranges for each metric
 3. Exports to CSV for further analysis
 
+The 27 values form the comparison grid at the centre of this experiment:
+every combination of configuration and application type, measured on all three
+metrics. The per-metric ranges show how much a metric moves as the shared
+configuration changes, which is the quantity the experiment exists to
+establish.
+
+Reads the most recent results file per configuration, so it can be run
+repeatedly during an experiment series without collecting stale runs.
+
 Usage:
     python results_extractor.py
     python results_extractor.py --output-dir custom_output
     python results_extractor.py --format csv
+
+Connections
+-----------
+Imports from : standard library only (argparse, json, pathlib, typing)
+Reads        : results written by experiment_runner.py
+Writes       : all_27_values.csv, metric_ranges.csv, comparison_results.json
 """
 
 import argparse

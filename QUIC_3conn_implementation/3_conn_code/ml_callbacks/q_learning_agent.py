@@ -1,81 +1,130 @@
 """
-ql agent for quic param optimization
+Default Q-Learning Agent (8-Feature State Design)
+=================================================
 
-Basically implements tabular ql to dynamically tune quic cubic params over the three connections
-but they all have different performance goals
+Tabular Q-learning agent that dynamically tunes QUIC CUBIC parameters across
+the three competing connections, each of which has a different objective:
 
-Connection 1 is video streaming = min latency
-Connection 2 is file transfer = max throughput
-Connection 3 is onference call = min jitter
+    Connection 1  video streaming   minimise latency
+    Connection 2  file transfer     maximise throughput
+    Connection 3  conference call   minimise jitter
 
+The agent is a self-contained ml_callback with no dependencies beyond the
+standard library, and plugs into MLController via the --with-ml flag.
 
-This file is a standalone ml_callback and plugs into MLController via --with-ml flag in main.py
-No external dependencies beyond python standard library.
+How to run
+----------
+    uv run python -m main run --with-ml --duration 120
+    uv run python -m main run --ml-callback ml_callbacks.q_learning_agent:q_learning_callback
+    uv run python -m main run --with-ml --scenario congested_low --duration 120
 
-how to run
+Control cadence
+---------------
+MLController invokes the callback every `decision_interval` (0.1s by default),
+but the agent throttles itself to act only every CONTROL_INTERVAL (2.0s). The
+delay is essential rather than an optimisation: CUBIC needs time to respond to
+a parameter change, and acting faster would attribute the previous
+configuration's behaviour to the new one and poison the learning signal.
 
-#default after updating main.py import
-uv run python -m main run --with-ml --duration 120
-
-#explicit module path
-uv run python -m main run --ml-callback ml_callbacks.q_learning_agent:q_learning_callback
-
-#with network scenario
-uv run python -m main run --with-ml --scenario congested_low --duration 120
-
-The MLController calls ml_callback(metrics) every `decision_interval` seconds
-(default 0.1s). The agent throttles itself to act every CONTROL_INTERVAL
-seconds (2.0s) to give CUBIC congestion control time to respond to changes.
-
-Every 2s the agent acts, and at each control step the agent
-- Reads metrics from all 3 connections
-- Maps them to discrete state
-- Pick action and epsilon greedy over q table
-- Apply param change to the right connection
-- At next steps it gets resulting metrics and updates q(s,a)
-
+At each control step the agent:
+    1. reads metrics from all three connections
+    2. maps them to a discrete state
+    3. selects an action epsilon-greedily from the Q-table
+    4. applies the parameter change to the relevant connection
+    5. on the following step, observes the result and updates Q(s,a)
 
 State space (8 features)
-state = (lat bin, tp bin, jit bin, lat trend, tp trend, jit trend, loss bin, cwnd bin)
-Metric bins (0 best 3 worst for lat/jit/loss, 0 worst for tp/cwnd)
+------------------------
+    state = (lat_bin, tp_bin, jit_bin,
+             lat_trend, tp_trend, jit_trend,
+             loss_bin, cwnd_bin)
 
-Lat 0 = <10ms, 1 = 10-25ms, 2 = 25-50ms, 3 = 50ms+
-Tp 0 = <1MB/s, 1 = 1-2MB/s, 2 = 2-3MB/s, 3 = 3MB/s+
-Jitter 0 = <5ms, 1 = 5-15ms, 2 = 15-30ms, 3 = 30ms+
-Loss 0 = <1%, 1 = 1-5%, 2 = 5-10%, 3 = 10%+
-CWND 0 = <10pkt, 1 = 10-30pkt, 2 = 30-60pkt, 3 = 60pkt+ (congestion window)
+Metric bins run 0 (best) to 3 (worst) for latency, jitter and loss, and 0
+(worst) to 3 (best) for throughput and congestion window:
 
-Trend bins has 3 levels: 0 worse 1 stable 2 improving
+    Latency     0: <10ms    1: 10-25ms    2: 25-50ms    3: >50ms
+    Throughput  0: <1MB/s   1: 1-2MB/s    2: 2-3MB/s    3: >3MB/s
+    Jitter      0: <5ms     1: 5-15ms     2: 15-30ms    3: >30ms
+    Loss        0: <1%      1: 1-5%       2: 5-10%      3: >10%
+    CWND        0: <10pkt   1: 10-30pkt   2: 30-60pkt   3: >60pkt
 
-So total state spaces will be 4^5*3^3 = 27648
+Trends carry three levels (0 worsening, 1 stable, 2 improving). Including
+trend alongside level lets the agent distinguish "poor but recovering" from
+"poor and deteriorating", which call for different responses.
 
-Action space is 25 tot
-Actions 0-23 change one param on one connection by one step
-4 params, 3 connections, 2 directions increase or decrease = 24
-24th action nothing happens
+Total state space: 4^5 * 3^3 = 27,648.
 
-Params tunable from grid search results
+Action space (25 actions)
+-------------------------
+Actions 0-23 adjust one parameter on one connection by one step
+(4 parameters x 3 connections x 2 directions); action 24 is a no-op. Only one
+dial moves per step, so the resulting reward is attributable to a single
+change.
 
-Loss reduction factors, step 0.1 and range 0.3, 0.7
-Cubic c step 0.1 range 0.2 0.4
-Min window step 1 range 2 4
-Packet threshold step 1 range 3 4
-Time and cubic max idle constants at defaults
+Tunable ranges, taken from the grid search results:
 
-Reward func
-R = mean(U stream U file U conf)
-Lambda * std(u stream u file u conf) = fairness pen
-Mu * changed = stability pen
+    loss_reduction_factor   step 0.1   range 0.3 - 0.7
+    cubic_c                 step 0.1   range 0.2 - 0.4
+    minimum_window          step 1     range 2 - 4
+    packet_threshold        step 1     range 3 - 4
 
-Each utility 0, 1
-U stream = (lat worst - lat) / (lat worst - lat best)
-U file = tp / tp max
-U conf = (jit worst - jit) / jit worst
+time_threshold and cubic_max_idle_time are held at their defaults.
 
-ql update via bellman
+Reward function
+---------------
+As implemented, the reward is:
 
-Q(s,a) <- Q(s,a) + α [r + γ * max_{a'} Q(s',a') - Q(s,a)]
-α = 0.1, γ = 0.9, ε: 0.30 -> 0.05 (decay 0.995 / step)
+    R = mean(U_video, U_file, U_conf)
+        - mu * changed          stability penalty, discourages needless churn
+        - starvation penalty    0.2 per connection below 500 KB/s
+        - suffering penalty     0.15 per connection whose utility is below 0.4
+
+Per-connection utilities are composite, each weighted toward its own objective
+but retaining a throughput component so that no connection can be starved
+outright:
+
+    U_video = 0.7 * U_latency(lat)  + 0.3 * U_throughput(tp)
+    U_file  = 1.0 * U_throughput(tp)
+    U_conf  = 0.7 * U_jitter(jit)   + 0.3 * U_throughput(tp)
+
+Each component utility is normalised to [0, 1]:
+
+    U_latency    = (lat_worst - lat) / (lat_worst - lat_best)
+    U_throughput = tp / tp_max
+    U_jitter     = (jit_worst - jit) / jit_worst
+
+Fairness is threshold-based rather than variance-based. Rather than penalising
+any inequality between connections, the reward penalises a connection only once
+it falls below an absolute floor. This is deliberate: file transfer is expected
+to take a larger share, since throughput is its entire utility while the other
+two weight it at only 30%, and penalising that imbalance directly would fight
+the intended priority. What must be prevented is not inequality but starvation.
+
+Note for readers comparing against earlier revisions: an older description of
+this agent specified a variance-based fairness term (lambda * std of the three
+utilities). That term is not present in the current implementation; the
+threshold-based starvation and suffering penalties replaced it. LAMBDA_FAIRNESS
+is likewise no longer defined.
+
+Learning update
+---------------
+    Q(s,a) <- Q(s,a) + alpha [ r + gamma * max_a' Q(s',a') - Q(s,a) ]
+
+    alpha = 0.10   learning rate
+    gamma = 0.90   discount factor
+    epsilon: 0.30 -> 0.05, decaying 0.995 per step
+
+The Q-table is sparse, allocating entries only for states actually visited,
+and may be persisted across runs so training accumulates over sessions.
+
+Connections
+-----------
+Imports from : standard library only (ast, json, math, os, random,
+               statistics, time, typing)
+Imported by  : simulation.ml_controller and main.py (lazily, by agent type);
+               selected with --ml-agent default
+Related      : q_learning_agent_andy.py (14-feature variant),
+               q_learning_agent_hybrid.py (10-feature blend of the two)
 """
 
 import ast
@@ -178,11 +227,23 @@ ACTION_NOOP = N_ACTIONS - 1 #24
 
 def _bin(value: float, thresholds: List[float], lower_is_better: bool) -> int:
     """
-    map cont value to 0 based bin index
-    For lower_is_better metrics like latency, jitter
-    bin 0=excellent (below first threshold) and bin N=bad (above last threshold)
-    For higher_is_better metrics like throughput
-    bin 0=bad (below first threshold) and bin N=excellent (above last threshold)
+    Map a continuous measurement onto a zero-based discrete bin index.
+
+    Discretisation is what makes tabular Q-learning possible here: a continuous
+    metric would give every observation a unique state and the Q-table would
+    never revisit one.
+
+    Args:
+        value: The measurement to bin.
+        thresholds: Ascending bin boundaries; N thresholds yield N+1 bins.
+        lower_is_better: True for latency, jitter and loss; False for
+            throughput and congestion window.
+
+    Returns:
+        For lower_is_better metrics, 0 means excellent (below the first
+        threshold) and N means poor. For higher_is_better metrics the ordering
+        is reversed, so that a larger index always denotes a better condition
+        for that metric.
     """
     if lower_is_better:
         for i, t in enumerate(thresholds):
@@ -198,8 +259,20 @@ def _bin(value: float, thresholds: List[float], lower_is_better: bool) -> int:
 
 def _trend(current: float, previous: Optional[float], higher_is_better: bool) -> int:
     """
-    return trend code 0=worsening, 1=stable, 2=improving
-    use 5% tolerance band around prev value to avoid noise
+    Classify the direction of change in a metric.
+
+    Trend is part of the state because the level alone is ambiguous: a
+    connection that is performing poorly but recovering warrants a different
+    action from one that is poorly and deteriorating.
+
+    A 5% tolerance band around the previous value suppresses measurement noise;
+    without it, ordinary sampling jitter would flip the trend feature
+    constantly and fragment the Q-table across states that differ only by
+    noise.
+
+    Returns:
+        0 worsening, 1 stable, 2 improving. The first observation of a metric
+        reports stable, there being no prior value to compare against.
     """
     if previous is None or previous == 0.0:
         return 1 #stable on first step
@@ -217,13 +290,26 @@ def _trend(current: float, previous: Optional[float], higher_is_better: bool) ->
 
 
 def _utility_latency(v: float) -> float:
-    """Normalise latency to 0,1 where 1 is best (lowest)"""
+    """
+    Normalise latency to [0, 1], where 1 is best.
+
+    Clamped at both ends so that latency beyond the configured worst case
+    cannot drive the reward negative, and better-than-best cannot exceed 1.
+    A bounded utility keeps the three connections' contributions commensurable
+    when they are averaged.
+    """
     u = (LATENCY_WORST - v) / (LATENCY_WORST - LATENCY_BEST)
     return max(0.0, min(1.0, u))
 
 
 def _utility_throughput(v: float) -> float:
-    """Normalise throughput to 0,1 where 1 = best (highest)"""
+    """
+    Normalise throughput to [0, 1], where 1 is best.
+
+    THROUGHPUT_MAX is set to one connection's fair share of the shared link
+    rather than the link's full capacity, so a connection reaches utility 1.0
+    by taking its share rather than by monopolising the bottleneck.
+    """
     return max(0.0, min(1.0, v / THROUGHPUT_MAX))
 
 
@@ -236,12 +322,23 @@ def _utility_jitter(v: float) -> float:
 
 def _get_throughput(metrics: Dict[int, dict], conn_id: int) -> float:
     """
-    Get throughput based on configured metric type.
+    Read throughput for one connection using the configured source.
 
-    Returns throughput in bytes/second from the selected source:
-    - "delta": Per-epoch delta (responsive to changes)
-    - "acked": Cumulative ACK-verified (stable average)
-    - "offered": Application send rate (not bottleneck-aware)
+    The choice matters for learning quality:
+      - "delta"   per-epoch ACK-verified rate. Responsive to recent change,
+                  which is what a controller acting every 2s needs to see.
+      - "acked"   cumulative ACK-verified average. Stable but increasingly
+                  insensitive as a run lengthens, so a late action barely
+                  moves it.
+      - "offered" application send rate. Ignores what the bottleneck actually
+                  delivered, so it can report high throughput while nothing
+                  arrives.
+
+    "delta" is the default for those reasons. It falls back to the cumulative
+    figure during the first few ticks, before a delta window has closed.
+
+    Returns:
+        Throughput in bytes per second.
     """
     conn_metrics = metrics.get(conn_id, {})
 

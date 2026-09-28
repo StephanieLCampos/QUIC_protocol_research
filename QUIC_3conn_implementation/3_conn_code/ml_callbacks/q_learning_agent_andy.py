@@ -1,91 +1,129 @@
 """
-================================================================================
-ANDY'S Q-LEARNING AGENT (14-Feature State Design)
-================================================================================
+Andy's Q-Learning Agent (14-Feature State Design)
+=================================================
 
 Author: Andy Li
-Design: 14-feature state using parameter step indices + network condition bins
 
-This is an alternative Q-learning agent with a different state representation
-than the default agent. Use --ml-agent andy to select this agent.
+Alternative Q-learning agent whose state is built from *parameter step indices*
+plus aggregate network conditions, rather than from per-connection performance
+bins as in the default agent. Selected with --ml-agent andy.
 
-How to run:
+How to run
+----------
     uv run python -m main run --with-ml --ml-agent andy --duration 120
     uv run python -m main run --with-ml --ml-agent andy --scenario congested_low --duration 120
 
---------------------------------------------------------------------------------
+Objectives, action space, reward function and learning rule are identical to
+the default agent; only the state representation differs, which is what makes
+the three agents directly comparable.
 
-Implements tabular Q-learning to dynamically tune QUIC CUBIC params over three
-connections with different performance goals:
+    Connection 1  video streaming   minimise latency
+    Connection 2  file transfer     maximise throughput
+    Connection 3  conference call   minimise jitter
 
-Connection 1 is video streaming = min latency
-Connection 2 is file transfer = max throughput
-Connection 3 is conference call = min jitter
+Self-contained ml_callback with no dependencies beyond the standard library.
+MLController calls it every `decision_interval` (0.1s); the agent throttles
+itself to CONTROL_INTERVAL (2.0s) so CUBIC has time to respond before the
+outcome is attributed to the change.
 
-This file is a standalone ml_callback and plugs into MLController via --with-ml flag in main.py
-No external dependencies beyond python standard library.
-
-The MLController calls ml_callback(metrics) every `decision_interval` seconds
-(default 0.1s). The agent throttles itself to act every CONTROL_INTERVAL
-seconds (2.0s) to give CUBIC congestion control time to respond to changes.
-
-Every 2s the agent acts, and at each control step the agent
-- Reads metrics from all 3 connections
-- Maps them to discrete state
-- Pick action and epsilon greedy over q table
-- Apply param change to the right connection
-- At next steps it gets resulting metrics and updates q(s,a)
-
+At each control step the agent reads all three connections' metrics, maps them
+to a discrete state, selects an action epsilon-greedily, applies it, and
+updates Q(s,a) once the result is observed.
 
 State space (14 features)
-state = (
-    lrf_v, lrf_f, lrf_c,    # loss_reduction_factor step idx (0-4) per connection
-    cc_v,  cc_f,  cc_c,     # cubic_c step idx (0-2) per connection
-    mw_v,  mw_f,  mw_c,     # minimum_window step idx (0-2) per connection
-    pt_v,  pt_f,  pt_c,     # packet_threshold step idx (0-1) per connection
-    tp_bin,                  # total throughput across all 3 conns: 0-3 (4 bins)
-    rtt_bin,                 # mean RTT across all 3 conns: 0-3 (4 bins)
-)
+-------------------------
+    state = (
+        lrf_v, lrf_f, lrf_c,   loss_reduction_factor step index (0-4) per conn
+        cc_v,  cc_f,  cc_c,    cubic_c step index (0-2) per conn
+        mw_v,  mw_f,  mw_c,    minimum_window step index (0-2) per conn
+        pt_v,  pt_f,  pt_c,    packet_threshold step index (0-1) per conn
+        tp_bin,                total throughput across all 3 conns (0-3)
+        rtt_bin,               mean RTT across all 3 conns (0-3)
+    )
 
-Param features are exact step indices (idx = round((value - min) / step)) so the
-agent can detect when a dial is already at its boundary.
+The design rationale: parameter features are exact step indices, computed as
+idx = round((value - min) / step), so the agent can tell when a dial has
+already reached its boundary and that pushing further would be wasted. The
+default agent, which sees only outcomes, cannot distinguish that case.
 
 Network condition bins:
-  TOTAL_TP_BINS = [500K, 2M, 3.5M] bytes/s   -> 4 bins of total throughput
-  RTT_BINS      = [50ms, 100ms, 200ms]       -> 4 bins of mean RTT
+    TOTAL_TP_BINS = [500K, 2M, 3.5M] bytes/s   4 bins of total throughput
+    RTT_BINS      = [50ms, 100ms, 200ms]       4 bins of mean RTT
 
-Throughput metric: Uses throughput_acked_delta (aligned with Default/Hybrid)
+Throughput metric: throughput_acked_delta, matching the default and hybrid
+agents so the comparison is like for like.
 
-Theoretical max: 5^3 * 3^3 * 3^3 * 2^3 * 4 * 4 = ~11.6M states
-Practical visited: ~50-300 states (sparse Q-table only allocates what is visited)
+State space size: 5^3 * 3^3 * 3^3 * 2^3 * 4 * 4 = approximately 11.6 million
+theoretical states, of which only about 50-300 are visited in a typical run.
+The Q-table is sparse and allocates only visited states, so this is tractable
+in memory, but the sparsity is the central trade-off of this design: precise
+parameter awareness comes at the cost of far less generalisation between
+states than the default agent's 27,648-state representation affords.
 
-Action space is 25 tot
-Actions 0-23 change one param on one connection by one step
-4 params, 3 connections, 2 directions increase or decrease = 24
-24th action nothing happens
+Action space (25 actions)
+-------------------------
+Actions 0-23 adjust one parameter on one connection by one step (4 parameters
+x 3 connections x 2 directions); action 24 is a no-op.
 
-Params tunable from grid search results
+Tunable ranges, from the grid search results:
 
-Loss reduction factors, step 0.1 and range 0.3, 0.7
-Cubic c step 0.1 range 0.2 0.4
-Min window step 1 range 2 4
-Packet threshold step 1 range 3 4
-Time and cubic max idle constants at defaults
+    loss_reduction_factor   step 0.1   range 0.3 - 0.7
+    cubic_c                 step 0.1   range 0.2 - 0.4
+    minimum_window          step 1     range 2 - 4
+    packet_threshold        step 1     range 3 - 4
 
-Reward func
-R = mean(U stream U file U conf)
-Lambda * std(u stream u file u conf) = fairness pen
-Mu * changed = stability pen
+time_threshold and cubic_max_idle_time are held at their defaults.
 
-Each utility 0, 1
-U stream = (lat worst - lat) / (lat worst - lat best)
-U file = tp / tp max
-U conf = (jit worst - jit) / jit worst
+Reward function
+---------------
+As implemented, the reward is:
 
-ql update via bellman
+    R = mean(U_video, U_file, U_conf)
+        - mu * changed          stability penalty, discourages needless churn
+        - starvation penalty    0.2 per connection below 500 KB/s
+        - suffering penalty     0.15 per connection whose utility is below 0.4
 
-Q(s,a) <- Q(s,a) + α [r + γ * max_{a'} Q(s',a') - Q(s,a)]
-α = 0.1, γ = 0.9, ε: 0.30 -> 0.05 (decay 0.995 / step)
+Per-connection utilities are composite, each weighted toward its own objective
+but retaining a throughput component so that no connection can be starved
+outright:
+
+    U_video = 0.7 * U_latency(lat)  + 0.3 * U_throughput(tp)
+    U_file  = 1.0 * U_throughput(tp)
+    U_conf  = 0.7 * U_jitter(jit)   + 0.3 * U_throughput(tp)
+
+Each component utility is normalised to [0, 1]:
+
+    U_latency    = (lat_worst - lat) / (lat_worst - lat_best)
+    U_throughput = tp / tp_max
+    U_jitter     = (jit_worst - jit) / jit_worst
+
+Fairness is threshold-based rather than variance-based. Rather than penalising
+any inequality between connections, the reward penalises a connection only once
+it falls below an absolute floor. This is deliberate: file transfer is expected
+to take a larger share, since throughput is its entire utility while the other
+two weight it at only 30%, and penalising that imbalance directly would fight
+the intended priority. What must be prevented is not inequality but starvation.
+
+Note for readers comparing against earlier revisions: an older description of
+this agent specified a variance-based fairness term (lambda * std of the three
+utilities). That term is not present in the current implementation; the
+threshold-based starvation and suffering penalties replaced it. LAMBDA_FAIRNESS
+is likewise no longer defined.
+
+Learning update
+---------------
+    Q(s,a) <- Q(s,a) + alpha [ r + gamma * max_a' Q(s',a') - Q(s,a) ]
+
+    alpha = 0.10, gamma = 0.90, epsilon: 0.30 -> 0.05 (decay 0.995 per step)
+
+Connections
+-----------
+Imports from : standard library only (ast, json, math, os, random,
+               statistics, time, typing)
+Imported by  : simulation.ml_controller and main.py (lazily, by agent type);
+               selected with --ml-agent andy
+Related      : q_learning_agent.py (8-feature default),
+               q_learning_agent_hybrid.py (10-feature blend of the two)
 """
 
 import ast
@@ -180,11 +218,23 @@ ACTION_NOOP = N_ACTIONS - 1 #24
 
 def _bin(value: float, thresholds: List[float], lower_is_better: bool) -> int:
     """
-    map cont value to 0 based bin index
-    For lower_is_better metrics like latency, jitter
-    bin 0=excellent (below first threshold) and bin N=bad (above last threshold)
-    For higher_is_better metrics like throughput
-    bin 0=bad (below first threshold) and bin N=excellent (above last threshold)
+    Map a continuous measurement onto a zero-based discrete bin index.
+
+    Discretisation is what makes tabular Q-learning possible here: a continuous
+    metric would give every observation a unique state and the Q-table would
+    never revisit one.
+
+    Args:
+        value: The measurement to bin.
+        thresholds: Ascending bin boundaries; N thresholds yield N+1 bins.
+        lower_is_better: True for latency, jitter and loss; False for
+            throughput and congestion window.
+
+    Returns:
+        For lower_is_better metrics, 0 means excellent (below the first
+        threshold) and N means poor. For higher_is_better metrics the ordering
+        is reversed, so that a larger index always denotes a better condition
+        for that metric.
     """
     if lower_is_better:
         for i, t in enumerate(thresholds):
@@ -213,18 +263,36 @@ def _param_to_idx(name: str, value: float) -> int:
 
 
 def _utility_latency(v: float) -> float:
-    """Normalise latency to 0,1 where 1 is best (lowest)"""
+    """
+    Normalise latency to [0, 1], where 1 is best.
+
+    Clamped at both ends so that latency beyond the configured worst case
+    cannot drive the reward negative, and better-than-best cannot exceed 1.
+    A bounded utility keeps the three connections' contributions commensurable
+    when they are averaged.
+    """
     u = (LATENCY_WORST - v) / (LATENCY_WORST - LATENCY_BEST)
     return max(0.0, min(1.0, u))
 
 
 def _utility_throughput(v: float) -> float:
-    """Normalise throughput to 0,1 where 1 = best (highest)"""
+    """
+    Normalise throughput to [0, 1], where 1 is best.
+
+    THROUGHPUT_MAX is set to one connection's fair share of the shared link
+    rather than the link's full capacity, so a connection reaches utility 1.0
+    by taking its share rather than by monopolising the bottleneck.
+    """
     return max(0.0, min(1.0, v / THROUGHPUT_MAX))
 
 
 def _utility_jitter(v: float) -> float:
-    """Normalise jitter to [0,1] where 1 is best (lowest)"""
+    """
+    Normalise jitter to [0, 1], where 1 is best.
+
+    Guards against a zero JITTER_WORST, which would otherwise divide by zero;
+    in that degenerate configuration every jitter value scores perfectly.
+    """
     if JITTER_WORST == 0:
         return 1.0
     return max(0.0, min(1.0, (JITTER_WORST - v) / JITTER_WORST))
@@ -376,12 +444,26 @@ class QLearningAgent:
 
     def _get_throughput(self, metrics: Dict[int, dict], conn_id: int) -> float:
         """
-        Get throughput based on configured metric type.
+        Read throughput for one connection using the configured source.
 
-        Returns throughput in bytes/second from the selected source:
-        - "delta": Per-epoch ACK-verified bytes (responsive to changes)
-        - "acked": Cumulative ACK-verified (stable average)
-        - "cwnd": CWND-limited estimate (theoretical max)
+        Unlike the default and hybrid agents, where this is a module-level
+        helper, it is a method here; behaviour for the shared "delta" and
+        "acked" modes is equivalent.
+
+        Sources:
+          - "delta"  per-epoch ACK-verified rate. Responsive to recent change,
+                     which is what a controller acting every 2s needs to see.
+          - "acked"  cumulative ACK-verified average. Stable, but increasingly
+                     insensitive to a late action as a run lengthens.
+          - "cwnd"   cwnd/RTT ceiling. This mode is specific to this agent and
+                     falls back through the delta and cumulative figures when
+                     no cwnd estimate is available.
+
+        "delta" is the configured default, matching the other two agents so
+        that comparisons between them remain like for like.
+
+        Returns:
+            Throughput in bytes per second.
         """
         m = metrics.get(conn_id, {})
 

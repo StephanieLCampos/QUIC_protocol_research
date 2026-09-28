@@ -3,6 +3,21 @@ Additional export utilities for metrics data.
 
 Complements the JSON exports in result.py with CSV and other formats
 for integration with analysis tools like pandas, Excel, etc.
+
+Status: not used on the active code path
+----------------------------------------
+Exported by `metrics/__init__.py`, but no caller in the project invokes it. The
+CSV and JSON files a run actually produces are written by the export methods on
+`simulation.result.MultiConnectionResult`, which have access to the
+cross-connection context this module lacks.
+
+Retained as a standalone helper for ad-hoc conversion of a metrics history to
+CSV.
+
+Connections
+-----------
+Imports from : standard library only (csv, pathlib, typing)
+Imported by  : metrics/__init__.py (re-export only; no active caller)
 """
 
 import csv

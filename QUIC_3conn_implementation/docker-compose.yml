@@ -1,3 +1,40 @@
+# Multi-container deployment for the QUIC 3-Connection System.
+#
+# Why three containers
+#   Shaping both directions of traffic realistically requires the two endpoints
+#   to be separated. A single container can only shape its own egress, so
+#   upload and download would share one constraint. Splitting server from
+#   clients lets each shape its own egress:
+#
+#     server  (192.168.200.10)  shapes the download direction, runs the QUIC
+#                               server, and exposes the :9001 control endpoint
+#                               so slider changes reach this side too
+#     clients (192.168.200.20)  shapes the upload direction, runs the three
+#                               worker connections and the dashboard on :8000
+#     prober  (192.168.200.30)  independent ICMP probe of the same path,
+#                               giving an outside view of RTT that is not
+#                               distorted by the connections' own queueing
+#
+# A fixed 192.168.200.0/24 bridge network is used so the containers can address
+# each other by stable IP, which SERVER_CONTROL_URL and the client --server
+# argument both depend on.
+#
+# The server runs privileged (tc requires it); clients need only NET_ADMIN.
+#
+# Configuration via environment variables
+#   SCENARIO      wireless scenario name     (default congested_low)
+#   DURATION      run length in seconds      (default 30)
+#   ML_AGENT      default | andy | hybrid    (default default)
+#   CLEAR_QTABLE  set to 1 to discard prior Q-learning state
+#
+# Usage
+#   docker compose up
+#   SCENARIO=lossy DURATION=120 docker compose up
+#   ML_AGENT=andy DURATION=600 docker compose up
+#
+# Results are written to ./results/ on the host; the dashboard is at
+# http://localhost:8000
+
 services:
   # QUIC Server - accepts connections and applies bottleneck
   server:

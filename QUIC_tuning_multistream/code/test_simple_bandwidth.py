@@ -1,7 +1,21 @@
 """
-Simple test to verify bottleneck actually limits traffic through veth.
+Diagnostic: confirm tc rate limiting works, using plain UDP.
 
-Uses basic UDP traffic to test bandwidth limiting.
+The most reductive check in the project. Sends raw UDP traffic across a shaped
+veth pair and measures the rate achieved, with no QUIC and no project modules
+involved beyond the standard library.
+
+Purpose: isolate the question "does this kernel actually enforce tc shaping?"
+from every other moving part. If this script does not show a rate limit, no
+amount of QUIC-level debugging will help, and the environment itself is at
+fault.
+
+Despite the `test_` prefix this is a standalone diagnostic script, not part of
+an automated test suite.
+
+Connections:
+    Imports from: standard library only (subprocess, time, signal, sys)
+    Invoked by:   run directly, inside the privileged container
 """
 
 import subprocess

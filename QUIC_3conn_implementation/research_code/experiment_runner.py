@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Experiment runner for uniform QUIC configuration research.
 
 This script runs the 3-connection simulation with uniform parameters
 applied to all connections, enabling fair comparison across app types.
+
+Runs one configuration (or all three in sequence), driving the same
+ProcessOrchestrator the live system uses, so the measurements are directly
+comparable with ordinary simulation results.
+
+Import note: this module inserts ../3_conn_code onto sys.path to reuse the
+simulation code, which means that project's `config` package would shadow this
+package's own `config`. The local presets are therefore loaded explicitly by
+file path via importlib rather than by a normal import.
 
 Usage:
     # Run single config
@@ -14,6 +24,15 @@ Usage:
 
     # List available presets
     python experiment_runner.py --list
+
+Must be run from the 3_conn_code directory, where the TLS certificates and the
+virtual environment live.
+
+Connections
+-----------
+Imports from : ../3_conn_code (ConnectionConfig, MultiConnectionConfig,
+               ProcessOrchestrator), config/uniform_presets.py (by file path)
+Writes       : per-configuration results consumed by results_extractor.py
 """
 
 import argparse

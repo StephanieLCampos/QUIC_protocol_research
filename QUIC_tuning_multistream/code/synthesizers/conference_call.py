@@ -1,8 +1,19 @@
 """
-Conference call data synthesizer.
+Conference call traffic synthesizer.
 
-Generates bidirectional audio-like packets at regular intervals,
-simulating VoIP or video conference audio streams.
+Generates constant-bitrate VoIP-like audio traffic: small packets emitted at a
+strict, regular interval for the duration of the run.
+
+Packet size is derived from the target bitrate and the interval rather than
+hard-coded, so changing either keeps the stream at the requested bitrate.
+Because the emission interval is fixed and short, deviation in delivery timing
+is the metric that matters here, which makes this the workload used to evaluate
+the jitter dimension of a parameter set. As with the video synthesizer, pacing
+is computed against absolute elapsed time to prevent drift.
+
+Connections:
+    Imports from: .base (BaseSynthesizer, DataPacket)
+    Imported by:  synthesizers/__init__.py, SynthesizerFactory
 """
 
 import asyncio
@@ -45,8 +56,10 @@ class ConferenceCallSynthesizer(BaseSynthesizer):
         self.packet_interval = packet_interval_ms / 1000.0  # Convert to seconds
         self.bitrate_kbps = bitrate_kbps
 
-        # Calculate packet size: bitrate * interval / 8 (bits to bytes)
-        # 128 kbps * 20ms = 128000 * 0.020 / 8 = 320 bytes
+        # Derive packet size from bitrate and interval so that changing either
+        # keeps the stream at the requested constant bitrate.
+        #   bits_per_second * interval_seconds / 8 = bytes_per_packet
+        #   128 kbps at 20ms -> 128000 * 0.020 / 8 = 320 bytes
         self.packet_size = int(bitrate_kbps * 1000 * self.packet_interval / 8)
 
     @property
@@ -87,7 +100,9 @@ class ConferenceCallSynthesizer(BaseSynthesizer):
 
             packet_number += 1
 
-            # Wait for next packet time (maintain precise timing)
+            # Pace to the next packet boundary against absolute elapsed time.
+            # Regularity is the whole point of this workload, since jitter is
+            # the metric it exists to measure, so drift must not accumulate.
             elapsed = time.time() - start_time
             expected_time = packet_number * self.packet_interval
             sleep_time = expected_time - elapsed

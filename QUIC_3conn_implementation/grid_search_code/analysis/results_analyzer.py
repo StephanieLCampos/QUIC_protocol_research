@@ -6,6 +6,22 @@ based on their optimization targets:
 - File Transfer: Maximize throughput
 - Video Streaming: Minimize latency
 - Conference Call: Minimize jitter
+
+Each application type is judged solely against the metric that matters for it,
+which is what makes the three workloads meaningfully distinct and what produces
+three different recommended configurations rather than one.
+
+The optimal values identified here are the source of the tuning ranges used by
+the Q-learning agents in 3_conn_code/ml_callbacks, and of the per-application
+defaults in 3_conn_code/config.
+
+Connections
+-----------
+Imports from : standard library only (csv, json, pathlib, dataclasses,
+               typing, statistics)
+Imported by  : main.py
+Reads        : the sweep's result CSVs
+Writes       : analysis output consumed by final_reports_grid/
 """
 
 import csv

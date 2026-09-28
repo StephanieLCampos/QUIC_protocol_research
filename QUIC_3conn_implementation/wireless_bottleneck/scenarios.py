@@ -1,8 +1,36 @@
 """
-Predefined wireless scenarios for testing.
+Predefined wireless scenarios (Generation 2).
 
-These scenarios represent common wireless conditions that QUIC
-connections may encounter.
+Five named link configurations covering the conditions the study cares about,
+so experiments can be described by scenario name rather than by restating a
+dozen tuning values:
+
+    stable_high     100 Mbps, 10ms RTT, 0.1% loss   - good WiFi or wired
+    congested_low     5 Mbps, 30ms RTT, 2% loss     - contended WiFi, RED queue
+    varying          20 Mbps +/-40% every 6s        - mobility and slow fading
+    lossy            10 Mbps, 5% burst loss         - poor radio, Gilbert-Elliott
+    asymmetric       50 down / 10 up, 25ms RTT      - mobile network shape
+
+The `varying` scenario's period was lengthened from Generation 1's 2 seconds to
+6 seconds. The reason is specific to the machine-learning work: a Q-learning
+agent acts every 2 seconds, so a 2-second network period gave it no opportunity
+to observe the consequence of an action before conditions changed again. Three
+decisions per network state makes cause and effect learnable.
+
+Each scenario is produced by a factory function rather than declared as a
+literal, keeping the reasoning behind its values beside the values themselves.
+`PREDEFINED_SCENARIOS` maps the short command-line name to the scenario, and is
+also exported as `SCENARIOS`.
+
+Note these are module-level singletons: every caller of `get_scenario` receives
+the same object, so mutating a returned config affects later users in the same
+process.
+
+Connections
+-----------
+Imports from : .config (BottleneckConfig, LossModel, QueueDiscipline)
+Imported by  : wireless_bottleneck/__init__.py, .cli, .validate,
+               3_conn_code/main.py, simulation.process_orchestrator
 """
 
 from dataclasses import dataclass

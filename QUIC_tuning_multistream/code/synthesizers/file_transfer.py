@@ -1,8 +1,21 @@
 """
-File transfer data synthesizer.
+File transfer traffic synthesizer.
 
-Generates bulk file transfer data with fixed-size chunks,
-sent as fast as possible without timing delays.
+Generates bulk transfer traffic as fixed-size chunks emitted with no pacing
+delay, continuing until a configured total size is reached.
+
+Unlike the video and conference models, this synthesizer imposes no timing
+constraint of its own: it offers data as fast as the loop will take it, so the
+QUIC congestion window becomes the sole limiting factor. That property makes it
+the workload used to evaluate the throughput dimension of a parameter set.
+
+Note that `duration_seconds` is accepted only for interface compatibility with
+`BaseSynthesizer`; this synthesizer terminates on total bytes sent, not elapsed
+time.
+
+Connections:
+    Imports from: .base (BaseSynthesizer, DataPacket)
+    Imported by:  synthesizers/__init__.py, SynthesizerFactory
 """
 
 import time
@@ -64,7 +77,8 @@ class FileTransferSynthesizer(BaseSynthesizer):
         start_time = time.time()
 
         while bytes_sent < self.total_size:
-            # Calculate chunk size (last chunk may be smaller)
+            # Clamp the final chunk so the run delivers exactly total_size
+            # bytes rather than overshooting on the last iteration.
             remaining = self.total_size - bytes_sent
             current_chunk_size = min(self.chunk_size, remaining)
 
@@ -85,9 +99,9 @@ class FileTransferSynthesizer(BaseSynthesizer):
             bytes_sent += current_chunk_size
             chunk_number += 1
 
-            # No delay - yield control but continue immediately
-            # This allows other async tasks to run but doesn't slow down transfer
-            # In practice, the QUIC congestion window will be the limiting factor
+            # Deliberately no sleep here. This workload exists to measure peak
+            # throughput, so the generator must never be the bottleneck; the
+            # QUIC congestion window is left as the sole limiting factor.
 
     def get_stats(self) -> dict:
         """

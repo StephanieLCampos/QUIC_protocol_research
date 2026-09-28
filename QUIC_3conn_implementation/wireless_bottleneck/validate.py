@@ -1,10 +1,23 @@
 """
-Validation script for wireless bottleneck setup.
+Self-check for the wireless bottleneck module.
 
-Runs tests to verify:
-1. All QUIC connections experience the same bottleneck
-2. Changing wireless parameters impacts all flows simultaneously
-3. Different scenarios produce expected behavior
+Exercises the bottleneck end to end on the loopback interface to confirm the
+environment can actually shape traffic before any real experiment is run: a
+manual setup and teardown, context-manager use, enumeration of every predefined
+scenario, and a metrics-collection check.
+
+This is an environment diagnostic rather than a unit test. It requires Linux
+with tc and sufficient privileges, and is intended to be run inside the
+project's container. Reachable both directly and through
+`python -m wireless_bottleneck validate`.
+
+Identical to the Generation 1 copy in QUIC_tuning_multistream.
+
+Connections
+-----------
+Imports from : wireless_bottleneck (WirelessBottleneck, BottleneckConfig,
+               get_scenario, list_scenarios)
+Invoked by   : .cli (validate command), or executed directly
 """
 
 import asyncio

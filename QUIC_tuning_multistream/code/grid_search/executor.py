@@ -1,8 +1,28 @@
 """
-Grid search executor.
+Grid search executor: runs the parameter sweep end to end.
 
-Orchestrates the complete parameter sweep, running simulations
-for all combinations and saving results.
+Ties the sweep together. For every combination the scheduler reports as
+pending, the executor constructs a SimulationRunner, awaits the measured run,
+and exports the resulting metrics to CSV.
+
+    ResumableScheduler -> pending combinations
+                       -> SimulationRunner (one measured run each)
+                       -> MetricsExporter (one CSV each)
+
+Error policy: individual failures are counted and reported, never propagated.
+A combination that fails leaves no CSV behind, so it is simply reported as
+pending again on the next invocation and retried then. This keeps a single
+misbehaving configuration from ending a multi-hour sweep.
+
+Runs are executed strictly sequentially. This is deliberate rather than an
+oversight: SimulationRunner tunes aioquic's process-global congestion-control
+constants, so two concurrent runs in one process would overwrite each other's
+parameters and silently corrupt both measurements.
+
+Connections:
+    Imports from: config.settings, simulation.runner (SimulationRunner),
+                  metrics.exporter (MetricsExporter), .parameter_space, .scheduler
+    Imported by:  grid_search/__init__.py, main.py
 """
 
 import asyncio
@@ -98,7 +118,9 @@ class GridSearchExecutor:
 
         if dry_run:
             print("DRY RUN - Would execute the following simulations:")
-            for i, combo in enumerate(pending, start=1): #for each combo in pending 
+            # Number each line from the global position in the sweep, not from
+            # 1, so a resumed run continues the original numbering.
+            for i, combo in enumerate(pending, start=1):
                 print(f"  {completed_before + i}/{total}: {combo}")
             return {
                 "status": "dry_run",
@@ -109,7 +131,9 @@ class GridSearchExecutor:
         successes = 0
         failures = 0
 
-        for i, combo in enumerate(pending, start=1): #for each combo in pending
+        # Sequential by necessity: SimulationRunner patches process-global
+        # aioquic constants, so overlapping runs would corrupt each other.
+        for i, combo in enumerate(pending, start=1):
             current_num = completed_before + i
             self._current_combo = combo
 
@@ -145,10 +169,16 @@ class GridSearchExecutor:
                     print(f"  ✗ Failed: {result.error_message}")
 
             except Exception as e:
+                # Caught at the sweep level as a backstop. SimulationRunner
+                # already converts its own failures into a result object, so
+                # reaching here means something outside the run itself broke
+                # (export, scheduling). Either way the sweep continues; the
+                # combination simply stays pending and is retried on restart.
                 failures += 1
                 print(f"  ✗ Error: {e}")
 
-            # Small delay between simulations
+            # Brief pause between runs so the previous server's socket is fully
+            # released before the next run binds the same port.
             await asyncio.sleep(0.5)
 
         # Summary
@@ -164,7 +194,8 @@ class GridSearchExecutor:
         print(f"Time elapsed: {elapsed:.1f}s")
         print(f"{'='*60}\n")
 
-        return { # returns a dictionary of the results
+        # Summary dictionary consumed by main.py for its exit reporting.
+        return {
             "status": "complete" if completed_after >= total else "partial",
             "total": total,
             "completed": completed_after,
@@ -207,6 +238,8 @@ class GridSearchExecutor:
             return False
 
         except Exception:
+            # Boolean contract: callers of execute_single only need to know
+            # whether a result was produced, not why one was not.
             return False
 
     def get_status(self) -> dict:
@@ -220,9 +253,10 @@ class GridSearchExecutor:
             "current": str(self._current_combo) if self._current_combo else None,
         }
 
-#like a main function, creates a GridSearchExecutor object and runs the execute method
-async def run_grid_search(dry_run: bool = False) -> dict: # having this function allows you to reuse the created object in other files,
-                                                          # Rather than having to create a new one each time you want to run a grid search in another file
+# Module-level convenience wrapper. Constructing the executor here lets other
+# modules launch a sweep with default settings in one call, rather than
+# repeating the executor setup at each call site.
+async def run_grid_search(dry_run: bool = False) -> dict:
     """
     Run the complete grid search.
 
@@ -231,9 +265,10 @@ async def run_grid_search(dry_run: bool = False) -> dict: # having this function
     executor = GridSearchExecutor()
     return await executor.execute(dry_run=dry_run)
 
-#What actually runs the run_grid_search
-if __name__ == "__main__":  #This code only runs if you execute this file directly (like python executor.py). 
-                            #If another file imports this module, this block is skipped.
-    # Test run
+# Direct-execution entry point, used for checking the sweep configuration in
+# isolation. Defaults to a dry run so that invoking this module by hand cannot
+# start a multi-hour experiment by accident. The supported entry point for real
+# runs is main.py.
+if __name__ == "__main__":
     result = asyncio.run(run_grid_search(dry_run=True))
     print(f"\nResult: {result}")

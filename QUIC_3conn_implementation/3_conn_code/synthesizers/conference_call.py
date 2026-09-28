@@ -3,6 +3,20 @@ Conference call synthesizer.
 
 Generates data patterns that mimic real-time audio/video conferencing
 with strict timing requirements.
+
+Small packets are emitted at a strict, regular interval. Because the cadence is
+fixed and short, irregularity in delivery is what degrades this workload, which
+is why this connection is tuned for low jitter in the three-connection
+experiment.
+
+Registers itself with SynthesizerFactory under "conference_call" at import time
+(see the call at the end of this module).
+
+Connections
+-----------
+Imports from : .base (BaseSynthesizer, DataPacket, SynthesizerFactory)
+Imported by  : synthesizers/__init__.py; constructed via SynthesizerFactory
+               in simulation.worker_process
 """
 
 import asyncio

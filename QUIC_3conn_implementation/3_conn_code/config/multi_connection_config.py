@@ -40,6 +40,17 @@ for its traffic pattern:
     - loss_reduction_factor=0.5 (very quick recovery)
     - minimum_window=6 (never drop too low)
     - packet_threshold=2 (faster loss detection)
+
+These defaults encode the project's hypothesis: that each traffic type is best
+served by a different congestion-control configuration. They are the starting
+point a Q-learning agent is measured against, not a tuned result.
+
+Connections
+-----------
+Imports from : .connection_config (ConnectionConfig)
+Imported by  : config/__init__.py, main.py,
+               simulation.process_orchestrator, web.control_server,
+               examples/run_3conn_through_bottleneck.py
 """
 
 import json

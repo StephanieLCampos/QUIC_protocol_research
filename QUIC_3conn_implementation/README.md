@@ -1,6 +1,20 @@
 # QUIC 3-Connection Simulation with Wireless Bottleneck and Q-Learning
 
-A multi-process QUIC simulation system that runs 3 concurrent connections competing through a shared wireless bottleneck, with optional Q-learning-based parameter optimization.
+A multi-process QUIC simulation that runs 3 concurrent connections competing
+through a shared wireless bottleneck, with Q-learning agents that tune each
+connection's congestion-control parameters live.
+
+This is the second of the two generations in this repository. The first,
+[`QUIC_tuning_multistream`](../QUIC_tuning_multistream), measured one connection
+at a time with fixed parameters. This one asks the harder question: when three
+connections with conflicting goals share one constrained link, can a
+reinforcement-learning agent tune them better than any fixed configuration?
+
+Part of a team project with three contributors: Stephanie Campos, Sean Lai and
+Derek Chui. One Q-learning agent variant carries an in-source author credit to
+Andy Li.
+
+---
 
 ## What This Project Does
 
@@ -14,7 +28,172 @@ A multi-process QUIC simulation system that runs 3 concurrent connections compet
   - Latency/delay
   - Packet loss
 
-- Optionally runs a **Q-learning agent** that dynamically tunes QUIC congestion control parameters to optimize performance across all connections
+- Optionally runs a **Q-learning agent** that dynamically tunes QUIC congestion
+  control parameters to optimize performance across all connections
+
+The three connections genuinely compete: they share one bottleneck, one
+bandwidth budget, and start simultaneously behind a barrier so no connection
+gets a head start.
+
+---
+
+## The Central Design Constraint
+
+One library detail shaped this entire architecture, and is the most useful
+thing to understand before reading the code.
+
+**aioquic stores its congestion-control tuning in module-level globals.**
+`K_CUBIC_C`, `K_CUBIC_LOSS_REDUCTION_FACTOR`, `K_PACKET_THRESHOLD` and the rest
+are module attributes, not per-connection configuration. There is no supported
+way to give two connections in the same process different parameters.
+
+Generation 1 lived with this by measuring one connection at a time. This
+project cannot: its entire premise is three connections holding *different*
+parameters at once.
+
+The resolution is to give each connection **its own OS process**, and therefore
+its own copy of the aioquic modules. That single decision explains why the
+system needs:
+
+| Mechanism | Why it exists |
+|---|---|
+| One process per connection | Independent aioquic globals |
+| Command pipe per worker | Parameter updates must cross a process boundary |
+| Shared metrics queue | Telemetry must come back across that boundary |
+| Start barrier | Otherwise process startup skew gives one connection a head start |
+| Shared token bucket | A bandwidth budget must be enforced across processes |
+| Config passed as dicts | Arguments must be picklable under `spawn` |
+
+Everything that looks like unnecessary machinery follows from that one
+constraint.
+
+---
+
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        Docker Network (192.168.200.0/24)                  │
+│                                                                           │
+│  ┌─────────────────────┐                  ┌─────────────────────────┐    │
+│  │  Server Container   │    tc qdisc      │  Clients Container      │    │
+│  │  192.168.200.10     │◄────────────────►│  192.168.200.20         │    │
+│  │                     │   (bottleneck)   │                         │    │
+│  │  • QUIC Server      │                  │  • Worker 1 (Video)     │    │
+│  │  • Bandwidth limit  │                  │  • Worker 2 (File)      │    │
+│  │  • RTT/Loss shaping │                  │  • Worker 3 (Conference)│    │
+│  │  • Control :9001    │                  │  • Q-Learning Agent     │    │
+│  │                     │                  │  • Web UI (:8000)       │    │
+│  └─────────────────────┘                  └─────────────────────────┘    │
+│                                                      │                    │
+│                                                      │ Port 8000          │
+│                                                      ▼                    │
+│                                           ┌─────────────────┐            │
+│                                           │  Your Browser   │            │
+│                                           │  localhost:8000 │            │
+│                                           └─────────────────┘            │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+**Why three containers rather than one.** A container can only shape its own
+egress, so a single container would force upload and download to share one
+constraint. Splitting server from clients lets each shape its own direction. A
+third `prober` container runs an independent ICMP probe of the same path, giving
+an outside view of RTT that is not distorted by the connections' own queueing.
+
+Because the dashboard runs alongside the clients but a slider change must reach
+both bottlenecks, the server container exposes a small internal control
+endpoint on `:9001` that the clients container posts to.
+
+### Inside the clients container
+
+```
+                    ProcessOrchestrator (main process)
+                                 │
+    ┌────────────────────────────┼────────────────────────────┐
+    │                            │                            │
+QuicServer                 MLController                 start barrier
+(shared endpoint)      (Q-learning control loop)    (synchronised start)
+    │                            │
+    │                 parameters │  ▲ metrics
+    │                     (pipe) ▼  │ (shared queue)
+    │          ┌─────────────────────────────────────┐
+    │          │  worker 1  │  worker 2  │  worker 3 │  separate processes
+    └──────────│   video    │    file    │ conference│  one aioquic each
+               └─────────────────────────────────────┘
+                                 │
+                      WirelessBottleneck (Linux tc)
+                                 │
+                                 ▼
+              MultiConnectionResult → JSON / CSV exports
+```
+
+### Run sequence
+
+1. Apply the wireless bottleneck (interface chosen by deployment mode)
+2. Start the shared QUIC server
+3. Spawn three worker processes
+4. Release the start barrier so all three begin together
+5. Drive either the Q-learning control loop or a plain metrics loop
+6. Signal STOP, drain results, join and terminate stragglers
+7. Read `tc` counters, await the RTT probe, export Q-learning history
+8. Build and return the combined result
+
+Shutdown is deliberately concurrent: results are drained on a daemon thread
+*while* workers exit, because a worker terminated mid-write can leave a partial
+pipe write that would block a reader indefinitely.
+
+---
+
+## Project Structure
+
+```
+QUIC_3conn_implementation/
+├── 3_conn_code/                    Main simulation
+│   ├── main.py                     CLI: run / server / clients / probe
+│   ├── config/
+│   │   ├── connection_config.py    One connection's parameters
+│   │   └── multi_connection_config.py
+│   ├── simulation/
+│   │   ├── process_orchestrator.py Control centre (largest file)
+│   │   ├── worker_process.py       One connection, one process
+│   │   ├── ml_controller.py        Q-learning control loop
+│   │   ├── server.py               Shared QUIC endpoint
+│   │   ├── token_bucket.py         Cross-process bandwidth cap
+│   │   ├── ipc_messages.py         Message types
+│   │   └── result.py               Aggregation and exports
+│   ├── ml_callbacks/               Three Q-learning agents
+│   ├── metrics/                    Collection, calculation, epochs
+│   ├── synthesizers/               Three traffic models
+│   ├── web/                        FastAPI dashboard + static front end
+│   └── certs/                      TLS certificates
+├── grid_search_code/               Sweep over the 6 dynamic parameters
+├── research_code/                  Uniform-config comparison (27 values)
+├── wireless_bottleneck/            tc emulation (HTB, live control)
+├── train_agents.sh                 Train all three agents
+├── train_hybrid.sh                 Train the hybrid agent only
+├── train_q_learning.sh             Batch train across all scenarios
+├── setup_veth.sh                   veth pair for single-container mode
+├── docker-compose.yml              Three-container setup
+└── Dockerfile                      Container definition
+```
+
+### How the sub-projects relate
+
+```
+grid_search_code          research_code              3_conn_code
+─────────────────         ──────────────             ───────────
+Sweep 6 dynamic      →    Apply one config       →   3 connections, each
+parameters, one           uniformly to all 3;        tuned independently
+connection at a time      27 measurements            and live by an agent
+       │                         │                          │
+  optimal params          what does sharing          can learning beat
+  per app type            one config cost?           any fixed config?
+```
+
+`grid_search_code` produces the tuning ranges the agents search within.
+`research_code` quantifies the cost of a single shared configuration, which is
+the argument for per-connection tuning in the first place.
 
 ---
 
@@ -26,7 +205,8 @@ A multi-process QUIC simulation system that runs 3 concurrent connections compet
 - Docker Compose (included with Docker Desktop)
 - ~2GB disk space for the Docker image
 
-> **Note**: Make sure Docker Desktop is running before executing any `docker` commands. You should see the whale icon in your menu bar.
+> **Note**: Make sure Docker Desktop is running before executing any `docker`
+> commands. You should see the whale icon in your menu bar.
 
 ### Step 1: Build the Docker Image
 
@@ -58,6 +238,7 @@ Open **http://localhost:8000** in your browser to see:
 ### Step 4: View Results
 
 After the run completes, results are saved in an organized structure:
+
 ```bash
 ls results/
 # congested_low/
@@ -75,7 +256,8 @@ ls results/
 
 ### Option A: Docker Setup (Recommended)
 
-Docker is required for real bandwidth/loss enforcement. Without Docker, the Linux kernel bypasses traffic control rules.
+Docker is required for real bandwidth/loss enforcement. Without Docker, the
+Linux kernel bypasses traffic control rules.
 
 #### 1. Build the Image
 
@@ -115,6 +297,8 @@ SCENARIO=asymmetric DURATION=60 docker-compose up
 |----------|---------|-------------|
 | `SCENARIO` | `congested_low` | Network scenario to use |
 | `DURATION` | `30` | Simulation duration in seconds |
+| `ML_AGENT` | `default` | Q-learning agent: `default`, `andy` or `hybrid` |
+| `CLEAR_QTABLE` | unset | Set to `1` to discard the persisted Q-table |
 
 #### Available Scenarios
 
@@ -138,6 +322,12 @@ SCENARIO=asymmetric DURATION=60 docker-compose up
 | `per_10` | 50 Mbps | 20ms | 10% | Heavy degradation |
 | `per_20` | 50 Mbps | 20ms | 20% | Severe degradation |
 
+The `varying` scenario's period is 6 seconds rather than Generation 1's 2
+seconds. This is deliberate: the agent acts every 2 seconds, so a 2-second
+network period gave it no chance to observe the consequence of an action before
+conditions changed again. Three decisions per network state makes cause and
+effect learnable.
+
 #### 4. Verify Bottleneck is Working
 
 Check the server logs for:
@@ -155,7 +345,8 @@ cat results/bottleneck_summary_*.json | grep bottleneck_limiting
 
 ### Option B: Local Setup (Limited - No Real Bottleneck)
 
-For development/testing without Docker. Note: bandwidth limiting won't work on macOS/local loopback.
+For development/testing without Docker. Note: bandwidth limiting won't work on
+macOS/local loopback.
 
 #### 1. Install Dependencies
 
@@ -168,6 +359,20 @@ uv sync
 # Or using pip
 pip install -e .
 ```
+
+#### 1b. Generate TLS Certificates
+
+Local runs need a certificate and key, which are generated on demand rather
+than committed:
+
+```bash
+cd ..            # QUIC_3conn_implementation
+cd ..            # repository root
+./generate_certs.sh
+```
+
+This is **not** needed for `docker-compose up`: the image generates its own
+certificates at build time.
 
 #### 2. Run Basic Simulation
 
@@ -190,6 +395,10 @@ Since tc doesn't work locally, use the app-level bandwidth cap as a fallback:
 uv run python -m main run --bandwidth-cap 30 --delay-ms 25 --loss-rate 0.02 --duration 60
 ```
 
+This is the shared token bucket rather than kernel shaping. It creates genuine
+contention between the three connections, which is what the agent needs, but it
+is not a substitute for `tc` when measuring absolute performance.
+
 ---
 
 ## Running with Q-Learning
@@ -206,6 +415,12 @@ docker-compose up
 
 # Longer run with varying network conditions
 SCENARIO=varying DURATION=120 docker-compose up
+
+# Choose an agent
+ML_AGENT=andy SCENARIO=varying DURATION=120 docker-compose up
+
+# Clear the Q-table and train from scratch
+CLEAR_QTABLE=1 ML_AGENT=andy SCENARIO=varying DURATION=600 docker-compose up
 
 # Access the live dashboard
 open http://localhost:8000
@@ -241,9 +456,49 @@ uv run python -m main run --with-ml --bandwidth-cap 30 --duration 120
 # With browser UI to watch in real-time
 uv run python -m main run --with-ml --ui --duration 120
 
+# Select a specific agent
+uv run python -m main run --with-ml --ml-agent andy --scenario congested_low --duration 60
+uv run python -m main run --with-ml --ml-agent hybrid --scenario varying --duration 600
+
 # All options combined
 uv run python -m main run --with-ml --ui --scenario varying --duration 120 --settling-time 2
 ```
+
+### Batch training
+
+```bash
+./train_agents.sh            # all three agents, across scenarios
+./train_agents.sh --clear    # discard prior learning first
+./train_hybrid.sh            # hybrid agent only
+DURATION=600 SESSIONS=5 ./train_q_learning.sh
+```
+
+These re-invoke themselves inside `tmux`, so a multi-hour training run survives
+the terminal closing. `train_agents.sh` and `train_hybrid.sh` preserve Q-tables
+between scenarios so learning accumulates; `train_q_learning.sh` clears the
+checkpoint at the start, which is required whenever the state representation has
+changed, because a Q-table keyed by the old layout is meaningless under a new one.
+
+---
+
+## The Three Q-Learning Agents
+
+All three share an identical action space and reward function, and differ
+**only** in how they represent state. That makes the comparison between them a
+clean experiment in state design.
+
+| Agent | Features | State space | Design idea |
+|---|---|---|---|
+| `default` | 8 | ~27,600 | Performance bins plus trends |
+| `hybrid` | 10 | ~995,000 | Default, plus compressed boundary and dominance signals |
+| `andy` | 14 | ~11.6M | Exact parameter step indices, so boundaries are visible |
+
+The trade-off is generalisation against precision. Andy's agent can tell that a
+parameter is already pinned at its limit and that pushing further is wasted; the
+default agent, seeing only outcomes, cannot. But with ~11.6M possible states and
+only a few hundred visited per run, its Q-table is far sparser and generalises
+much less. The hybrid keeps the boundary signal while compressing it into a
+single feature.
 
 ### What Q-Learning Optimizes
 
@@ -256,6 +511,41 @@ The agent tunes these CUBIC congestion control parameters:
 | `minimum_window` | 2-4 | Minimum congestion window floor |
 | `packet_threshold` | 3-4 | Packets before declaring loss |
 
+Ranges come from `grid_search_code`. Only one parameter on one connection moves
+per step, so each reward is attributable to a single change.
+
+### Reward function
+
+```
+R = mean(U_video, U_file, U_conf)
+    − stability penalty    (μ = 0.05, discourages needless churn)
+    − starvation penalty   (0.2 per connection below 500 KB/s)
+    − suffering penalty    (0.15 per connection with utility below 0.4)
+
+U_video = 0.7 · U_latency + 0.3 · U_throughput
+U_file  = 1.0 · U_throughput
+U_conf  = 0.7 · U_jitter  + 0.3 · U_throughput
+```
+
+Fairness is enforced by **absolute floors rather than by penalising
+inequality**. This is deliberate: file transfer is expected to take a larger
+share, since throughput is its entire utility while the other two weight it at
+only 30%. Penalising that imbalance directly would fight the intended priority.
+What must be prevented is starvation, not inequality.
+
+> Note: earlier documentation described a variance-based fairness term
+> (`λ · std` of the three utilities). That term is not present in the current
+> implementation; the threshold-based penalties above replaced it.
+
+### Timing: why the agent acts every 2 seconds
+
+The control loop runs every 100ms, but the agent throttles itself to act every
+2 seconds. A congestion window does not respond instantly, so acting faster
+would attribute the previous configuration's behaviour to the new one and
+poison the learning signal. Each action is held with its "before" metrics and
+completed only after a 1.5s settling window, at which point the "after" metrics
+are attached.
+
 ### Q-Learning Output
 
 Watch for agent decisions in the logs:
@@ -264,7 +554,8 @@ Watch for agent decisions in the logs:
                     ε=0.285 lat=18.5ms tp=1.85Mbps jit=8.2ms avg_R=+0.542
 ```
 
-The Q-table checkpoint is saved to `output/q_learning_checkpoint.json` and persists across runs. This includes:
+The Q-table checkpoint is saved to `output/q_learning_checkpoint.json` and
+persists across runs. This includes:
 - The learned Q-values (so the agent improves over multiple runs)
 - The step count (continues incrementing across runs)
 - The exploration rate epsilon (decays across runs)
@@ -294,23 +585,47 @@ results/
 
 ---
 
-## Project Structure
+## Measurement Design
 
-```
-QUIC_3conn_implementation/
-├── 3_conn_code/              # Main simulation code
-│   ├── main.py               # Entry point
-│   ├── simulation/           # Core engine
-│   ├── synthesizers/         # Traffic generators
-│   ├── metrics/              # Data collection
-│   ├── ml_callbacks/         # Q-learning agent
-│   └── web/                  # Browser dashboard
-├── wireless_bottleneck/      # Network emulation (tc wrapper)
-├── docker-compose.yml        # Multi-container setup
-├── Dockerfile                # Container definition
-├── FULL_report.md            # Detailed documentation
-└── reward_functions.md       # Q-learning reward documentation
-```
+**Epoch-based metrics.** When parameters change mid-run, the congestion window
+takes time to react. Metrics are grouped into *epochs* — periods of constant
+configuration — separated by a settling delay during which nothing is sampled.
+Without this, averaging would blend every configuration tried into one
+meaningless number. See `3_conn_code/metrics/epoch.py`.
+
+**Three throughput figures**, because each is misleading alone:
+
+| Figure | Meaning |
+|---|---|
+| `throughput` | Bytes the application offered to the transport |
+| `throughput_acked_delta` | Bytes confirmed delivered in this epoch |
+| `throughput_cwnd` | cwnd/RTT — the transport's own ceiling |
+
+Under a bottleneck these diverge sharply, since offered data can sit in buffers
+or be dropped. The agents use the delta figure, as it responds to recent change.
+
+**Receiver-side measurement.** The server records what actually arrived, which
+under a bottleneck is very different from what was sent. Because the server sees
+three anonymous QUIC connections, the pairing back to applications is
+reconstructed heuristically from byte volumes and rank ordering
+(`_match_server_to_client_connections`).
+
+**Robust statistics.** Summaries use trimmed medians, so one startup transient
+cannot dominate a reported figure. Fairness is Jain's index over per-connection
+throughput.
+
+### Known caveats
+
+- **Packet loss is estimated, not observed.** aioquic exposes no loss counter,
+  so loss is inferred from ssthresh reductions, cwnd drops and PTO counts with
+  heuristic multipliers. Treat it as a relative indicator, not an exact count;
+  the `tc` counters are authoritative where precision matters.
+- **Latency is RTT/2**, assuming a symmetric path — untrue under `asymmetric`.
+- **Flow-control windows are capped at 128KB**, down from the 1MB default. At
+  30 Mbps the larger window produced ~1500ms RTTs dominated by self-inflicted
+  bufferbloat, which masked the effect of the parameters under study.
+- **Loopback does not shape.** Local macOS runs are for development, not
+  measurement.
 
 ---
 
@@ -422,6 +737,7 @@ uv run python -m main clients --server 192.168.1.100 --duration 30 --with-ml --u
 | `--ui` | off | Enable browser dashboard at http://localhost:8000 |
 | `--port` | 8000 | Dashboard port |
 | `--with-ml` | off | Enable Q-learning agent |
+| `--ml-agent` | default | Agent to use: `default`, `andy` or `hybrid` |
 | `--settling-time` | 2.0 | Seconds to wait after parameter changes |
 | `--bandwidth-cap` | none | App-level bandwidth limit in Mbps |
 | `--loss-rate` | 0.0 | Simulated packet loss (0.0-1.0) |
@@ -538,11 +854,18 @@ Download Docker Desktop for Mac: https://www.docker.com/products/docker-desktop/
 2. Use a constrained scenario (congested_low) so there's something to optimize
 3. Check that metrics are being collected (non-zero throughput/latency)
 
+Without real contention there is nothing to optimise — on an unconstrained
+loopback link, file transfer reaches 100+ Mbps and no parameter change matters.
+Either use Docker or pass `--bandwidth-cap`.
+
 ### Q-Learning Steps Seem Off / Steps Not Starting at Zero
 
-**Symptom**: Q-learning step count starts at a high number (e.g., step=50) instead of step=0, or steps don't match expected timing
+**Symptom**: Q-learning step count starts at a high number (e.g., step=50)
+instead of step=0, or steps don't match expected timing
 
-**Cause**: The Q-learning agent persists its state (Q-table, step count, epsilon) to a checkpoint file (`output/q_learning_checkpoint.json`). When you run again, it continues from where it left off.
+**Cause**: The Q-learning agent persists its state (Q-table, step count,
+epsilon) to a checkpoint file (`output/q_learning_checkpoint.json`). When you
+run again, it continues from where it left off.
 
 **Solutions**:
 
@@ -557,7 +880,9 @@ Download Docker Desktop for Mac: https://www.docker.com/products/docker-desktop/
    docker-compose up
    ```
 
-2. **Note about logging frequency**: The agent only logs every 10 steps to reduce spam. In a 30-second run (~15 steps), you'll only see 1-2 log lines. This is normal.
+2. **Note about logging frequency**: The agent only logs every 10 steps to
+   reduce spam. In a 30-second run (~15 steps), you'll only see 1-2 log lines.
+   This is normal.
 
 ### Permission Errors in Docker
 
@@ -569,32 +894,6 @@ Download Docker Desktop for Mac: https://www.docker.com/products/docker-desktop/
 
 ## How It Works
 
-### Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                        Docker Network (192.168.200.0/24)                  │
-│                                                                           │
-│  ┌─────────────────────┐                  ┌─────────────────────────┐    │
-│  │  Server Container   │    tc qdisc      │  Clients Container      │    │
-│  │  192.168.200.10     │◄────────────────►│  192.168.200.20         │    │
-│  │                     │   (bottleneck)   │                         │    │
-│  │  • QUIC Server      │                  │  • Worker 1 (Video)     │    │
-│  │  • Bandwidth limit  │                  │  • Worker 2 (File)      │    │
-│  │  • RTT/Loss shaping │                  │  • Worker 3 (Conference)│    │
-│  │                     │                  │  • Q-Learning Agent     │    │
-│  │                     │                  │  • Web UI (:8000)       │    │
-│  └─────────────────────┘                  └─────────────────────────┘    │
-│                                                      │                    │
-│                                                      │ Port 8000          │
-│                                                      ▼                    │
-│                                           ┌─────────────────┐            │
-│                                           │  Your Browser   │            │
-│                                           │  localhost:8000 │            │
-│                                           └─────────────────┘            │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
 ### Data Flow
 
 1. **Traffic Generation**: Each worker generates traffic matching its application type
@@ -604,14 +903,34 @@ Download Docker Desktop for Mac: https://www.docker.com/products/docker-desktop/
 5. **Parameter Update**: New parameters sent to workers via IPC
 6. **CUBIC Adaptation**: aioquic adjusts congestion control with new parameters
 
+### Where to look first
+
+| To understand | Read |
+|---|---|
+| Why the architecture is multi-process | `3_conn_code/simulation/worker_process.py` |
+| How the three connections are coordinated | `3_conn_code/simulation/process_orchestrator.py` |
+| How parameter changes are attributed to outcomes | `3_conn_code/metrics/epoch.py` |
+| The learning policy and reward design | `3_conn_code/ml_callbacks/q_learning_agent.py` |
+| How the network constraint is applied | `wireless_bottleneck/bottleneck.py` |
+| Cross-process bandwidth contention | `3_conn_code/simulation/token_bucket.py` |
+
+Every source file carries a header describing what it does and which modules it
+connects to.
+
 ---
 
 ## Additional Documentation
 
-- [FULL_report.md](FULL_report.md) - Comprehensive technical documentation
-- [reward_functions.md](reward_functions.md) - Q-learning reward function details
-- [WIRELESS_BOTTLENECK_GUIDE.md](WIRELESS_BOTTLENECK_GUIDE.md) - Network emulation guide
-- [3_conn_code/README.md](3_conn_code/README.md) - Simulation code documentation
+- [3_conn_code/README.md](3_conn_code/README.md) — simulation code documentation
+- [grid_search_code/README.md](grid_search_code/README.md) — parameter sweep
+- [research_code/README.md](research_code/README.md) — uniform-configuration experiments
+- [wireless_bottleneck/README.md](wireless_bottleneck/README.md) — network emulation
+- [final_reports_old/FULL_report.md](final_reports_old/FULL_report.md) — comprehensive technical documentation
+- [final_reports_old/reward_functions.md](final_reports_old/reward_functions.md) — Q-learning reward function details
+- [final_reports_old/WIRELESS_BOTTLENECK_GUIDE.md](final_reports_old/WIRELESS_BOTTLENECK_GUIDE.md) — network emulation guide
+- [final_reports_may/](final_reports_may/) — most recent written findings
+- [3_conn_code/final_reports_3conn/](3_conn_code/final_reports_3conn/) — Q-learning and measurement notes
+- [grid_search_code/final_reports_grid/](grid_search_code/final_reports_grid/) — optimal parameter analysis
 
 ---
 

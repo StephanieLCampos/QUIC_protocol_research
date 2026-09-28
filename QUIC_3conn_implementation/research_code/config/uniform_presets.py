@@ -13,6 +13,22 @@ Key findings from grid search (with corrected jitter measurement):
     - vc_friendly: Optimizes for jitter (0.06 ms achieved)
     - mm_friendly: Optimizes for latency (1.60 ms achieved)
     - Each app type now has DIFFERENT optimal parameters
+
+The three presets are each the winner for one application type, applied
+uniformly. Comparing an application's performance under its own preset against
+its performance under the other two quantifies what a single shared
+configuration costs, which is the experiment's purpose.
+
+Note on the figures above: they were measured without a bottleneck applied, so
+the throughput value reflects loopback capacity rather than a realistic link.
+They are meaningful as relative comparisons between configurations, not as
+absolute performance claims.
+
+Connections
+-----------
+Imports from : standard library only (dataclasses, typing)
+Imported by  : experiment_runner.py (by file path, see config/__init__.py)
+Derived from : grid_search_code analysis output
 """
 
 from dataclasses import dataclass

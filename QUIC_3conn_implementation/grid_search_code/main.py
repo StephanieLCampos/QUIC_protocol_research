@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Grid Search CLI Entry Point
 
 Find optimal QUIC congestion control parameters for each application type.
 
 Searches only the 6 DYNAMIC parameters. Start-only parameters
-(initial_cw, max_ack_delay) are fixed at their default values.
+(initial_cw, max_ack_delay) are fixed at their default values, since a
+connection cannot change them once established and the live system could
+therefore never act on a recommendation about them.
+
+Commands
+--------
+    run      execute the sweep, resuming automatically from prior progress
+    analyze  identify the optimal configuration per application type
+    status   report progress and the parameter space being searched
 
 Usage:
     # Run reduced grid search (243 combinations, ~2 hours)
@@ -25,6 +34,13 @@ Usage:
 
     # Show status of current search progress
     python main.py status
+
+Connections
+-----------
+Imports from : config.parameter_space, runner.executor (GridSearchExecutor),
+               analysis.results_analyzer (ResultsAnalyzer),
+               scheduler.resumable_scheduler (ResumableScheduler)
+Imported by  : nothing; this is the top-level executable for the grid search
 """
 
 import argparse

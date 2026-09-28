@@ -1,11 +1,27 @@
 #!/bin/bash
-# Helper script to run wireless bottleneck module in Docker on macOS
 #
-# Usage:
-#   ./run-bottleneck.sh                    # Interactive shell
-#   ./run-bottleneck.sh list               # List scenarios
-#   ./run-bottleneck.sh validate           # Run validation
-#   ./run-bottleneck.sh test --scenario lossy  # Test a scenario
+# Launch the wireless bottleneck module inside a Linux container.
+#
+# Purpose
+#   tc exists only on Linux, so on macOS or Windows every bottleneck experiment
+#   must run in a container. This wrapper starts one with the privileges tc
+#   needs (--privileged for NET_ADMIN, --network host so shaping applies to
+#   real interfaces) and mounts the code directory so edits on the host take
+#   effect immediately without rebuilding.
+#
+# Usage
+#   ./run-bottleneck.sh                        # interactive shell
+#   ./run-bottleneck.sh list                   # list scenarios
+#   ./run-bottleneck.sh validate               # run module validation
+#   ./run-bottleneck.sh test --scenario lossy  # apply one scenario
+#
+# With no arguments an interactive shell is opened; with arguments they are
+# passed through to `python3 -m wireless_bottleneck`.
+#
+# Note: this uses a stock ubuntu:22.04 image and installs iproute2 and python3
+# on each start, rather than the project Dockerfile. Package installation is
+# therefore the common failure point behind a proxy or VPN, and the script
+# prints recovery guidance instead of exiting when it fails.
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

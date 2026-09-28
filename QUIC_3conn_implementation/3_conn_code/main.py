@@ -1,6 +1,21 @@
 """
 Main entry point for QUIC 3-Connection Simulation.
 
+Command-line front end for the Generation 2 system. Builds the configuration,
+constructs a ProcessOrchestrator, runs the simulation in the requested
+deployment mode, and exports the results.
+
+Commands
+--------
+    run      full simulation: server plus all three client connections
+    server   server only, for the docker-compose server container
+    clients  client connections only, against a separate server container
+    probe    standalone network probe, no QUIC traffic
+
+The three-way split exists because the docker-compose topology places the
+server and clients in different containers so that each direction of traffic
+can be shaped independently.
+
 Usage:
     # Run basic simulation
     uv run python -m main run
@@ -11,7 +26,7 @@ Usage:
     # Run with browser UI dashboard
     uv run python -m main run --ui
 
-    # Run with ML controller (default agent - 7-feature state)
+    # Run with ML controller (default agent - 8-feature state)
     uv run python -m main run --with-ml
 
     # Run with Andy's Q-Learning agent (14-feature state)
@@ -25,6 +40,28 @@ Usage:
 
     # Full example with UI and Andy's agent
     uv run python -m main run --ui --with-ml --ml-agent andy --scenario congested_low --duration 60
+
+Note on the default agent's state size: it uses 8 features, as documented in
+ml_callbacks/q_learning_agent.py. Some older help text and documentation in
+this project describes it as 7-feature; 8 is correct.
+
+Cleanup
+-------
+Worker processes are spawned children, so an abrupt exit could otherwise leave
+them running and holding the QUIC port. A module-level orchestrator reference
+is registered with both atexit and a SIGINT/SIGTERM handler so that Ctrl+C and
+container shutdown both terminate the workers.
+
+The wireless_bottleneck import is optional: without it the simulation still
+runs, but only application-level impairment is available, with no tc shaping.
+
+Connections
+-----------
+Imports from : config.multi_connection_config, simulation.process_orchestrator,
+               utils.debug, wireless_bottleneck (optional), web.server and
+               web.control_server (lazily, only when a UI is requested),
+               ml_callbacks.* (lazily, by agent type)
+Imported by  : nothing; this is the top-level executable for this project
 """
 
 import argparse
@@ -56,7 +93,13 @@ _orchestrator = None
 
 
 def _cleanup_on_exit():
-    """Cleanup function called at exit (via atexit)."""
+    """
+    Terminate worker processes on interpreter exit.
+
+    Registered with atexit. Worker processes are spawned children rather than
+    threads, so without this an abrupt exit would leave three processes running
+    and holding the QUIC port, making the next run fail to bind.
+    """
     if _orchestrator:
         for process in _orchestrator.workers.values():
             if process.is_alive():
@@ -66,6 +109,8 @@ def _cleanup_on_exit():
                     process.kill()
 
 
+# Handles SIGINT (Ctrl+C) and SIGTERM (container stop). Both paths must reach
+# the same worker cleanup, since neither guarantees atexit runs first.
 def _signal_handler(signum, frame):
     """Handle Ctrl+C and other signals."""
     print("\n[Main] Received interrupt signal, shutting down gracefully...")

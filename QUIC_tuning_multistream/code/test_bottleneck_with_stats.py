@@ -1,7 +1,21 @@
 """
-Simplified test: Run server in namespace, client on host, through bottleneck.
+Diagnostic: QUIC across a veth bottleneck, with tc statistics.
 
-This uses iperf3-style approach but with actual QUIC traffic.
+Runs the QUIC server inside a network namespace and the client on the host, so
+traffic must cross the shaped veth link, then reads tc's own counters to
+confirm the shaping actually applied.
+
+The value of this script is the cross-check: application-level throughput is
+compared against the kernel's transmitted and dropped counts, which catches the
+case where a bottleneck appears configured but is not in the traffic path.
+
+Despite the `test_` prefix this is a standalone diagnostic script rather than
+part of an automated test suite. Its namespace setup duplicates the sequence in
+setup_namespace_bottleneck.py and the other veth scripts.
+
+Connections:
+    Imports from: wireless_bottleneck (WirelessBottleneck, get_scenario)
+    Invoked by:   run directly, inside the privileged container
 """
 
 import asyncio

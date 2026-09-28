@@ -1,12 +1,25 @@
 """
-Run applications through bottleneck using veth interface for real tc constraints.
+Example: application traffic across a genuinely shaped veth link.
 
-This version creates a network namespace with veth pair so that tc rules
-actually work and bottleneck metrics are accurate.
+The accurate counterpart to run_app_through_bottleneck.py. Rather than shaping
+loopback, this creates a network namespace joined by a veth pair and applies
+the bottleneck there, so that tc's rate, delay and loss settings are really
+enforced and the resulting metrics are trustworthy.
 
-Usage:
-    docker run -it --rm --privileged -v $(pwd):/workspace quic-wireless \
-        bash -c "cd /workspace/code && python3 examples/run_app_with_real_bottleneck.py"
+    host namespace                      bottleneck_ns
+      veth0  10.200.1.1/24  <------->  veth1  10.200.1.2/24
+        ^ tc qdiscs applied here
+
+Requires NET_ADMIN (run the container privileged). The namespace setup
+performed here duplicates the sequence in setup_namespace_bottleneck.py and in
+several of the test_* scripts; they were written independently as the veth
+approach was developed.
+
+Connections:
+    Imports from: wireless_bottleneck (WirelessBottleneck, get_scenario,
+                  list_scenarios), simulation.runner (SimulationRunner),
+                  config.settings (Settings), simulation.server (QuicServer)
+    Invoked by:   run directly, inside the project's privileged container
 """
 
 import asyncio

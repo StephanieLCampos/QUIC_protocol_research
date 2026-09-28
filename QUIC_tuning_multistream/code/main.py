@@ -1,25 +1,38 @@
 #!/usr/bin/env python3
+#!/usr/bin/env python3
 """
-QUIC Multi-Stream Research Project - Main Entry Point.
+Command-line entry point for the QUIC Multi-Stream Research Project (Generation 1).
 
-This script provides command-line interface for running the
-grid search parameter sweep and analyzing results.
+Single front end for the whole Generation 1 workflow: running the parameter
+sweep, inspecting its progress, and analysing the results it produced.
 
-Usage:
-    # Run grid search (full or resume)
-    uv run main.py run
+Commands
+--------
+    run       execute the grid search, resuming automatically from any
+              previously completed combinations (--dry-run to preview)
+    status    report sweep progress and the parameter space being searched
+    analyze   print the optimal parameter set per application type
+    report    render a full text report (--app-type for a single deep dive,
+              -o to write it to a file)
+    clear     delete all result CSVs for a fresh start (-f to skip the prompt)
 
-    # Dry run (show what would be executed)
-    uv run main.py run --dry-run
+Typical sequence:
 
-    # Analyze results
-    uv run main.py analyze
+    uv run main.py run          # hours; safe to interrupt and re-run
+    uv run main.py status       # how far along
+    uv run main.py report -o output/summary_report.txt
 
-    # Generate report
-    uv run main.py report
+Note that the report is not produced automatically when the sweep finishes; it
+must be generated explicitly with the `report` command after `run` completes.
 
-    # Show status
-    uv run main.py status
+Each command handler returns a process exit code, which `main()` passes to
+sys.exit: 0 on success, 1 where results were required but not yet present.
+
+Connections:
+    Imports from: config.settings, grid_search (GridSearchExecutor,
+                  ParameterSpace, ResumableScheduler), results (ResultsAnalyzer,
+                  ReportGenerator)
+    Imported by:  nothing; this is the top-level executable for this project
 """
 
 import argparse
@@ -33,7 +46,13 @@ from results import ResultsAnalyzer, ReportGenerator
 
 
 def cmd_run(args):
-    """Run the grid search."""
+    """
+    Execute the parameter sweep, resuming from any prior progress.
+
+    Resumption is automatic and requires no flag: the executor's scheduler
+    treats existing result files as completed work, so re-invoking this command
+    after an interruption continues rather than restarting.
+    """
     print("QUIC Multi-Stream Research Project")
     print("=" * 40)
 
@@ -155,7 +174,14 @@ def cmd_report(args):
 
 
 def cmd_clear(args):
-    """Clear all results (fresh start)."""
+    """
+    Delete every result CSV, resetting the sweep to a fresh start.
+
+    Destructive and not recoverable: because completion is tracked purely by
+    the presence of result files, clearing them discards all record of work
+    done and the next `run` will repeat the full sweep. Prompts for
+    confirmation unless --force is given.
+    """
     from grid_search import ResumableScheduler
 
     if not args.force:

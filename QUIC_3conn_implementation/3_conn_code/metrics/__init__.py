@@ -117,6 +117,15 @@ Example Usage
     manager.start()
     manager.collect_sample()  # Call every 100ms
     manager.finalize()
+
+Connections
+-----------
+Imports from : .calculator, .collector, .epoch, .exporter
+Imported by  : simulation.worker_process (collector and epoch),
+               simulation.result (metric field names)
+
+Note: MetricsExporter is re-exported here but has no active caller; the files a
+run produces are written by simulation.result. See metrics/exporter.py.
 """
 
 from .calculator import MetricsCalculator, MetricsResult

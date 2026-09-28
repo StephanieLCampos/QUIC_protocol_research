@@ -100,7 +100,7 @@ Represents a congested shared WiFi network.
 
 Simulates mobility or signal fading.
 
-- **Capacity**: 20 Mbps (±40% variation every 2s)
+- **Capacity**: 20 Mbps (±40% variation every 6s, sweeping 12 – 28 Mbps)
 - **RTT**: 20 ms
 - **Loss**: 1%
 - **Queue**: 100 packets (CoDel)

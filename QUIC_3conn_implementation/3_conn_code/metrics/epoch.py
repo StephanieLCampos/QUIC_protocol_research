@@ -3,6 +3,37 @@ Epoch-based metrics collection for parameter change handling.
 
 Provides data structures and management for collecting metrics during
 stable parameter periods (epochs), with settling time support.
+
+The measurement problem this solves
+-----------------------------------
+Parameters change *during* a run, either from a UI slider or from a Q-learning
+agent. A congestion window does not adopt new behaviour instantly, so samples
+taken immediately after a change reflect a mixture of the old and new
+configurations. Averaging across a whole run would blend every configuration
+tried into a single meaningless figure.
+
+An epoch is one period during which the parameters were held constant. When a
+change occurs, the current epoch closes, a settling delay elapses with no
+samples recorded, and a new epoch then begins. Each epoch therefore carries
+metrics attributable to exactly one parameter set, which is what makes
+"configuration A outperformed configuration B" a statement the data supports.
+
+    params change ──> close epoch ──> settle (no sampling) ──> new epoch
+                                       2.0s default
+
+Epochs shorter than the configured minimum are marked invalid rather than
+discarded, so rapid successive changes are visible in the history without
+contaminating the comparison.
+
+Structures: `ParameterSnapshot` (what was set), `EpochMetrics` (what resulted),
+`Epoch` (one stable period pairing the two), `ConnectionEpochHistory` (all
+epochs for a connection), `EpochConfig` (timing policy), and `EpochManager`
+(the state machine driving it).
+
+Connections
+-----------
+Imports from : standard library only (time, json, dataclasses, typing)
+Imported by  : metrics/__init__.py, simulation.worker_process
 """
 
 import time

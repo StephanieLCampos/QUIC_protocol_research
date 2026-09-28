@@ -3,6 +3,38 @@ Result data structures for simulation outputs.
 
 Provides structured storage and export functionality for
 simulation results including metrics, epochs, and parameter history.
+
+`ConnectionResult` holds one connection's outcome; `MultiConnectionResult`
+aggregates all three and owns the cross-connection analysis and every export
+format the project produces.
+
+Exports produced
+----------------
+    export_json                   full structured result
+    export_metrics_history        per-connection time series, 100ms resolution
+    export_epoch_histories        per-epoch aggregates keyed by parameter set
+    export_bottleneck_summary     link-level view of the run
+    export_median_metrics_summary robust central-tendency summary
+
+Robust statistics
+-----------------
+Summaries use trimmed medians rather than means. Runs contain startup
+transients and occasional outliers from scheduling hiccups, and a mean over a
+long run lets a single spike dominate the reported figure. Trimming the
+extremes before taking a median gives a number that reflects steady-state
+behaviour, which is what the comparisons in this study depend on.
+
+Fairness is reported as Jain's index over per-connection throughput, giving one
+comparable number for how evenly the three flows shared the bottleneck; it is
+the headline measure for whether a Q-learning agent improved allocation or
+merely favoured one connection.
+
+Connections
+-----------
+Imports from : standard library only (json, math, statistics, dataclasses,
+               typing, datetime, pathlib)
+Imported by  : simulation/__init__.py, .process_orchestrator
+Writes       : the run's output directory
 """
 
 import json

@@ -3,6 +3,23 @@ Base synthesizer module.
 
 Provides abstract base class for all data synthesizers and a factory
 for creating synthesizers by application type.
+
+Defines `DataPacket` (the unit yielded by every synthesizer), `BaseSynthesizer`
+(the interface each application model implements), and `SynthesizerFactory`.
+
+Registry-based factory
+----------------------
+The factory holds a class-level `_synthesizers` mapping that starts empty and
+is filled by `register()` calls made at the bottom of each synthesizer module.
+Consequently the factory only knows about a type once that module has been
+imported, which the package `__init__` guarantees. This indirection exists so
+new application types can be added without editing the factory itself.
+
+Connections
+-----------
+Imports from : standard library only (abc, dataclasses, typing)
+Imported by  : .video_streaming, .file_transfer, .conference_call (each of
+               which registers itself here), synthesizers/__init__.py
 """
 
 from abc import ABC, abstractmethod
@@ -82,6 +99,10 @@ class BaseSynthesizer(ABC):
 class SynthesizerFactory:
     """Factory for creating synthesizers by application type."""
 
+    # Populated at import time by register() calls in each synthesizer module,
+    # rather than declared here. Keeping the mapping empty by default means the
+    # factory has no compile-time knowledge of its implementations, so a new
+    # application type is added purely by writing and importing its module.
     _synthesizers: Dict[str, type] = {}
 
     @classmethod

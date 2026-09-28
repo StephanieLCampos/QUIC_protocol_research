@@ -1,12 +1,21 @@
 """
-Run different application types through wireless bottleneck scenarios.
+Example: every application type across every wireless scenario.
 
-This shows how to test video_streaming, file_transfer, and conference_call
-through various wireless conditions.
+Sweeps the three workloads (video streaming, file transfer, conference call)
+through the predefined scenarios, showing how each application's characteristic
+metric responds to different link conditions.
 
-Usage:
-    docker run -it --rm --privileged -v $(pwd):/workspace quic-wireless \
-        bash -c "cd /workspace/code && python3 examples/run_app_through_bottleneck.py"
+This is the example that demonstrates the project's central comparison: the
+same link affects a throughput-oriented workload very differently from a
+latency- or jitter-sensitive one.
+
+Runs against the loopback interface and so is illustrative rather than
+precisely shaped; see run_app_with_real_bottleneck.py for the veth variant.
+
+Connections:
+    Imports from: wireless_bottleneck (WirelessBottleneck, get_scenario,
+                  list_scenarios), simulation.runner (SimulationRunner)
+    Invoked by:   run directly, inside the project's privileged container
 """
 
 import asyncio

@@ -3,6 +3,36 @@ QUIC server implementation for the research project.
 
 The server accepts connections, opens streams, and receives
 synthesized data from clients for metric collection.
+
+One shared server endpoint receives all three competing connections. Beyond
+accepting traffic it performs two jobs specific to this project.
+
+Receiver-side measurement
+-------------------------
+Byte counts are recorded per connection with first and last arrival times, so
+throughput can be computed from what actually *arrived* rather than from what
+the sender offered. Under a bottleneck those two figures diverge sharply, and
+the receiver-side number is the honest one. Only byte counts are retained, not
+payloads, so a long run does not accumulate memory.
+
+Application-level network impairment
+------------------------------------
+`datagram_received` is overridden to optionally drop datagrams at a configured
+rate and to delay delivery by a configured amount with Gaussian jitter. This
+provides loss and latency emulation where Linux tc is unavailable, notably when
+running locally on macOS. Dropped datagrams are simply not delivered upward, so
+QUIC detects the gap through missing acknowledgements and runs its normal loss
+recovery, exactly as it would for a real loss.
+
+Note this impairment is independent of, and can compound with, the tc-based
+`wireless_bottleneck`; ordinarily only one of the two is enabled for a run.
+
+Connections
+-----------
+Imports from : aioquic.asyncio, aioquic.quic
+Imported by  : simulation/__init__.py, .process_orchestrator
+Writes       : server-side metrics file consumed by the orchestrator when
+               running in clients-only mode
 """
 
 import asyncio
@@ -27,7 +57,11 @@ class ServerProtocol(QuicConnectionProtocol):
 
     def __init__(self, *args, loss_rate: float = 0.0, delay_ms: float = 0.0, **kwargs):
         super().__init__(*args, **kwargs)
-        self.streams: Dict[int, int] = {}  #stream_id to bytes received not the data itself
+        # Maps stream_id -> cumulative bytes received. Deliberately stores
+        # counts rather than the payloads themselves: a multi-minute file
+        # transfer would otherwise accumulate hundreds of megabytes that
+        # nothing in this project ever reads back.
+        self.streams: Dict[int, int] = {}
         self.total_bytes_received = 0
         self.handshake_complete = False
         self._data_received_callback: Optional[Callable] = None
@@ -50,10 +84,16 @@ class ServerProtocol(QuicConnectionProtocol):
 
     def datagram_received(self, data, addr):
         """Intercept datagrams to apply simulated loss and propagation delay."""
+        # Drop by simply not forwarding the datagram. QUIC then observes the
+        # gap through missing acknowledgements and runs ordinary loss recovery,
+        # so the emulated loss is indistinguishable to the protocol from a real
+        # one on the wire.
         if self._loss_rate > 0 and random.random() < self._loss_rate:
-            return  #drop and quic will detect via missing ack and trigger loss recovery
+            return
         if self._delay_ms > 0:
-            #gaussian jitter +/-20% around base delay for realistic variance
+            # Gaussian jitter of +/-20% around the base delay. A perfectly
+            # constant delay is unrealistic and would understate the jitter the
+            # conference-call workload exists to measure.
             delay_s = max(0.0, random.gauss(self._delay_ms, self._delay_ms * 0.2)) / 1000.0
             self._loop.call_later(delay_s, self._receive_delayed, data, addr)
         else:

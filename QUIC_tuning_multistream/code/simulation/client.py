@@ -1,8 +1,24 @@
 """
-QUIC client implementation for the research project.
+QUIC client endpoint for the research simulations.
 
-The client connects to the server, opens 3 streams, and sends
-synthesized data while collecting metrics.
+Provides two layers: `ClientProtocol`, a thin aioquic protocol subclass that
+records handshake completion and inbound stream data, and `QuicClient`, the
+higher-level wrapper that connects, opens streams, and pumps synthesizer output
+onto a chosen stream while feeding the metrics collector.
+
+Certificate verification is disabled by default because the project runs
+against a self-signed certificate on loopback or an emulated link; this is a
+test harness, not a production client.
+
+As with the metrics collector, RTT and congestion statistics are read from
+aioquic's private recovery object (`_quic._loss`), since no public accessor
+exists. Those reads are guarded so a version change degrades the statistic
+rather than failing the run.
+
+Connections:
+    Imports from: aioquic.asyncio, synthesizers.base (DataPacket),
+                  metrics.collector (MetricsCollector)
+    Imported by:  simulation/__init__.py, simulation.runner
 """
 
 import asyncio
@@ -69,7 +85,13 @@ class ClientProtocol(QuicConnectionProtocol):
         self._quic.send_stream_data(stream_id, data, end_stream=end_stream)
 
     def get_rtt(self) -> Optional[float]:
-        """Get the current smoothed RTT."""
+        """
+        Return aioquic's current smoothed RTT estimate, or None.
+
+        Reads private recovery state, as aioquic publishes no accessor for it.
+        Returns None rather than raising when the attribute is absent so that
+        callers can simply skip the sample.
+        """
         try:
             return self._quic._loss._rtt_smoothed
         except AttributeError:
@@ -141,8 +163,10 @@ class QuicClient:
         if not self.verify_cert:
             configuration.verify_mode = False
 
-        # connect() returns an async context manager
-        # Store it so we can properly close it later
+        # aioquic's connect() is an async context manager, but the connection
+        # must outlive this function. The context manager is therefore entered
+        # manually here and retained on self so close() can exit it later;
+        # a plain `async with` would tear the connection down on return.
         self._connection_cm = connect(
             self.host,
             self.port,
@@ -214,7 +238,10 @@ class QuicClient:
                 if rtt is not None and rtt > 0:
                     metrics_collector.record_rtt_sample(rtt)
 
-            # Allow event loop to process
+            # Yield to the event loop without delaying: this lets aioquic
+            # actually flush datagrams and process incoming ACKs between
+            # packets. Without it a tight generator loop would starve the
+            # transport and distort the measurement.
             await asyncio.sleep(0)
 
         return total_bytes
@@ -225,7 +252,10 @@ class QuicClient:
             try:
                 await self._connection_cm.__aexit__(None, None, None)
             except Exception:
-                pass  # Ignore errors during cleanup
+                # Teardown errors are swallowed deliberately: the run's metrics
+                # are already collected by this point, and a noisy close must
+                # not fail an otherwise successful measurement.
+                pass
 
     def get_protocol(self) -> Optional[ClientProtocol]:
         """Get the current protocol instance."""

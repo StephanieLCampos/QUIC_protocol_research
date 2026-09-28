@@ -1,6 +1,28 @@
 /**
- * QUIC 3-Connection Dashboard - Real-time WebSocket client
- * With Q-Learning visualization and per-epoch delta throughput
+ * QUIC 3-Connection Dashboard - real-time WebSocket client.
+ *
+ * Front-end for the live dashboard. Opens a WebSocket to the FastAPI server,
+ * renders incoming metrics for all three connections, and sends parameter and
+ * network-condition changes back.
+ *
+ * Responsibilities:
+ *   - maintain the WebSocket connection and reconnect if it drops
+ *   - render per-connection throughput, RTT, jitter and loss as they arrive
+ *   - display Q-learning actions and their outcomes as the agent runs
+ *   - translate the single "quality" slider into concrete network parameters
+ *   - debounce slider input so dragging does not flood the server with
+ *     bottleneck reconfigurations
+ *
+ * Throughput is displayed from the per-epoch delta rather than a cumulative
+ * average, so the graph responds visibly when a parameter or the link changes.
+ *
+ * Connections:
+ *   Served by  : web/server.py, alongside index.html and styles.css
+ *   Talks to   : WebSocket /ws for metrics; POST routes for parameter and
+ *                network updates
+ *   Mirrors    : the quality-to-parameter mapping in wireless_bottleneck's
+ *                bottleneck.py, which must be kept in step with
+ *                qualityToParams() below
  */
 
 let ws = null;

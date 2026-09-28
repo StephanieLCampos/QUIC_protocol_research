@@ -46,6 +46,14 @@ Dynamic parameters are tuned per-connection to optimize for different goals:
 - **cubic_max_idle_time** (0.5-5.0):
     Seconds of idle before resetting cwnd.
     Real-time traffic (video/conference) prefers lower values.
+
+Connections
+-----------
+Imports from : standard library only (dataclasses, typing)
+Imported by  : config/__init__.py, config.multi_connection_config,
+               simulation.worker_process (applies DYNAMIC_PARAMETERS to this
+               process's aioquic globals), web.control_server (validates UI
+               slider updates against DYNAMIC_PARAMETERS)
 """
 
 from dataclasses import dataclass

@@ -1,8 +1,23 @@
 """
-Parameter space definitions for grid search.
+Parameter space definition for the Generation 1 grid search.
 
-Defines the values for each parameter and provides methods
-for generating all combinations.
+Enumerates every (application type, initial congestion window, max ACK delay,
+loss reduction factor) combination that the sweep will measure, and provides
+the `ParameterCombination` record describing a single point in that space.
+
+The space is 4 x 4 x 4 across three application types, giving 64 combinations
+per application and 192 runs in total. Values are declared as class attributes
+rather than instance state because the space is fixed for the study; changing a
+value here changes the experiment itself, and previously exported CSV files
+would no longer correspond to the new grid.
+
+Note that these values intentionally mirror those in `config.parameters`. This
+module is the authority for what the sweep enumerates, while config.parameters
+additionally supplies the hand-tuned comparison presets.
+
+Connections:
+    Imports from: standard library only (dataclasses, typing, itertools)
+    Imported by:  grid_search/__init__.py, .scheduler, .executor, main.py
 """
 
 from dataclasses import dataclass

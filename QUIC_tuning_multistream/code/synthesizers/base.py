@@ -1,8 +1,23 @@
 """
-Base synthesizer class for data generation.
+Abstract base class and factory for traffic synthesizers.
 
-All application-specific synthesizers inherit from BaseSynthesizer
-and implement the generate() method with their specific patterns.
+Defines the `DataPacket` record yielded by every synthesizer, the
+`BaseSynthesizer` interface that each application model implements, and the
+`SynthesizerFactory` used to construct one by application-type name.
+
+Design note: generated payloads are zero-filled rather than random. Packet
+*content* has no effect on QUIC congestion control, so only the size and the
+emission timing are modelled; zero-filling avoids the CPU cost of generating
+megabytes of random bytes during a timing-sensitive run.
+
+Subclasses must implement `application_type` and the async `generate()`
+iterator; the factory maps the three type names onto their implementations and
+raises ValueError for anything else.
+
+Connections:
+    Imports from: standard library only (abc, typing, dataclasses)
+    Imported by:  .video_streaming, .file_transfer, .conference_call,
+                  synthesizers/__init__.py, simulation.client
 """
 
 from abc import ABC, abstractmethod
@@ -91,7 +106,10 @@ class BaseSynthesizer(ABC):
         """
         self._packet_count += 1
         return DataPacket(
-            data=bytes(size),  # Create zero-filled bytes (content doesn't matter)
+            # Zero-filled rather than random: QUIC's congestion control reacts
+            # only to packet size and timing, and generating random bytes would
+            # add CPU cost inside a timing-sensitive generation loop.
+            data=bytes(size),
             size=size,
             timestamp=timestamp,
             packet_type=packet_type,
@@ -123,7 +141,9 @@ class SynthesizerFactory:
         Raises:
             ValueError: If the application type is not recognized.
         """
-        # Import here to avoid circular imports
+        # Imported inside the function rather than at module scope: each
+        # synthesizer module imports BaseSynthesizer from this file, so a
+        # top-level import here would form an import cycle.
         from .video_streaming import VideoStreamingSynthesizer
         from .file_transfer import FileTransferSynthesizer
         from .conference_call import ConferenceCallSynthesizer

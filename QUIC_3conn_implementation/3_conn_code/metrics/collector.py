@@ -3,6 +3,37 @@ Metrics collector for real-time data collection during simulations.
 
 Collects raw data during QUIC simulations and provides methods
 to retrieve calculated metrics.
+
+One collector lives inside each worker process, accumulating events for that
+connection alone: packets sent, RTT and RTTVAR samples, congestion-window and
+bytes-in-flight samples, and handshake timing.
+
+Reading aioquic internals
+-------------------------
+aioquic publishes no API for RTT, congestion window or loss, so this collector
+reads its private recovery object (`_loss`, and fields such as
+`_rtt_smoothed`, `_rtt_latest`, `_rtt_variance`, `congestion_window`,
+`bytes_in_flight`). Every access is guarded, so an aioquic version change
+degrades the affected metric to zero rather than failing a run in progress.
+This is the main point of coupling to a specific aioquic internal layout.
+
+Delta throughput
+----------------
+`get_throughput_acked_delta` reports the rate over the window since it was last
+called, rather than a cumulative average. This matters for the Q-learning
+agents: a cumulative figure becomes steadily less sensitive as a run lengthens,
+so a parameter change late in a long run would barely move it and the learning
+signal would vanish. The delta figure stays responsive throughout.
+
+Jitter is derived from aioquic's RTTVAR (RFC 6298) rather than computed from
+consecutive smoothed-RTT samples, since smoothing deliberately suppresses
+exactly the variation jitter is meant to capture.
+
+Connections
+-----------
+Imports from : .calculator (MetricsCalculator, MetricsResult)
+Imported by  : metrics/__init__.py, simulation.worker_process
+Reads from   : aioquic connection internals (private recovery state)
 """
 
 import time

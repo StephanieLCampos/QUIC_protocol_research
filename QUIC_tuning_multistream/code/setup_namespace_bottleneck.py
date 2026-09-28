@@ -1,15 +1,27 @@
 """
-Setup and test wireless bottleneck on virtual network interface.
+Bottleneck setup over a virtual ethernet (veth) pair.
 
-This script creates a bottleneck on a veth interface where tc rules
-actually work (unlike loopback).
+Applies a wireless scenario to a veth interface rather than to loopback, and
+runs a QUIC simulation across it.
 
-Usage:
-    # First, set up the network namespace (in another terminal):
-    bash setup_network_namespace.sh
-    
-    # Then run this script:
-    python3 setup_namespace_bottleneck.py
+Why veth instead of loopback
+----------------------------
+The loopback interface does not honour tc shaping in the way a real NIC does:
+the kernel short-circuits much of the queueing path, so rate limits and delays
+applied to `lo` are substantially ignored. A veth pair behaves like a genuine
+link, which is what makes the configured bandwidth, delay and loss actually
+take effect. This distinction is the reason several scripts in this project
+exist in both a loopback and a veth variant.
+
+Requires the namespace and veth pair to be created first, by
+`setup_network_namespace.sh`; the checks at the top of this module report
+clearly if that step has been skipped.
+
+Connections:
+    Imports from: wireless_bottleneck (WirelessBottleneck, get_scenario),
+                  simulation.runner (SimulationRunner)
+    Depends on:   setup_network_namespace.sh having been run
+    Invoked by:   run directly
 """
 
 import sys

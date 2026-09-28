@@ -2,6 +2,56 @@
 Process orchestrator for managing multiple QUIC connection processes.
 
 Coordinates worker processes, handles IPC, and manages simulation lifecycle.
+
+This is the control centre of the Generation 2 system. It owns the shared QUIC
+server, spawns one worker process per connection, relays parameter changes,
+collects telemetry, applies the network bottleneck, and assembles the final
+result set.
+
+Run sequence
+------------
+    1. apply the wireless bottleneck (interface chosen by deployment mode)
+    2. start the shared QUIC server
+    3. spawn three worker processes, one per connection
+    4. release the start barrier so all three begin together
+    5. drive either the ML control loop or a plain metrics loop for `duration`
+    6. signal STOP, drain results, join and then terminate stragglers
+    7. read tc counters, await the RTT probe, export Q-learning history
+    8. build and return the combined result
+
+Deployment modes
+----------------
+The same class serves three topologies, selected by constructor flags and the
+RUN_MODE environment variable:
+
+    normal        server and all three clients in one process tree
+    server_only   only the QUIC server, for the docker-compose server container
+    clients_only  only the workers, connecting to a server container
+
+Interface selection follows from this: `eth0` under docker-compose, `veth0` in
+a single privileged container, and `lo` when running locally on macOS. Only the
+first two shape traffic accurately; loopback applies RTT but not true rate
+limiting.
+
+Shutdown design
+---------------
+Shutdown is deliberately concurrent rather than sequential. FINISHED messages
+are drained on a daemon thread that runs *while* workers are still exiting,
+because a worker terminated mid-write can leave a partial pipe write that would
+block a reader indefinitely. Joins are likewise performed on threads with
+bounded timeouts, and any worker still alive afterwards is terminated. The goal
+is that a hung connection degrades that connection's results rather than
+hanging the whole run.
+
+Connections
+-----------
+Imports from : config.multi_connection_config, .worker_process
+               (worker_process_entry), .server, .ml_controller, .result,
+               .ipc_messages, .token_bucket, wireless_bottleneck (optional)
+Imported by  : main.py, simulation/__init__.py, web.control_server,
+               examples/run_3conn_through_bottleneck.py
+Environment  : SERVER_CONTROL_URL, RUN_MODE, SKIP_VETH, USE_VETH_INTERFACE,
+               ENABLE_NETWORK_RTT_PROBE
 """
 
 import asyncio
@@ -23,7 +73,15 @@ _SERVER_CONTROL_URL: str = os.environ.get("SERVER_CONTROL_URL", "")
 
 
 def _forward_to_server(url: str, payload: bytes) -> None:
-    """Fire-and-forget POST to the server-side control endpoint (runs in a daemon thread)."""
+    """
+    Post a control command to the server container, ignoring the outcome.
+
+    In the docker-compose topology the two traffic directions are shaped by
+    different containers: the clients container shapes upload, the server
+    container shapes download. A UI slider change must therefore reach both.
+    This is called on a daemon thread and swallows every error, because a
+    failure to reach the peer container must never stall the simulation.
+    """
     try:
         req = urllib.request.Request(
             url, data=payload,
@@ -55,7 +113,10 @@ except ImportError:
 class ProcessOrchestrator:
     """Orchestrates multiple QUIC connection processes."""
 
-    # Parameter bounds for validation (dynamic parameters only)
+    # Accepted ranges for every tunable parameter. Enforced here, at the
+    # orchestrator boundary, so that both UI sliders and Q-learning agents are
+    # validated before a value is sent to a worker. Out-of-range values are
+    # rejected rather than clamped, so a faulty controller fails visibly.
     PARAM_BOUNDS = {
         "loss_reduction_factor": (0.1, 0.9),
         "cubic_c": (0.1, 1.0),
@@ -94,7 +155,10 @@ class ProcessOrchestrator:
 
         self.workers: Dict[int, Process] = {}
         self.command_pipes: Dict[int, Pipe] = {}
-        self.metrics_queue: Queue = Queue(maxsize=10000)  # Prevent unbounded memory growth
+        # Bounded queue: three workers publishing every 100ms for a long
+        # training run would otherwise grow without limit if the consumer
+        # fell behind.
+        self.metrics_queue: Queue = Queue(maxsize=10000)
         self.start_barrier: Optional[Barrier] = None
         self.server: Optional[QuicServer] = None
         self.ml_controller: Optional[MLController] = None
@@ -137,7 +201,11 @@ class ProcessOrchestrator:
         
         # Only setup barrier and workers in normal or clients-only mode
         if not self.server_only:
-            self.start_barrier = Barrier(4)  # 3 workers + 1 main
+            # Barrier party count is 4: the three workers plus the main
+            # process, which waits on it too. That makes the orchestrator begin
+            # collecting metrics at the same instant the connections start,
+            # rather than some indeterminate time earlier.
+            self.start_barrier = Barrier(4)
 
             if self.ml_callback:
                 self.ml_controller = MLController(
@@ -183,7 +251,18 @@ class ProcessOrchestrator:
             self.workers[conn_config.connection_id] = process
 
     async def _run_network_rtt_probe(self, host: str, duration: float) -> Dict[str, object]:
-        """Run a lightweight ICMP ping probe and return RTT summary stats."""
+        """
+        Measure path RTT independently of QUIC, using ICMP ping.
+
+        QUIC's own RTT includes queueing delay caused by the connections
+        themselves, so it cannot distinguish a slow path from self-inflicted
+        bufferbloat. A concurrent ping gives an outside view of the same path
+        for comparison.
+
+        Every failure mode (ping absent, timeout, no parsable samples) returns
+        a dict with available=False rather than raising, since the probe is
+        supplementary and must never fail a run.
+        """
         if not host:
             return {"available": False, "error": "missing_host"}
 
@@ -253,7 +332,17 @@ class ProcessOrchestrator:
 
     @staticmethod
     def _extract_tc_sent_bytes(stats: dict) -> int:
-        """Extract transmitted bytes from tc qdisc stats output."""
+        """
+        Recover the byte count from tc's free-form statistics output.
+
+        Preference is given to the root htb qdisc, whose counter reflects
+        everything the shaper actually passed; any "Sent N bytes" line is
+        accepted as a fallback. Returns 0 when nothing parses, which callers
+        treat as "no tc measurement available" rather than as zero traffic.
+
+        This figure is the independent, kernel-level check on the
+        application's own throughput accounting.
+        """
         raw = stats.get("raw_output", "") if isinstance(stats, dict) else ""
         if not raw:
             return 0
@@ -382,6 +471,10 @@ class ProcessOrchestrator:
                 await asyncio.to_thread(self.start_barrier.wait, 10.0)
                 print(f"[Orchestrator] All workers synchronized, starting metric collection")
             except threading.BrokenBarrierError:
+                # A broken barrier means at least one worker never reached the
+                # start line, so the run would measure fewer than three
+                # competing connections. Fail loudly instead of silently
+                # producing unusable results.
                 raise RuntimeError("Workers failed to start - barrier timeout after 10s")
 
             if self.ml_controller:
@@ -410,7 +503,10 @@ class ProcessOrchestrator:
                 except Exception:
                     pass  # Worker might already be finished
 
-            #start drain + joins in parallel then drain must run while workers are still writing FINISHED to the queue
+            # Drain and join run concurrently, and the ordering matters: the
+            # workers write their FINISHED messages as they shut down, so a
+            # drain that only began after joining would miss them and every
+            # connection would report empty final results.
             drain_thread = threading.Thread(target=self._collect_final_results, daemon=True)
             drain_thread.start()
 
@@ -423,6 +519,9 @@ class ProcessOrchestrator:
             for t in join_threads:
                 t.join(timeout=8)  #slightly longer than 6s worker join
 
+            # Any worker still alive after the bounded join is terminated.
+            # Results already drained from the queue are kept, so a single
+            # unresponsive connection costs only its own final message.
             for conn_id, process in self.workers.items():
                 if process.is_alive():
                     print(f"[Orchestrator] Terminating worker {conn_id}")
@@ -486,7 +585,9 @@ class ProcessOrchestrator:
                     elif msg.msg_type == MessageType.FINISHED:
                         self.final_results[msg.connection_id] = msg.payload
                 except Exception as e:
-                    break  # Queue empty or connection closed
+                    # Queue drained, or the far end closed. Either way, stop
+                    # draining this tick and resume on the next interval.
+                    break
 
             if current_metrics:
                 self.metrics_history.append({
@@ -586,6 +687,20 @@ class ProcessOrchestrator:
         This handles bottleneck scenarios where file transfer sends 100x more
         than arrives through the bottleneck.
 
+        Why matching is needed at all: the server sees three anonymous QUIC
+        connections and has no way to know which carries which application. The
+        pairing must therefore be reconstructed after the fact from volume.
+
+        Pass 1 matches on near-equal byte counts, working from the smallest
+        sender upward because small, unthrottled flows arrive nearly intact and
+        so match unambiguously. Pass 2 handles flows the bottleneck distorted
+        too much for that, pairing what remains by rank on the assumption that
+        relative ordering survives even when absolute volume does not.
+
+        This is a heuristic. Two connections with near-identical volumes could
+        in principle be transposed, which would misattribute receiver-side
+        throughput between them.
+
         Returns dict mapping client_conn_id -> server_conn_id.
         """
         if not self.server_metrics or not self.final_results:
@@ -672,8 +787,13 @@ class ProcessOrchestrator:
             self._load_server_metrics()
 
         # Match server connections to client connections
+        # _match_server_to_client_connections already returns a mapping keyed
+        # by client id, which is the direction the code below needs.
         server_to_client_map = self._match_server_to_client_connections()
-        # Invert to get client_id -> server_id mapping
+        # Note: the inverted mapping on the next line is computed but never
+        # read; it is a leftover from an earlier revision, as the two trailing
+        # comments record. Retained rather than removed to keep this pass
+        # documentation-only.
         client_to_server_map = {v: k for k, v in server_to_client_map.items()}
         # Actually we want client_id -> server_id, so the original is correct
         # matches is client_id -> server_id
@@ -889,10 +1009,13 @@ class ProcessOrchestrator:
             return False
 
         # Validate parameter bounds
+        # Validate before dispatch. Rejecting here keeps an invalid value from
+        # reaching aioquic's globals, where it could destabilise congestion
+        # control in a way that is hard to attribute after the fact.
         if param_name in self.PARAM_BOUNDS:
             min_val, max_val = self.PARAM_BOUNDS[param_name]
             if not (min_val <= value <= max_val):
-                return False  # Reject out-of-bounds value
+                return False
 
         try:
             msg = IPCMessage(
@@ -903,7 +1026,9 @@ class ProcessOrchestrator:
             )
             pipe.send(msg.to_dict())
 
-            # Update local config copy
+            # Mirror the change into the orchestrator's own config copy. The
+            # worker holds the authoritative value; this copy is what the UI
+            # and the exported results read, so the two must be kept in step.
             config = self.config.get_config(connection_id)
             if config and hasattr(config, param_name):
                 setattr(config, param_name, value)

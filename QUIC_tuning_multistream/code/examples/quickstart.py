@@ -1,10 +1,18 @@
 """
-Quick Start: Minimal example of wireless bottleneck with QUIC simulation.
+Example: minimal wireless bottleneck run.
 
-This is the simplest possible example showing the essential steps.
+The smallest complete demonstration of the workflow: pick a scenario, apply it
+as a context manager, and run one QUIC simulation across it. Intended as the
+first example to read.
 
-Usage:
-    sudo python3 examples/quickstart.py
+Uses the loopback interface, so it verifies that the pieces connect but does
+not produce accurately shaped traffic; see run_app_with_real_bottleneck.py for
+the veth-based variant that enforces the link properly.
+
+Connections:
+    Imports from: wireless_bottleneck (WirelessBottleneck, get_scenario),
+                  simulation.runner (SimulationRunner)
+    Invoked by:   run directly (`sudo python3 examples/quickstart.py`)
 """
 
 import asyncio

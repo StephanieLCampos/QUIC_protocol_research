@@ -1,4 +1,22 @@
-/* QUIC 3-Connection Dashboard Styles */
+/*
+ * QUIC 3-Connection Dashboard - stylesheet.
+ *
+ * Presentation for the live dashboard. Uses a dark palette throughout, since
+ * the dashboard is typically watched for the duration of a long run alongside
+ * terminal output.
+ *
+ * Organisation, in source order:
+ *   - reset and base layout
+ *   - network condition sliders
+ *   - per-connection metric panels and parameter controls
+ *   - Q-learning action display
+ *
+ * Connections:
+ *   Applied to : index.html, served by web/server.py
+ *   Note       : index.html requests this file with a cache-busting query
+ *                string (styles.css?v=NN); bump that version there when
+ *                changing this file, or browsers may serve a stale copy.
+ */
 
 * {
     box-sizing: border-box;

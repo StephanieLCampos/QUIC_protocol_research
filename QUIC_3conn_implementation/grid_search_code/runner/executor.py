@@ -3,6 +3,27 @@ Grid search executor.
 
 Orchestrates running all parameter combinations and collecting results.
 Supports resumability and parallel execution.
+
+Parallelism
+-----------
+Combinations are distributed across a ProcessPoolExecutor, each worker running
+one combination in its own process against its own server port. Parallel
+execution is safe here, unlike in the Generation 1 sweep, precisely because
+every combination already runs in an isolated process with its own copy of
+aioquic's globals; allocating a distinct port per worker keeps their traffic
+from interfering.
+
+Failures are recorded rather than raised. A combination that fails leaves no
+result file, so the scheduler reports it as pending again and it is retried on
+the next invocation.
+
+Connections
+-----------
+Imports from : config.parameter_space, runner.single_connection_runner
+               (SingleConnectionRunner, RunResult),
+               scheduler.resumable_scheduler (ResumableScheduler)
+Imported by  : main.py
+Writes       : one CSV per completed combination
 """
 
 import csv

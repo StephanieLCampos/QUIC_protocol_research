@@ -1,8 +1,34 @@
 """
-Shared token bucket for application level bandwidth limiting used when OS level traffic shaping (wireless_bottleneck) unavailable
-All 3 worker processes share same token bucket so they compete for fixed bandwidth budget for meaningful Q-learning optimization
-without bandwidth cap file_transfer dominates at 100+ Mbps because theres no real congestion on loopback interface
-With cap all 3 connections must share a limited resource and quics congestion control actually responds to backpressure
+Shared token bucket for application-level bandwidth limiting, used when
+OS-level traffic shaping (wireless_bottleneck) is unavailable.
+
+All three worker processes share one bucket, so they compete for a fixed
+bandwidth budget. Without a cap, file transfer dominates at 100+ Mbps because
+loopback presents no real congestion; with a cap the three connections must
+share a limited resource, and QUIC's congestion control actually responds to
+backpressure. Meaningful contention is a precondition for the Q-learning agents
+having anything to optimise.
+
+Process safety
+--------------
+The bucket is shared across processes, not threads, so its state lives in
+`multiprocessing.Value` cells guarded by a `multiprocessing.Lock` rather than
+in ordinary attributes; plain attributes would be copied into each child and
+the three workers would silently get a full bucket each.
+
+Burst sizing
+------------
+`_max_tokens` is the larger of 65536 bytes or 5% of one second of capacity.
+The floor matters: a bucket smaller than the largest single packet (a 64KB file
+chunk or a ~50KB video I-frame) could never accumulate enough tokens for that
+packet and `consume_async` would spin forever. The 5% ceiling was chosen after
+a 100ms burst window was found to permit roughly 2500ms of bufferbloat.
+
+Connections
+-----------
+Imports from : standard library only (asyncio, time, multiprocessing)
+Imported by  : simulation.process_orchestrator (constructs and shares it),
+               simulation.worker_process (consumes before each send)
 """
 
 import asyncio

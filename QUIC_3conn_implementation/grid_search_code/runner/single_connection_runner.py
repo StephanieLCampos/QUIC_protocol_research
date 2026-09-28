@@ -3,6 +3,24 @@ Single connection runner for grid search.
 
 Runs one QUIC connection with specified parameters in an isolated process.
 This ensures aioquic module-level globals don't interfere between runs.
+
+Process isolation is mandatory, not a convenience: aioquic holds its CUBIC
+tuning in module-level globals, so two combinations executed in one process
+would overwrite each other's parameters and silently produce results
+attributed to the wrong configuration. A fresh process per combination
+guarantees a clean set of globals, and is also what makes the parallel
+execution in executor.py safe.
+
+Note the sys.path insertion at the top of this module: the runner reuses the
+simulation, synthesizer and metrics code from ../3_conn_code rather than
+duplicating it, so the grid search measures with exactly the same instruments
+as the live system.
+
+Connections
+-----------
+Imports from : config.parameter_space (ParameterCombination),
+               ../3_conn_code (simulation and metrics, via sys.path)
+Imported by  : runner.executor
 """
 
 import asyncio

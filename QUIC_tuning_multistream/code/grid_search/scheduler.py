@@ -1,9 +1,34 @@
 """
-Resumable scheduler for grid search.
+Resumable scheduling for the grid search.
 
-Enables crash recovery by tracking completed simulations via
-existing CSV files. When restarted, skips already-completed
-combinations and continues from where it stopped.
+Determines which parameter combinations still need to run. A full sweep takes
+hours, so it must survive interruption; this scheduler provides that without a
+state file or database.
+
+How resumability works
+----------------------
+Completion is inferred from the filesystem. Each result CSV is named after the
+exact parameter combination that produced it, so the presence of that file is
+proof the combination has been measured. Restarting therefore requires no
+recovery step: the scheduler re-derives progress by checking which expected
+filenames exist.
+
+    fresh start      -> all 192 combinations pending
+    interrupted at 50 -> the remaining 142 returned
+    finished         -> empty list
+
+One consequence worth knowing: because a file's existence alone marks
+completion, a run interrupted midway through *writing* a CSV would leave a
+truncated file that is then treated as done. In practice each file is a single
+small row written in one call, so the window is negligible.
+
+The filename format here must stay in step with `metrics.exporter`, which
+performs the actual writing; the two construct the same name independently.
+
+Connections:
+    Imports from: .parameter_space (ParameterSpace, ParameterCombination)
+    Imported by:  grid_search/__init__.py, .executor, main.py
+    Reads:        output/measurements/*.csv (existence only, never contents)
 """
 
 from pathlib import Path
@@ -43,7 +68,13 @@ class ResumableScheduler:
         max_ack_delay: float,
         loss_factor: float,
     ) -> str:
-        """Generate the expected filename for a combination."""
+        """
+        Build the CSV filename a given combination would produce.
+
+        Must remain identical to MetricsExporter.get_filename: the two derive
+        the same name independently, and a divergence would make finished work
+        look pending and be silently repeated.
+        """
         return f"{app_type}_{initial_cw}_{max_ack_delay}_{loss_factor}.csv"
 
     def is_completed(
@@ -109,6 +140,10 @@ class ResumableScheduler:
         Returns:
             Number of CSV files in the output directory.
         """
+        # Counts every CSV present rather than re-checking each expected name.
+        # Faster, but it assumes the directory holds only results from the
+        # current parameter space; stale files from an earlier grid would
+        # inflate the count.
         return len(list(self.output_dir.glob("*.csv")))
 
     def get_progress(self) -> Tuple[int, int]:
@@ -154,5 +189,8 @@ class ResumableScheduler:
 
         Warning: This deletes all CSV files in the output directory.
         """
+        # Destructive: every result file is removed, which resets the sweep to
+        # a fresh start. Exposed through `main.py clear`, which prompts for
+        # confirmation before calling this.
         for csv_file in self.output_dir.glob("*.csv"):
             csv_file.unlink()

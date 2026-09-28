@@ -1,8 +1,22 @@
 """
-QUIC server implementation for the research project.
+QUIC server endpoint for the research simulations.
 
-The server accepts connections, opens 3 streams, and receives
-synthesized data from clients for metric collection.
+Accepts client connections, accumulates received stream data, and reports the
+byte totals used to cross-check client-side throughput. `ServerProtocol`
+handles per-connection events; `QuicServer` owns the listening socket and the
+set of live protocol instances.
+
+The server exposes callback hooks (`set_data_received_callback`,
+`set_connection_callback`) so a harness can observe reception without
+subclassing, and echoes a short acknowledgement on client-initiated
+bidirectional streams so that round-trip-sensitive workloads such as the
+conference-call model have return traffic to measure against.
+
+Connections:
+    Imports from: aioquic.asyncio, aioquic.quic
+    Imported by:  simulation/__init__.py, simulation.runner,
+                  examples.run_app_with_real_bottleneck
+    Requires:     TLS certificate and key (see certs/, paths from config.settings)
 """
 
 import asyncio
@@ -57,9 +71,14 @@ class ServerProtocol(QuicConnectionProtocol):
             if self._data_received_callback:
                 self._data_received_callback(stream_id, len(event.data))
 
-            # Echo back for bidirectional testing (conference calls)
-            # Only echo on bidirectional streams (even stream IDs from client)
-            if stream_id % 4 == 0:  # Client-initiated bidirectional
+            # Echo a short acknowledgement so latency- and jitter-sensitive
+            # workloads have return traffic to measure against.
+            #
+            # The stream_id % 4 == 0 test selects client-initiated
+            # bidirectional streams: QUIC encodes stream type in the two low
+            # bits of the ID, where 0b00 is exactly that class. Echoing on a
+            # unidirectional stream would be a protocol violation.
+            if stream_id % 4 == 0:
                 # Send acknowledgment
                 self._quic.send_stream_data(stream_id, b"ACK", end_stream=False)
 

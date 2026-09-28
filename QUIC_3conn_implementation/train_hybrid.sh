@@ -3,6 +3,18 @@
 # Hybrid Q-Learning Agent Training Script
 # Trains the hybrid (10-feature) agent on multiple scenarios
 #
+# Narrower counterpart to train_agents.sh, covering only the hybrid agent, for
+# iterating on that agent without retraining the other two.
+#
+# As in train_agents.sh, the Q-table checkpoint
+# (results/q_learning_checkpoint_hybrid.json) is preserved between scenarios so
+# learning accumulates; --clear discards it once at the start. The script
+# re-invokes itself with --run-training inside tmux so a long run survives the
+# terminal closing.
+#
+# Usage
+#   ./train_hybrid.sh              # train, resuming from the existing Q-table
+#   ./train_hybrid.sh --clear      # discard prior learning, then train
 
 # Colors for output
 GREEN='\033[0;32m'

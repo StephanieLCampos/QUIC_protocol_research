@@ -3,6 +3,30 @@ Metrics calculation utilities.
 
 Provides functions for calculating the 6 key performance metrics
 from raw measurement data.
+
+Stateless calculation layer: every method is pure arithmetic over values the
+collector gathered, and `MetricsResult` is the container carried through IPC,
+aggregation and export.
+
+Throughput is reported twice, and the distinction matters when reading results:
+
+    throughput        bytes the application offered to the transport
+    throughput_acked  bytes the peer actually acknowledged
+
+Under a bottleneck these diverge sharply, because offered data can sit in
+buffers or be dropped. The acknowledged figure is the one that reflects real
+delivery; the offered figure is retained because comparing the two reveals how
+much data the link absorbed or discarded.
+
+As in Generation 1, latency is derived as RTT/2 and so assumes a symmetric
+path, and every calculation returns 0.0 for its degenerate case rather than
+raising.
+
+Connections
+-----------
+Imports from : standard library only (statistics, typing, dataclasses)
+Imported by  : metrics/__init__.py, metrics.collector,
+               simulation.worker_process
 """
 
 import statistics

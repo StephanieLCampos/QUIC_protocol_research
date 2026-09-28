@@ -1,6 +1,31 @@
 """
 FastAPI server for the QUIC 3-Connection Dashboard.
 Provides REST API and WebSocket for real-time updates.
+
+Serves the browser dashboard and exposes the running simulation for live
+observation and control.
+
+    GET  /                static dashboard (index.html, dashboard.js, styles.css)
+    WS   /ws              pushes metrics for all three connections as they arrive
+    POST parameter route  adjusts one CUBIC parameter on one connection
+    POST network route    overrides bandwidth, delay, jitter and loss
+
+WebSocket rather than polling: metrics arrive every 100ms from three
+connections, and a push channel avoids both the latency and the request
+overhead that polling at that rate would incur. `ConnectionManager` tracks the
+set of live sockets and broadcasts to all of them, so several browser tabs can
+observe one run.
+
+Requests are validated by pydantic models (`ParameterUpdate`,
+`NetworkOverride`) before reaching the orchestrator, which applies its own
+PARAM_BOUNDS check as the authoritative validation.
+
+Connections
+-----------
+Imports from : fastapi, pydantic
+Imported by  : web/__init__.py, main.py (lazily, only with --ui)
+Serves       : web/static/ (index.html, dashboard.js, styles.css)
+Controls     : the live ProcessOrchestrator instance
 """
 
 import asyncio

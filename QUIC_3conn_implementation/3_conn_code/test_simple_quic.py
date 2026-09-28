@@ -1,5 +1,27 @@
 #!/usr/bin/env python3
-"""Simple test of QUIC server/client connectivity."""
+#!/usr/bin/env python3
+"""
+Connectivity check for the QUIC server and client.
+
+Establishes one minimal aioquic connection over loopback with no synthesizers,
+metrics, worker processes or parameter tuning involved.
+
+Purpose: isolate transport-level problems from the rest of the system. If the
+full simulation fails to connect, running this first distinguishes a genuine
+QUIC or TLS certificate fault from a fault in the orchestration layer above it.
+
+Despite the `test_` prefix this is a standalone diagnostic script, not part of
+an automated test suite; the project has no pytest configuration.
+
+Requires the certificates in certs/ and must be run from the 3_conn_code
+directory, as the certificate paths are relative.
+
+Connections
+-----------
+Imports from : aioquic only; no project modules, deliberately, so that a
+               project-side import error cannot affect the result
+Invoked by   : run directly
+"""
 
 import asyncio
 import sys

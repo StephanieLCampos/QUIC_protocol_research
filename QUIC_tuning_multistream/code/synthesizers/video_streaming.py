@@ -1,8 +1,18 @@
 """
-Video streaming data synthesizer.
+Video streaming traffic synthesizer.
 
-Generates H.264-like video frame patterns with I-frames and P-frames
-at realistic sizes and timing intervals.
+Reproduces an H.264-like frame pattern: large I-frames (keyframes) emitted at a
+fixed interval, with small P-frames (predicted frames) in between, paced to a
+target frame rate.
+
+The resulting traffic is bursty and latency-sensitive, which makes this the
+workload used to evaluate the latency dimension of a parameter set. Pacing is
+computed against the run's absolute start time rather than by sleeping a fixed
+interval per frame, so scheduling jitter does not accumulate over a long run.
+
+Connections:
+    Imports from: .base (BaseSynthesizer, DataPacket)
+    Imported by:  synthesizers/__init__.py, SynthesizerFactory
 """
 
 import asyncio
@@ -96,7 +106,10 @@ class VideoStreamingSynthesizer(BaseSynthesizer):
 
             frame_number += 1
 
-            # Wait for next frame time (maintain FPS timing)
+            # Pace to the next frame boundary. The target is computed from the
+            # absolute start time rather than by sleeping a fixed interval each
+            # iteration, so per-frame scheduling overhead does not accumulate
+            # into growing drift over a long run.
             elapsed = time.time() - start_time
             expected_time = frame_number * self.frame_interval
             sleep_time = expected_time - elapsed

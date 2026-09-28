@@ -3,6 +3,20 @@ Video streaming synthesizer.
 
 Generates data patterns that mimic video streaming traffic with
 I-frames and P-frames at realistic intervals.
+
+Large keyframes are emitted at a fixed interval with small predicted frames in
+between, paced to a target frame rate. The resulting traffic is bursty and
+latency-sensitive, which is why this connection is tuned for low latency in the
+three-connection experiment.
+
+Registers itself with SynthesizerFactory under "video_streaming" at import time
+(see the call at the end of this module).
+
+Connections
+-----------
+Imports from : .base (BaseSynthesizer, DataPacket, SynthesizerFactory)
+Imported by  : synthesizers/__init__.py; constructed via SynthesizerFactory
+               in simulation.worker_process
 """
 
 import asyncio

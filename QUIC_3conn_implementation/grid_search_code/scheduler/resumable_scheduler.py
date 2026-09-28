@@ -2,6 +2,22 @@
 Resumable scheduler for grid search.
 
 Tracks completed combinations and enables resuming interrupted searches.
+
+A full sweep runs for hours, so it must survive interruption. Completion is
+inferred from the filesystem rather than from a state file: each combination
+maps to a known result filename, so the presence of that file marks the
+combination done and a restart simply skips it.
+
+This implementation additionally requires the file to be non-empty
+(`st_size > 0`), which closes the gap present in the Generation 1 scheduler
+where a run interrupted mid-write would leave a zero-length file that was
+nonetheless treated as complete.
+
+Connections
+-----------
+Imports from : config.parameter_space (ParameterSpace, ParameterCombination)
+Imported by  : main.py, runner.executor
+Reads        : the results directory (filenames and sizes only)
 """
 
 import sys

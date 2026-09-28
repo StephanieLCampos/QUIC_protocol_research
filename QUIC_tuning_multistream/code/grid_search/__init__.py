@@ -1,8 +1,15 @@
 """
-Grid search module for QUIC parameter optimization.
+Grid search package for QUIC parameter optimization.
 
-This module provides tools for executing a systematic parameter
-sweep across all application types and parameter combinations.
+Drives the systematic parameter sweep that forms the Generation 1 experiment:
+
+    ParameterSpace      enumerates every parameter combination to be tested
+    ResumableScheduler  filters that list down to the combinations not yet run
+    GridSearchExecutor  runs each pending combination and exports its result
+
+Connections:
+    Imports from: .parameter_space, .scheduler, .executor
+    Imported by:  main.py
 """
 
 from .parameter_space import ParameterSpace, ParameterCombination

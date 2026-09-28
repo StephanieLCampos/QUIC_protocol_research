@@ -19,6 +19,31 @@
 #
 # IMPORTANT: --privileged flag is REQUIRED for tc commands to work
 # IMPORTANT: -p 8000:8000 is needed to access the browser UI from host
+#
+# What this image contains and why
+#   iproute2      supplies `tc`, which performs the actual traffic shaping
+#   openssl       generates the self-signed TLS certificates QUIC requires
+#   aioquic       the QUIC implementation under study
+#   fastapi,
+#   uvicorn,
+#   websockets    serve the live dashboard on port 8000
+#
+# Build layout
+#   /app/3_conn_code        the simulation itself (working directory)
+#   /app/wireless_bottleneck  the tc-based network emulation package, placed on
+#                             PYTHONPATH via /app so 3_conn_code can import it
+#   /app/setup_veth.sh      veth creation, run only in single-container mode
+#
+# Entrypoint behaviour
+#   The generated /entrypoint.sh creates a veth pair only when
+#   USE_VETH_INTERFACE=1 (single-container mode, where loopback cannot be
+#   shaped reliably). Under docker-compose SKIP_VETH=1 is set instead and eth0
+#   is shaped directly, so veth setup is skipped.
+#
+# Certificates are generated at build time rather than committed, so the image
+# is self-contained and the keys never enter version control.
+#
+# Used by: docker-compose.yml (all three services build from this image)
 
 FROM python:3.12-slim-bookworm
 

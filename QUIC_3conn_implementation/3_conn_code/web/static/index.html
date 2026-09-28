@@ -1,4 +1,26 @@
 <!DOCTYPE html>
+<!--
+    QUIC 3-Connection Dashboard - page structure.
+
+    Markup for the live dashboard served at http://localhost:8000 during a run.
+    Behaviour lives in dashboard.js and presentation in styles.css; this file
+    supplies only the element structure and the ids those two depend on.
+
+    Layout:
+      - header        run status, elapsed time, aggregate throughput
+      - sliders       manual network condition control (bandwidth, delay,
+                      jitter, loss), applied live to the bottleneck
+      - per-connection panels for video streaming, file transfer and
+        conference call, each showing metrics and CUBIC parameter controls
+      - Q-learning panel showing agent actions and their measured effect
+
+    Element ids here are referenced directly by dashboard.js; renaming one
+    requires the matching change there.
+
+    Connections:
+      Served by : web/server.py
+      Scripts   : dashboard.js        Styles : styles.css
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">

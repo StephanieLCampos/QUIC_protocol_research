@@ -1,10 +1,32 @@
 """
-Command-line interface for wireless bottleneck experiments.
+Command-line interface for the wireless bottleneck module.
 
-Provides commands to:
-- List available scenarios
-- Run experiments with specific scenarios
-- Validate bottleneck setup
+Lets a bottleneck be inspected and applied without writing any Python, which is
+how scenarios are checked and how a link is held open while another process
+runs traffic across it.
+
+Commands:
+    list      enumerate the predefined scenarios with their key settings
+    show      print one scenario's full configuration
+    test      apply a scenario and hold it until interrupted
+    custom    build a bottleneck from explicit capacity/delay/loss arguments
+    validate  run the module self-check (delegates to .validate)
+
+Arguments are accepted in operator units (Mbps, milliseconds, percent) and
+converted to the module's internal base units (bps, seconds, fraction) at the
+boundary.
+
+The `test` and `custom` commands block until Ctrl+C and tear the bottleneck
+down via the context manager, so an interrupted session leaves no tc rules
+applied.
+
+Identical to the Generation 1 copy in QUIC_tuning_multistream.
+
+Connections
+-----------
+Imports from : wireless_bottleneck (WirelessBottleneck, BottleneckConfig,
+               get_scenario, list_scenarios), .validate (lazily)
+Invoked by   : .__main__, i.e. `python -m wireless_bottleneck`
 """
 
 import argparse

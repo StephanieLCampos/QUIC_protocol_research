@@ -3,6 +3,26 @@ QUIC client implementation for the research project.
 
 The client connects to the server, opens streams, and sends
 synthesized data while collecting metrics.
+
+Status: not used on the active code path
+----------------------------------------
+This module is carried over from the Generation 1 design and is exported by
+`simulation/__init__.py`, but nothing in the running system constructs
+`QuicClient`. The three connections are established directly inside
+`simulation.worker_process`, which calls `aioquic.asyncio.connect()` itself.
+
+The reason is the process-isolation architecture: each worker must apply its
+own congestion-control parameters to its own copy of the aioquic globals before
+connecting, so connection setup is bound to the worker's lifecycle rather than
+delegated to a reusable client wrapper.
+
+Retained for reference and as a simpler standalone client example. Treat
+`simulation.worker_process` as the authoritative client implementation.
+
+Connections
+-----------
+Imports from : aioquic.asyncio, aioquic.quic
+Imported by  : simulation/__init__.py (re-export only; no active caller)
 """
 
 import asyncio

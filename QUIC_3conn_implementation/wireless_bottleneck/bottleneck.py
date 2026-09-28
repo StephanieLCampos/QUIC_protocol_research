@@ -1,12 +1,76 @@
 """
-Wireless bottleneck implementation using Linux tc (Traffic Control).
+Wireless bottleneck enforcement via Linux Traffic Control (tc), Generation 2.
 
-This module uses the `tc` command to configure network emulation
-with precise control over bandwidth, delay, loss, and queueing.
+Translates a `BottleneckConfig` into concrete tc queueing disciplines so that
+traffic crossing an interface really is rate limited, delayed and dropped as
+configured. This is kernel-level shaping, not an in-application simulation.
 
-Note: Requires Linux with root/sudo access and iproute2 package installed.
-For macOS/Windows, consider using network namespaces in Docker or
-a Linux VM.
+Qdisc layout
+------------
+    root   handle 1:    HTB    rate limiting, with class 1:11 carrying the rate
+    child  handle 10:   netem  delay, jitter and loss, parented to 1:11
+
+HTB rather than TBF (the Generation 1 choice) because an HTB class rate can be
+modified in place with `tc class change`, whereas TBF required deleting and
+re-adding the qdisc. In-place modification is what allows the dashboard slider
+and the channel-quality walk to retune the link continuously without
+disturbing traffic.
+
+Egress shaping is the default. `apply_ingress=True` selects ingress policing
+instead, which constrains inbound traffic; policing drops rather than queues,
+so it is a blunter instrument and is used where the download direction must be
+limited on an interface whose egress belongs to the peer container.
+
+Channel-quality variation
+-------------------------
+`_vary_realistic_conditions` models a radio link far more realistically than
+the sinusoidal capacity sweep it supplements. A single quality proxy q in
+[0, 1], standing in for SNR, evolves as an Ornstein-Uhlenbeck process:
+
+    dq = theta * (mu - q) + sigma * N(0, 1)
+
+Mean-reverting rather than a plain random walk, so quality wanders but tends
+back toward a long-run mean rather than drifting to an extreme and staying
+there. All four link parameters are then derived from that single q, which is
+the point: on a real radio link bandwidth, delay, jitter and loss are all
+consequences of signal quality and therefore move together, whereas varying
+them independently would produce combinations that never occur in practice.
+
+The mappings are nonlinear where the underlying physics is:
+
+    bandwidth  proportional to q^0.8        sub-linear, approximating the
+                                            discrete MCS steps of a real radio
+    loss       proportional to (1-q)^1.5    super-linear, rare at high SNR and
+                                            severe once quality collapses
+    delay, jitter                           linear in q
+
+Seeding `channel_quality_seed` makes a run reproducible, which matters when
+comparing agents against identical conditions.
+
+Manual override: `apply_manual_override` suspends automatic variation and
+applies explicit values from the dashboard; `release_manual_override` resumes
+it, and for static scenarios immediately restores the scenario's own settings,
+since no background thread would otherwise do so.
+
+Superseded methods
+------------------
+`_setup_qdisc`, `_setup_netem`, `_setup_rate_limit` and `_update_rate_limit`
+are inherited from the earlier TBF-based design and are no longer called by
+`setup()`. They are retained for reference; `_setup_netem_with_rate` and
+`_setup_ingress_policing` are the paths in use.
+
+Privileges: tc requires elevated permissions. `_run_tc_command` attempts each
+command directly and retries under sudo only on a permissions failure.
+
+Connections
+-----------
+Imports from : .config (BottleneckConfig, LossModel, QueueDiscipline),
+               .monitor (BottleneckMonitor, BottleneckMetrics)
+Imported by  : wireless_bottleneck/__init__.py, .cli, .validate,
+               simulation.process_orchestrator
+Mirrored by  : the qualityToParams() mapping in
+               3_conn_code/web/static/dashboard.js, which must be kept in step
+Requires     : Linux, iproute2 (tc), and root or sudo
 """
 
 import subprocess
@@ -93,7 +157,13 @@ class WirelessBottleneck:
         rate_kbps = self.config.capacity_bps // 1000
         loss_pct = self.config.loss_rate * 100
         
-        # Step 1: Create HTB root qdisc for rate limiting
+        # HTB is used here rather than TBF (the Generation 1 choice) because an
+        # HTB class rate can be changed in place with `tc class change`. TBF
+        # required deleting and re-adding the qdisc for every rate change,
+        # which is unworkable for a slider dragged in real time or for a
+        # variation thread retuning the link twice a second.
+        #
+        # Step 1: root HTB qdisc, defaulting unclassified traffic to class 11.
         htb_params = [
             "tc", "qdisc", "add", "dev", self.interface,
             "root", "handle", "1:", "htb", "default", "11"
@@ -109,9 +179,13 @@ class WirelessBottleneck:
         htb_class = [
             "tc", "class", "add", "dev", self.interface,
             "parent", "1:", "classid", "1:11", "htb",
+            # rate and ceil are set equal so the class cannot borrow spare
+            # capacity: the configured rate becomes a hard ceiling, which is
+            # what a bottleneck emulation requires. Leaving ceil higher would
+            # let bursts exceed the intended link rate.
             "rate", f"{rate_kbps}kbit",
-            "ceil", f"{rate_kbps}kbit",  # Hard limit
-            "burst", "15k"  # Allow small bursts
+            "ceil", f"{rate_kbps}kbit",
+            "burst", "15k"  # small allowance so single packets are not stalled
         ]
         
         try:
@@ -140,7 +214,16 @@ class WirelessBottleneck:
             raise
     
     def _setup_ingress_policing(self):
-        """Set up ingress policing for rate limiting incoming traffic."""
+        """
+        Rate-limit inbound traffic with an ingress policer.
+
+        Alternative to egress shaping, used where the direction that needs
+        limiting arrives on this interface and its egress belongs to another
+        container. Policing is blunter than shaping: excess packets are dropped
+        rather than queued, so there is no buffering and the resulting loss
+        pattern is harsher than a real link's. Prefer egress shaping where the
+        topology allows it.
+        """
         rate_kbps = self.config.capacity_bps // 1000
         burst_bytes = self.config.capacity_bps // 8  # 1 second worth of data
         
@@ -285,6 +368,9 @@ class WirelessBottleneck:
     def _start_capacity_variation(self):
         """Start thread for time-varying capacity (or realistic multi-param variation)."""
         self._stop_variation.clear()
+        # Two variation models. The channel-quality walk varies all four link
+        # parameters together from a single quality proxy; the older sinusoidal
+        # model varies capacity alone.
         target = (
             self._vary_realistic_conditions
             if self.config.channel_quality_variation
@@ -302,6 +388,8 @@ class WirelessBottleneck:
             elapsed = time.time() - start_time
             new_capacity = self.config.get_capacity_at_time(elapsed)
 
+            # Skip tc updates while the dashboard holds a manual override, so
+            # automatic variation does not fight the operator's slider.
             if not self._manual_override:
                 self._update_htb_rate(new_capacity)
 
@@ -346,7 +434,15 @@ class WirelessBottleneck:
             print("[ManualOverride] Released — automatic variation will resume on next tick")
 
     def _update_htb_rate(self, new_capacity_bps: int):
-        """Update the HTB class rate limit dynamically."""
+        """
+        Change the link rate in place.
+
+        `tc class change` modifies the live HTB class without tearing down the
+        qdisc hierarchy, so traffic in flight is unaffected. This is the
+        operation that makes continuous retuning possible; failures are warned
+        about rather than raised, since a dropped update simply leaves the
+        previous rate in force until the next tick.
+        """
         rate_kbps = new_capacity_bps // 1000
         try:
             self._run_tc_command([
@@ -392,11 +488,18 @@ class WirelessBottleneck:
         mu = 0.65               # long-run mean quality (slightly below mid-range)
 
         while not self._stop_variation.is_set():
-            # Ornstein-Uhlenbeck step: dq = θ(μ − q) + σ·N(0,1)
+            # Ornstein-Uhlenbeck step: dq = theta*(mu - q) + sigma*N(0,1).
+            # The mean-reversion term is what distinguishes this from a plain
+            # random walk: quality wanders but is pulled back toward mu, so a
+            # long run neither parks at perfect conditions nor decays to zero.
             dq = theta * (mu - q) + cfg.channel_quality_step * rng.gauss(0, 1)
+            # Clamp to [0, 1]; q is a normalised quality proxy, not a rate.
             q = max(0.0, min(1.0, q + dq))
 
-            # Derive parameters from q
+            # All four parameters derive from the same q, because on a real
+            # radio link they are all consequences of signal quality and move
+            # together. Varying them independently would produce combinations
+            # that do not occur in practice.
             capacity = int(
                 cfg.cqv_min_capacity_bps
                 + (cfg.cqv_max_capacity_bps - cfg.cqv_min_capacity_bps) * (q ** 0.8)

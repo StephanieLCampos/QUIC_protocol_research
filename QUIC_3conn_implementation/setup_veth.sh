@@ -1,9 +1,21 @@
 #!/bin/bash
-# Setup veth pair for wireless bottleneck simulation
 #
-# This script creates a virtual ethernet pair (veth0 <-> veth1)
-# that allows tc (traffic control) to properly limit bandwidth.
-# The loopback interface (lo) does not support full tc capabilities.
+# Create a veth pair for wireless bottleneck simulation.
+#
+# Why this is needed
+#   The loopback interface does not honour tc shaping the way a real NIC does:
+#   the kernel bypasses much of the queueing path, so bandwidth limits applied
+#   to `lo` are largely ignored. A virtual ethernet pair behaves like a genuine
+#   link, which is what makes the configured rate, delay and loss take effect.
+#
+# Creates veth0 <-> veth1 and brings both ends up, after which tc rules applied
+# to veth0 genuinely shape traffic crossing it.
+#
+# Invoked by the container entrypoint when USE_VETH_INTERFACE=1 (single-
+# container veth mode). The docker-compose topology sets SKIP_VETH=1 instead
+# and shapes eth0 directly, so this script is not used there.
+#
+# Requires root and NET_ADMIN, both satisfied inside the privileged container.
 
 set -e
 

@@ -3,6 +3,20 @@ File transfer synthesizer.
 
 Generates data patterns that mimic bulk file transfers,
 sending data as fast as the congestion window allows.
+
+This model imposes no pacing of its own, so the QUIC congestion window is the
+only thing limiting it. That property makes this connection the throughput
+workload in the three-connection experiment, and also makes it the most
+aggressive competitor for the shared bottleneck.
+
+Registers itself with SynthesizerFactory under "file_transfer" at import time
+(see the call at the end of this module).
+
+Connections
+-----------
+Imports from : .base (BaseSynthesizer, DataPacket, SynthesizerFactory)
+Imported by  : synthesizers/__init__.py; constructed via SynthesizerFactory
+               in simulation.worker_process
 """
 
 import asyncio

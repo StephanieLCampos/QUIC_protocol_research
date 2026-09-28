@@ -1,9 +1,36 @@
 """
-Results analyzer for grid search data.
+Analysis of completed grid search results.
 
-Loads CSV files from completed simulations and provides
-analysis methods to find optimal parameters for each
-application type.
+Loads every result CSV produced by a sweep into a single pandas DataFrame and
+identifies the best-performing parameter combination per application type,
+along with supporting parameter-impact and correlation views.
+
+Optimization targets
+--------------------
+Each application type is judged against the single metric that matters for it,
+which is what makes the three workloads meaningfully different:
+
+    video_streaming   minimize rtt         responsiveness
+    file_transfer     maximize throughput  bulk transfer speed
+    conference_call   minimize jitter      delivery regularity
+
+Data provenance: parameter values are recovered by parsing each CSV's
+*filename*, not by reading columns from the file. This mirrors the naming
+scheme in metrics.exporter and keeps the analysis independent of the CSV
+schema, but it does couple this module to that filename format.
+
+Known fragility: `load_data` special-cases application names that contain an
+underscore (video_streaming, file_transfer, conference_call) by detecting the
+first segment and shifting the remaining field offsets. The guard that
+precedes it tests `len(parts) >= 4` while the multi-segment branch reads up to
+`parts[4]`, so a filename that is short and matches the special case would
+raise IndexError rather than being skipped. Files written by metrics.exporter
+always have the full field count, so this is not reachable in normal use.
+
+Connections:
+    Imports from: pandas
+    Imported by:  results/__init__.py, .report_generator, main.py
+    Reads:        output/measurements/*.csv (written by metrics.exporter)
 """
 
 import pandas as pd
@@ -70,11 +97,17 @@ class ResultsAnalyzer:
         dataframes = []
 
         for csv_file in csv_files:
-            # Parse filename: <app>_<icw>_<ack>_<lf>.csv
+            # Parameters are recovered from the filename rather than the file
+            # contents, matching the naming scheme in metrics.exporter:
+            #     <app_type>_<initial_cw>_<max_ack_delay>_<loss_factor>.csv
             parts = csv_file.stem.split("_")
             if len(parts) >= 4:
                 app_type = parts[0]
-                # Handle app types with underscores
+                # Every application name itself contains an underscore
+                # (video_streaming, file_transfer, conference_call), so the
+                # split above breaks the name across two segments. Detecting
+                # the known first words lets the name be rejoined and shifts
+                # the parameter fields one position to the right.
                 if parts[0] in ["video", "file", "conference"]:
                     app_type = f"{parts[0]}_{parts[1]}"
                     initial_cw = int(parts[2])
@@ -120,7 +153,10 @@ class ResultsAnalyzer:
         # Use actual column names from CSV exporter
         metric_cols = ["throughput", "rtt", "latency", "jitter", "packet_loss_rate", "connection_establishment_time"]
 
-        # Filter to only existing columns
+        # Intersect with the columns actually present. Result files written by
+        # earlier versions of the exporter carry fewer metric columns, and
+        # requesting a missing one from pandas would raise; this keeps older
+        # result sets loadable.
         available_metrics = [c for c in metric_cols if c in self.data.columns]
 
         return self.data.groupby(group_cols)[available_metrics].mean().reset_index()
@@ -166,7 +202,8 @@ class ResultsAnalyzer:
             ["initial_cw", "max_ack_delay", "loss_factor"]
         ).agg(agg_dict).reset_index()
 
-        # Find optimal row
+        # Direction is per application type: latency- and jitter-sensitive
+        # workloads want the minimum, throughput-oriented ones the maximum.
         if direction == "min":
             optimal_idx = summary[target_metric].idxmin()
         else:
@@ -174,7 +211,9 @@ class ResultsAnalyzer:
 
         optimal_row = summary.loc[optimal_idx]
 
-        # Calculate latency from RTT if not present
+        # Older result files predate the explicit latency column; fall back to
+        # the same RTT/2 estimate that MetricsCalculator applies, so mixed-age
+        # result sets still report a latency figure.
         rtt_value = float(optimal_row.get("rtt", 0))
         latency_value = float(optimal_row.get("latency", rtt_value / 2))
 
@@ -208,7 +247,9 @@ class ResultsAnalyzer:
             try:
                 results[app_type] = self.find_optimal_parameters(app_type)
             except ValueError:
-                # Skip app types with no data
+                # Raised when the sweep has not yet produced any rows for this
+                # application type. Skipped rather than propagated so a partial
+                # result set can still be analysed mid-sweep.
                 continue
 
         return results

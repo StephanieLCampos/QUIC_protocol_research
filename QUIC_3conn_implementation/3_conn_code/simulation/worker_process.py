@@ -3,6 +3,46 @@ Worker process for QUIC connection isolation.
 
 Each worker runs a single QUIC connection in an isolated process,
 enabling true per-connection parameter isolation.
+
+Why a separate process per connection
+-------------------------------------
+aioquic exposes its CUBIC and recovery tuning as module-level globals
+(`K_CUBIC_C`, `K_CUBIC_LOSS_REDUCTION_FACTOR`, `K_PACKET_THRESHOLD`, and
+others). Those globals are per-interpreter, so every connection inside one
+process necessarily shares one parameter set. Running each connection in its
+own process gives each its own copy of the aioquic modules, and therefore its
+own independently tunable parameters. That is the entire reason this system is
+multi-process rather than multi-threaded or purely async.
+
+Worker lifecycle
+----------------
+    1. apply initial parameters to this process's aioquic globals
+    2. wait on the shared barrier so all three connections start together
+    3. connect, then loop over synthesizer output:
+         - poll the command pipe for parameter updates
+         - acquire tokens from the shared bucket (if bandwidth-capped)
+         - send, sample RTT / RTTVAR / cwnd, feed the epoch manager
+         - publish metrics to the shared queue every 100ms
+    4. finalize epochs and report final metrics
+
+Mid-connection tuning: only parameters in DYNAMIC_PARAMETERS may be changed
+while running. Updating one rewrites the corresponding aioquic global in this
+process and notifies the EpochManager, which starts a fresh epoch after a
+settling delay so measurements are not blended across a parameter change.
+
+Measurement caveat: packet loss is *estimated*, not observed. aioquic exposes no
+loss counter, so `_sample_network_metrics` infers loss events from several
+indirect signals (ssthresh reductions, cwnd drops, PTO counts). See the extended
+comment on that method; loss figures from this project should be read as a
+relative indicator rather than an exact count.
+
+Connections
+-----------
+Imports from : aioquic (cubic and recovery globals, patched per process),
+               config.connection_config (ConnectionConfig, DYNAMIC_PARAMETERS),
+               metrics.collector, metrics.epoch, synthesizers, .ipc_messages
+Imported by  : simulation/__init__.py; `worker_process_entry` is the target
+               handed to multiprocessing.Process by .process_orchestrator
 """
 
 import asyncio
@@ -59,7 +99,18 @@ class ConnectionWorker:
         self._epoch_manager = None  # Initialized in run()
 
     def _apply_initial_parameters(self):
-        """Apply initial CC parameters to aioquic globals (isolated to this process)."""
+        """
+        Write this connection's parameters into the aioquic module globals.
+
+        Safe precisely because this runs inside a dedicated process: the globals
+        mutated here belong to this interpreter alone, so the other two
+        connections are unaffected. The same assignment in a shared process
+        would silently retune every connection at once.
+
+        Must be called before the connection is established, since aioquic reads
+        these constants when constructing its congestion controller.
+        """
+        # initial_cw is configured in bytes; aioquic expects packets.
         initial_window_packets = self.config.initial_cw // self.config.max_datagram_size
         aioquic_cubic.K_INITIAL_WINDOW = initial_window_packets
 
@@ -79,7 +130,10 @@ class ConnectionWorker:
         old_value = getattr(self.config, param_name)
         setattr(self.config, param_name, value)
 
-        # Update aioquic globals
+        # Two places must be kept in step: the config object (the record of
+        # intent, reported back to the UI and exported with results) and the
+        # aioquic global (what the transport actually reads). The explicit
+        # branch below maps one to the other; there is no automatic binding.
         if param_name == "loss_reduction_factor":
             aioquic_cubic.K_CUBIC_LOSS_REDUCTION_FACTOR = value
         elif param_name == "cubic_c":
@@ -100,7 +154,10 @@ class ConnectionWorker:
             "new_value": value,
         })
 
-        # Notify EpochManager of parameter change (starts new epoch after settling)
+        # Tell the epoch manager the configuration moved. It closes the current
+        # epoch and waits out a settling delay before opening the next, so that
+        # samples taken while the congestion window is still reacting are not
+        # attributed to the new parameter set.
         if self._epoch_manager:
             new_params = ParameterSnapshot(
                 loss_reduction_factor=self.config.loss_reduction_factor,
@@ -142,8 +199,14 @@ class ConnectionWorker:
         # Get delta throughput (per-epoch, responsive to changes)
         throughput_acked_delta = self._metrics_collector.get_throughput_acked_delta()
 
-        # Calculate cwnd-limited throughput (theoretical max given cwnd and RTT)
-        # This is more accurate than bytes_acked when there's buffering
+        # Three throughput figures are reported because each is misleading on
+        # its own:
+        #   throughput              bytes offered by the application
+        #   throughput_acked_delta  bytes confirmed delivered in this epoch
+        #   throughput_cwnd         cwnd/RTT, the transport's own ceiling
+        # When large buffers absorb data, offered throughput overstates real
+        # delivery; the cwnd-based estimate tracks what the connection can
+        # actually sustain. Averaged over the last 20 samples to damp noise.
         cwnd_samples = self._metrics_collector.cwnd_samples
         rtt_samples = self._metrics_collector.rtt_samples
         throughput_cwnd = 0.0
@@ -247,6 +310,10 @@ class ConnectionWorker:
             ),
         )
 
+        # Block until all three workers have reached this point. Without the
+        # barrier, process startup skew would let one connection establish and
+        # claim bandwidth before the others exist, so the early part of every
+        # run would measure a head start rather than genuine competition.
         print(f"[Worker {self.config.connection_id}] Waiting at barrier...", flush=True)
         self.start_barrier.wait()
         print(f"[Worker {self.config.connection_id}] Barrier released, starting connection", flush=True)
@@ -261,9 +328,13 @@ class ConnectionWorker:
         configuration.verify_mode = False
         configuration.max_datagram_frame_size = 65536
         configuration.max_ack_delay = self.config.max_ack_delay
-        #reduce flow control window to limit in flight data
-        #default 1MB at 30 Mbps = ~267ms one way queuing = ~1500ms smoothed RTT
-        #128KB at 30 Mbps = ~34ms one-way giving realistic ~100-200ms RTT
+        # Flow-control windows are deliberately reduced from the 1MB default to
+        # 128KB in order to bound the amount of in-flight data and thereby the
+        # queueing delay. Measured effect at 30 Mbps:
+        #     1MB window  -> ~267ms one-way queueing -> ~1500ms smoothed RTT
+        #     128KB window -> ~34ms one-way          -> ~100-200ms RTT
+        # The larger window produced RTTs dominated by self-inflicted
+        # bufferbloat, which masked the effect of the parameters under study.
         configuration.max_data = 131072
         configuration.max_stream_data_bidi_local = 131072
         configuration.max_stream_data_bidi_remote = 131072
@@ -302,9 +373,12 @@ class ConnectionWorker:
                     if stream_closed:
                         break
 
-                    #enforce shared bandwidth cap before sending
+                    # Enforce the shared bandwidth cap before sending, so the
+                    # three connections genuinely contend for one budget.
                     if self._token_bucket is not None:
-                        # Add timeout to avoid getting stuck waiting for tokens
+                        # Bounded wait: without a timeout a worker could block
+                        # here past the end of the run and never observe the
+                        # stop condition below.
                         try:
                             await asyncio.wait_for(
                                 self._token_bucket.consume_async(packet.size),
@@ -321,7 +395,11 @@ class ConnectionWorker:
                         protocol._quic.send_stream_data(stream_id, packet.data, end_stream=False)
                         protocol.transmit()  # Trigger actual transmission
                     except AssertionError:
-                        # Stream was closed (FIN received), open a new one
+                        # aioquic raises a bare AssertionError, not a typed
+                        # exception, when writing to a stream the peer has
+                        # already finished. Recover by opening a fresh stream
+                        # and retrying once; if that also fails the connection
+                        # itself is gone and the loop exits.
                         stream_id = protocol._quic.get_next_available_stream_id()
                         try:
                             protocol._quic.send_stream_data(stream_id, packet.data, end_stream=False)
@@ -370,7 +448,11 @@ class ConnectionWorker:
 
                         last_sample_time = now
 
-                    # Allow event loop to process incoming data
+                    # Yield so aioquic can process inbound ACKs and flush
+                    # datagrams. A 1ms sleep rather than sleep(0): this loop is
+                    # bandwidth-limited rather than latency-critical, and
+                    # yielding for a definite interval keeps a busy worker from
+                    # starving the others on a shared CPU.
                     await asyncio.sleep(0.001)
 
                 self._metrics_collector.stop()
@@ -411,9 +493,14 @@ class ConnectionWorker:
             return None
 
     def _get_rtt_latest(self, protocol) -> Optional[float]:
-        """Get latest RTT sample from aioquic (for jitter calculation)."""
+        """
+        Return the most recent raw RTT sample, falling back to smoothed RTT.
+
+        The latest sample is preferred over the smoothed value because
+        smoothing is an exponential average that deliberately suppresses
+        variation, which is exactly the signal jitter needs to see.
+        """
         try:
-            # _rtt_latest shows actual RTT variation, better for jitter
             return protocol._quic._loss._rtt_latest
         except AttributeError:
             try:
@@ -436,10 +523,31 @@ class ConnectionWorker:
 
     def _sample_network_metrics(self, protocol) -> None:
         """
-        Sample network metrics from aioquic for ACK-verified throughput.
+        Sample congestion state from aioquic and estimate packet loss.
 
-        Accesses congestion_window and bytes_in_flight from aioquic's
-        loss recovery module to calculate bytes_acked.
+        Reads `congestion_window` and `bytes_in_flight` from aioquic's private
+        recovery object to derive acknowledged bytes, then estimates loss.
+
+        On the loss estimate
+        --------------------
+        aioquic publishes no packet-loss counter, so loss is *inferred* from
+        five indirect signals, each contributing to the same running total:
+
+            1. ssthresh reductions  a drop indicates a new congestion event
+            2. cwnd drops > 15%     attributed to loss, with a cooldown so one
+                                    event is not counted repeatedly
+            3. PTO count increases  probe timeouts imply unacknowledged packets
+            4. congestion controller counters, where the installed version
+               happens to expose them
+            5. fixed multipliers (3 packets per ssthresh or PTO event, and a
+               drop-proportional estimate for cwnd reductions)
+
+        The multipliers are heuristic rather than derived, so the resulting
+        figure is an *indicator* of loss pressure, not a true packet count. It
+        is adequate for comparing configurations against one another under
+        identical conditions, which is how the study uses it, but it should not
+        be cited as a measured loss rate. The `wireless_bottleneck` module's
+        tc-level counters are the authoritative source where accuracy matters.
         """
         try:
             loss = protocol._quic._loss
@@ -511,6 +619,8 @@ class ConnectionWorker:
                     self._metrics_collector.bytes_lost = bytes_lost
 
         except AttributeError:
+            # aioquic internals differ by version. Losing these samples
+            # degrades the loss estimate but must never interrupt a run.
             pass
 
 
@@ -526,7 +636,17 @@ def worker_process_entry(
     network_config: dict = None,
     token_bucket=None,
 ):
-    """Entry point for worker process."""
+    """
+    Process entry point, invoked by multiprocessing in the child.
+
+    Receives the connection configuration as a plain dict rather than as a
+    ConnectionConfig instance, because arguments must be picklable to cross the
+    process boundary reliably under the "spawn" start method used on macOS.
+
+    Wraps the worker in an overall timeout of duration + 8s so that a hung
+    connection cannot leave an orphaned process behind after the orchestrator
+    has finished.
+    """
     try:
         print(f"[Worker Entry] Starting worker process for connection type", flush=True)
         config = ConnectionConfig.from_dict(config_dict)

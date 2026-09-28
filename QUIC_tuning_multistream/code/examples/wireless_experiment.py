@@ -1,18 +1,20 @@
 """
-Example: Running QUIC simulation with wireless bottleneck.
+Example: full wireless experiment with combined metrics.
 
-This demonstrates how to:
-1. Set up a wireless bottleneck scenario
-2. Run QUIC simulations through it
-3. Collect and analyze metrics from both QUIC and the bottleneck
+The most complete example in this directory. Sets up a scenario, runs QUIC
+traffic through it, and then reports metrics from *both* sides: the protocol's
+own view (throughput, RTT, jitter, loss) and the bottleneck's view (queue
+occupancy, drops, per-flow shares, fairness).
 
-Usage:
-    # On Linux:
-    sudo python3 examples/wireless_experiment.py
+Reading both together is the point: it shows whether an observed throughput
+figure was limited by the protocol's behaviour or simply by the link, which a
+one-sided measurement cannot distinguish.
 
-    # On macOS (using Docker):
-    docker run --rm -it --privileged -v "$(pwd):/app" quic-bottleneck \
-        python3 /app/code/examples/wireless_experiment.py
+Connections:
+    Imports from: wireless_bottleneck (WirelessBottleneck, get_scenario),
+                  simulation.runner (SimulationRunner),
+                  config.parameters (ParameterSet)
+    Invoked by:   run directly, on Linux or inside the container
 """
 
 import asyncio

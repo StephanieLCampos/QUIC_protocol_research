@@ -1,8 +1,29 @@
 """
-Report generator for grid search results.
+Report generation for grid search findings.
 
-Generates human-readable reports summarizing the research
-findings and optimal parameter configurations.
+Renders the output of ResultsAnalyzer as plain-text reports intended to be read
+directly rather than processed further.
+
+Three outputs are available:
+    generate_summary_report    all application types, optimal configuration
+                               for each, plus parameter-impact tables
+    generate_detailed_report   one application type in depth, including its
+                               top five configurations and correlations
+    generate_csv_summary       the aggregated table as CSV, for further analysis
+
+Reports are built by accumulating lines into a list and joining once at the
+end, and are returned as a string whether or not an output path is given, so
+callers may print or save them.
+
+Unit convention: the pipeline stores every time-based metric in seconds.
+`_format_metric` is the single place those are converted for display (to
+milliseconds, percentages, or scaled byte rates), so presentation changes stay
+confined to that one method.
+
+Connections:
+    Imports from: .analyzer (ResultsAnalyzer, OptimalParameters)
+    Imported by:  results/__init__.py, main.py
+    Writes:       the report path supplied by the caller (see `main.py report -o`)
 """
 
 from datetime import datetime
@@ -231,7 +252,18 @@ class ReportGenerator:
         summary.to_csv(output_path, index=False)
 
     def _format_metric(self, metric: str, value: float) -> str:
-        """Format a metric value for display."""
+        """
+        Render a stored metric value in human-readable units.
+
+        All metrics are held in base units internally (seconds for times,
+        bytes/second for throughput, a 0-1 fraction for loss). This method is
+        the single conversion point to display units, so formatting stays
+        consistent across every report and can be changed in one place.
+
+        Throughput additionally scales itself to B/s, KB/s or MB/s depending on
+        magnitude; jitter is given an extra decimal place because its values
+        are typically far smaller than RTT.
+        """
         if metric == "throughput":
             if value >= 1_000_000:
                 return f"{value/1_000_000:.2f} MB/s"

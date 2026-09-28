@@ -1,52 +1,77 @@
 """
-================================================================================
-HYBRID Q-LEARNING AGENT (10-Feature State Design)
-================================================================================
+Hybrid Q-Learning Agent (10-Feature State Design)
+=================================================
 
-Design: Combines Default's network awareness with Andy's parameter insights
-State: 10 features = 8 from Default + 2 compressed from Andy
+Combines the default agent's awareness of network conditions with the two most
+useful signals from Andy's parameter-index design, aiming for a state space
+rich enough to act on boundaries and imbalance yet small enough to generalise.
+Selected with --ml-agent hybrid.
 
-This agent combines the strengths of both approaches:
-- From Default: Network condition bins, trends, loss, CWND awareness
-- From Andy: Boundary awareness (compressed), fairness indicator (compressed)
+    From the default agent : condition bins, trends, loss and CWND awareness
+    From Andy's agent      : boundary awareness and a fairness indicator,
+                             each compressed to a single feature
 
-How to run:
+How to run
+----------
     uv run python -m main run --with-ml --ml-agent hybrid --duration 120
     uv run python -m main run --with-ml --ml-agent hybrid --scenario varying --duration 600
 
---------------------------------------------------------------------------------
+State space (10 features)
+-------------------------
+    state = (
+        lat_bin,         latency condition            (0-3)
+        tp_bin,          throughput condition         (0-3)
+        jit_bin,         jitter condition             (0-3)
+        lat_trend,       latency trend                (0-2)
+        tp_trend,        throughput trend             (0-2)
+        jit_trend,       jitter trend                 (0-2)
+        loss_bin,        packet loss severity         (0-3)
+        cwnd_bin,        congestion window state      (0-3)
+        boundary_count,  parameters at a min/max bound (0-12)
+        dominant_conn,   which connection dominates bandwidth (0-3)
+    )
 
-State space (10 features):
-state = (
-    lat_bin,        # Latency condition (0-3, 4 bins)
-    tp_bin,         # Throughput condition (0-3, 4 bins)
-    jit_bin,        # Jitter condition (0-3, 4 bins)
-    lat_trend,      # Latency trend: worsening/stable/improving (0-2, 3 bins)
-    tp_trend,       # Throughput trend (0-2, 3 bins)
-    jit_trend,      # Jitter trend (0-2, 3 bins)
-    loss_bin,       # Packet loss severity (0-3, 4 bins)
-    cwnd_bin,       # Congestion window state (0-3, 4 bins)
-    boundary_count, # Params at min/max bounds (0-12, 13 bins)
-    dominant_conn,  # Which connection dominates bandwidth (0-3, 4 bins)
-)
+The final two features are the compression that defines this design. Rather
+than tracking twelve individual parameter indices as Andy's agent does,
+`boundary_count` reduces that to a single count of how many dials are pinned,
+and `dominant_conn` summarises allocation imbalance in one value. Both signals
+are retained while the state space stays roughly twelve times smaller.
 
 Total state space: 4^5 * 3^3 * 13 * 4 = 995,328 states
-- 36x larger than Default (27,648)
-- 12x smaller than Andy (~11.6M)
+    - 36x larger than the default agent  (27,648)
+    - 12x smaller than Andy's agent      (~11.6M)
 
-Action space: 25 actions (same as Default and Andy)
-- 24 parameter adjustments (4 params × 3 connections × 2 directions)
-- 1 no-op action
+Action space: 25 actions, identical to the default and Andy agents
+    - 24 parameter adjustments (4 parameters x 3 connections x 2 directions)
+    - 1 no-op
 
-Reward function: Same as Default and Andy
-- Video: 70% latency utility + 30% throughput utility
-- File: 100% throughput utility
-- Conference: 70% jitter utility + 30% throughput utility
-- Fairness penalty (λ=0.25)
-- Stability penalty (μ=0.05)
-- Starvation penalty (0.2 per connection below 500 KB/s)
+Reward function: identical to the default and Andy agents
+    - Video:      70% latency utility + 30% throughput utility
+    - File:       100% throughput utility
+    - Conference: 70% jitter utility + 30% throughput utility
+    - Stability penalty  (mu = 0.05, applied when a parameter changed)
+    - Starvation penalty (0.2 per connection below 500 KB/s)
+    - Suffering penalty  (0.15 per connection with utility below 0.4)
 
-Throughput metric: Uses "delta" (throughput_acked_delta) like Default
+    R = mean(U_video, U_file, U_conf) - churn - starvation - suffering
+
+Fairness here is threshold-based rather than variance-based: a connection is
+penalised only for falling below an absolute floor, not for being unequal. This
+lets file transfer legitimately take a larger share while still preventing the
+other two from being starved. Earlier descriptions of this agent cited a
+variance-based fairness term (lambda = 0.25); that term is not present in the
+implementation.
+
+Throughput metric: throughput_acked_delta, as in the default agent.
+
+Connections
+-----------
+Imports from : standard library only (ast, json, math, os, random,
+               statistics, time, typing)
+Imported by  : simulation.ml_controller and main.py (lazily, by agent type);
+               selected with --ml-agent hybrid
+Related      : q_learning_agent.py (8-feature default),
+               q_learning_agent_andy.py (14-feature variant)
 """
 
 import ast
@@ -131,7 +156,24 @@ ACTION_NOOP = N_ACTIONS - 1     # 24
 # Helper functions
 
 def _bin(value: float, thresholds: List[float], lower_is_better: bool) -> int:
-    """Map continuous value to 0-based bin index."""
+    """
+    Map a continuous measurement onto a zero-based discrete bin index.
+
+    Discretisation is what makes tabular Q-learning possible here: a continuous
+    metric would give every observation a unique state and the Q-table would
+    never revisit one.
+
+    Args:
+        value: The measurement to bin.
+        thresholds: Ascending bin boundaries; N thresholds yield N+1 bins.
+        lower_is_better: True for latency, jitter and loss; False for
+            throughput and congestion window.
+
+    Returns:
+        For lower_is_better metrics, 0 means excellent and N means poor. For
+        higher_is_better metrics the ordering is reversed, so a larger index
+        always denotes a better condition for that metric.
+    """
     if lower_is_better:
         for i, t in enumerate(thresholds):
             if value <= t:
@@ -145,7 +187,21 @@ def _bin(value: float, thresholds: List[float], lower_is_better: bool) -> int:
 
 
 def _trend(current: float, previous: Optional[float], higher_is_better: bool) -> int:
-    """Return trend code: 0=worsening, 1=stable, 2=improving."""
+    """
+    Classify the direction of change in a metric.
+
+    Trend is part of the state because the level alone is ambiguous: a
+    connection performing poorly but recovering warrants a different action
+    from one performing poorly and deteriorating.
+
+    A 5% tolerance band around the previous value suppresses measurement noise;
+    without it, ordinary sampling jitter would flip this feature constantly and
+    fragment the Q-table across states differing only by noise.
+
+    Returns:
+        0 worsening, 1 stable, 2 improving. The first observation reports
+        stable, there being no prior value to compare against.
+    """
     if previous is None or previous == 0.0:
         return 1  # stable on first step
 
@@ -166,25 +222,59 @@ def _trend(current: float, previous: Optional[float], higher_is_better: bool) ->
 
 
 def _utility_latency(v: float) -> float:
-    """Normalise latency to [0,1] where 1 is best (lowest)."""
+    """
+    Normalise latency to [0, 1], where 1 is best.
+
+    Clamped at both ends so latency beyond the configured worst case cannot
+    drive the reward negative, keeping the three connections' utilities
+    commensurable when averaged.
+    """
     u = (LATENCY_WORST - v) / (LATENCY_WORST - LATENCY_BEST)
     return max(0.0, min(1.0, u))
 
 
 def _utility_throughput(v: float) -> float:
-    """Normalise throughput to [0,1] where 1 is best (highest)."""
+    """
+    Normalise throughput to [0, 1], where 1 is best.
+
+    THROUGHPUT_MAX is one connection's fair share of the shared link rather
+    than the link's full capacity, so a connection reaches utility 1.0 by
+    taking its share rather than by monopolising the bottleneck.
+    """
     return max(0.0, min(1.0, v / THROUGHPUT_MAX))
 
 
 def _utility_jitter(v: float) -> float:
-    """Normalise jitter to [0,1] where 1 is best (lowest)."""
+    """
+    Normalise jitter to [0, 1], where 1 is best.
+
+    Guards against a zero JITTER_WORST, which would otherwise divide by zero;
+    in that degenerate configuration every jitter value scores perfectly.
+    """
     if JITTER_WORST == 0:
         return 1.0
     return max(0.0, min(1.0, (JITTER_WORST - v) / JITTER_WORST))
 
 
 def _get_throughput(metrics: Dict[int, dict], conn_id: int) -> float:
-    """Get throughput using configured metric type."""
+    """
+    Read throughput for one connection using the configured source.
+
+    The choice matters for learning quality:
+      - "delta"   per-epoch ACK-verified rate. Responsive to recent change,
+                  which is what a controller acting every 2s needs to see.
+      - "acked"   cumulative ACK-verified average. Stable but increasingly
+                  insensitive as a run lengthens.
+      - "offered" application send rate. Ignores what the bottleneck actually
+                  delivered, so it can report high throughput while nothing
+                  arrives.
+
+    "delta" is the default for those reasons, falling back to the cumulative
+    figure during the first few ticks before a delta window has closed.
+
+    Returns:
+        Throughput in bytes per second.
+    """
     conn_metrics = metrics.get(conn_id, {})
 
     if THROUGHPUT_METRIC == "delta":

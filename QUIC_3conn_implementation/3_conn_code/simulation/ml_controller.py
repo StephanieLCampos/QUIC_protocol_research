@@ -3,6 +3,46 @@ ML Controller for dynamic parameter optimization.
 
 Runs in the main process and coordinates parameter updates
 based on ML callback decisions.
+
+Sits between the Q-learning agents and the worker processes: it gathers
+telemetry from all three connections, invokes the agent's callback with a
+consistent view of the system, dispatches the parameters the agent returns, and
+records each action together with the outcome it produced.
+
+Control loop
+------------
+Each iteration, at `decision_interval` (100ms by default):
+
+    1. drain the metrics queue for the latest per-connection telemetry
+    2. resolve any earlier action whose settling window has now elapsed
+    3. if all three connections have reported, call the agent callback
+    4. dispatch the returned parameter changes and record them as pending
+    5. append to the history and sleep out the remainder of the interval
+
+Two points of design worth noting
+---------------------------------
+All three connections must have reported before the agent is consulted. The
+agents optimise a joint objective across the three competing flows, so acting
+on a partial view would train against a system state that never existed.
+
+Actions are recorded before their effect is known. A parameter change does not
+take effect instantly: the congestion window needs time to react. Each action
+is therefore held with its "before" metrics and only completed once
+SETTLING_TIME has passed, at which point the "after" metrics are attached. That
+pairing is what makes the exported history usable for attributing an outcome to
+a decision.
+
+Agent failures are contained: an exception raised inside a callback is logged
+and treated as "no change this tick", so a faulty agent degrades to inaction
+rather than aborting a long training run.
+
+Connections
+-----------
+Imports from : .ipc_messages; ml_callbacks.q_learning_agent{,_andy,_hybrid}
+               are imported lazily by agent type
+Imported by  : simulation/__init__.py, .process_orchestrator
+Writes       : Q-learning action history and summary (see
+               export_qlearning_history)
 """
 
 import time
@@ -32,7 +72,10 @@ class QLearningAction:
 class MLController:
     """Central ML controller that runs in the main process."""
 
-    # Settling time after Q-learning action before capturing metrics (seconds)
+    # How long to wait after a parameter change before the resulting metrics
+    # are considered attributable to it. A congestion window does not respond
+    # instantly, so sampling immediately would credit the new parameters with
+    # the old configuration's behaviour and corrupt the learning signal.
     SETTLING_TIME = 1.5
 
     def __init__(
@@ -73,12 +116,17 @@ class MLController:
             # Check for pending actions that have settled
             self._check_settled_actions(now)
 
+            # Require telemetry from all three connections before consulting
+            # the agent. The agents optimise a joint objective across the
+            # competing flows, so a partial view would train the policy against
+            # a system state that never actually occurred.
             if len(self.latest_metrics) == 3:
-                # Execute ML callback with error protection
                 try:
                     decisions = self.ml_callback(self.latest_metrics.copy())
                 except Exception as e:
-                    # Log error and continue with no parameter changes
+                    # Contain agent failures. Treating an exception as "no
+                    # change this tick" lets a long training run survive a bug
+                    # in an experimental agent rather than losing the run.
                     print(f"ML callback error: {e}")
                     decisions = {}
 
@@ -93,6 +141,9 @@ class MLController:
                 "metrics": self.latest_metrics.copy(),
             })
 
+            # Sleep only the remainder of the interval, so the loop holds a
+            # steady cadence rather than drifting by however long the agent
+            # took to decide.
             elapsed = time.time() - loop_start
             if elapsed < self.decision_interval:
                 await asyncio.sleep(self.decision_interval - elapsed)

@@ -1,8 +1,39 @@
 """
-Simulation runner that orchestrates a complete test run.
+Orchestration of a single measured simulation run.
 
-The runner sets up the server and client, sends synthesized data,
-and collects metrics for analysis.
+`SimulationRunner` performs one complete experiment for one parameter
+combination: it applies the congestion-control parameters, starts a server,
+connects a client, drives the appropriate synthesizer to completion, collects
+metrics, and tears everything down.
+
+    apply params -> start server -> connect client -> open streams
+                 -> send synthesized data -> collect metrics -> restore params
+
+Key design constraint (the central one in this project)
+-------------------------------------------------------
+aioquic exposes its CUBIC tuning values as *module-level globals*
+(`K_INITIAL_WINDOW`, `K_CUBIC_LOSS_REDUCTION_FACTOR`), not as per-connection
+configuration. The only way to vary them is to patch the module before the
+connection is created, as `_apply_recovery_parameters` does below, restoring
+the captured originals afterwards in a `finally` block.
+
+Because those globals are process-wide, every connection inside one process
+necessarily shares them. That is workable here, where each run measures a
+single connection in isolation, but it is precisely the limitation that forced
+the Generation 2 design (QUIC_3conn_implementation) to place each of its three
+concurrent connections in a separate OS process so they could hold different
+parameter values simultaneously.
+
+Failure handling: `run()` never raises. A failed run returns a
+SimulationResult with success=False and a zero-filled MetricsResult, so that
+one bad combination cannot abort a multi-hour sweep.
+
+Connections:
+    Imports from: aioquic.quic.congestion.cubic (patched at runtime),
+                  config.settings, synthesizers, metrics.collector,
+                  metrics.calculator, .server, .client
+    Imported by:  simulation/__init__.py, grid_search.executor, examples/,
+                  setup_namespace_bottleneck, the test_* diagnostic scripts
 """
 
 import asyncio
@@ -21,10 +52,15 @@ from metrics.calculator import MetricsResult
 from .server import QuicServer
 from .client import QuicClient
 
-# Store original aioquic values to restore later
-# K_INITIAL_WINDOW is in packets (multiplied by max_datagram_size internally)
+# Capture aioquic's stock congestion-control constants at import time, before
+# anything has had a chance to patch them. These are the values restored after
+# each run so that one combination's settings cannot leak into the next.
+#
+# K_INITIAL_WINDOW is expressed in packets; aioquic multiplies it by the
+# datagram size internally.
 _ORIGINAL_K_INITIAL_WINDOW = aioquic_cubic.K_INITIAL_WINDOW
-# K_CUBIC_LOSS_REDUCTION_FACTOR is the beta for multiplicative decrease
+# K_CUBIC_LOSS_REDUCTION_FACTOR is CUBIC's beta: the multiplicative-decrease
+# factor applied to the congestion window on a loss event.
 _ORIGINAL_K_LOSS_REDUCTION_FACTOR = aioquic_cubic.K_CUBIC_LOSS_REDUCTION_FACTOR
 
 
@@ -107,11 +143,16 @@ class SimulationRunner:
         - K_INITIAL_WINDOW: Initial congestion window in packets
         - K_CUBIC_LOSS_REDUCTION_FACTOR: Multiplicative decrease factor on loss (beta)
         """
-        # Convert initial_cw from bytes to packets (aioquic uses ~1200 bytes per packet)
+        # The parameter space is expressed in bytes (the unit an operator
+        # thinks in), while aioquic's K_INITIAL_WINDOW is in packets. Convert
+        # using the standard 1200-byte QUIC datagram size. Integer division
+        # floors, so a requested window is never rounded upward.
         max_datagram_size = 1200
         initial_window_packets = self.initial_cw // max_datagram_size
 
-        # Patch aioquic cubic module with our parameter values
+        # Mutate the module globals in place. This must happen before any
+        # connection is constructed, because aioquic reads these constants when
+        # it builds a congestion controller, not on every send.
         aioquic_cubic.K_INITIAL_WINDOW = initial_window_packets
         aioquic_cubic.K_CUBIC_LOSS_REDUCTION_FACTOR = self.loss_reduction_factor
 
@@ -153,7 +194,9 @@ class SimulationRunner:
             await self._server.start()
             print(f"✓ Server started")
 
-            # Small delay to ensure server is ready
+            # Give the listening socket a moment to bind before dialling it.
+            # Without this pause the client can race ahead and fail to connect
+            # on a loaded machine.
             await asyncio.sleep(0.5)
 
             # Connect client
@@ -173,8 +216,10 @@ class SimulationRunner:
             # Open 3 streams
             stream_ids = await self._client.open_streams(3)
 
-            # Get the stream to use based on application type
-            # Stream 0 = Video, Stream 1 = File, Stream 2 = Conference
+            # Three streams are always opened so that every run presents the
+            # server with an identical connection shape, but only one carries
+            # traffic: the workload under measurement. Holding the stream
+            # layout constant keeps results comparable across application types.
             stream_index = {
                 "video_streaming": 0,
                 "file_transfer": 1,
@@ -218,8 +263,11 @@ class SimulationRunner:
             )
 
         except Exception as e:
+            # Failures are reported as data, never raised. A single bad
+            # combination in a sweep of hundreds must not terminate the run,
+            # so the error is recorded and a zero-filled metrics object is
+            # returned in place of real measurements.
             duration = time.time() - start_time
-            # Return failure result with properly initialized MetricsResult
             return SimulationResult(
                 application_type=self.application_type,
                 initial_cw=self.initial_cw,
@@ -239,7 +287,9 @@ class SimulationRunner:
             )
 
         finally:
-            # Cleanup
+            # Teardown runs on every path, successful or not. Restoring the
+            # patched aioquic globals here is essential: leaving them modified
+            # would silently contaminate every subsequent run in this process.
             if self._client:
                 await self._client.close()
             if self._server:

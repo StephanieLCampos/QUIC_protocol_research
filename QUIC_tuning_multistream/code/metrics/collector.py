@@ -1,8 +1,22 @@
 """
-Metrics collector for real-time data collection during simulations.
+Real-time metrics collection during a QUIC simulation.
 
-Collects raw data during QUIC simulations and provides methods
-to retrieve calculated metrics.
+`MetricsCollector` is attached to a live connection and records events as they
+happen (packets sent and received, RTT samples, handshake completion), then
+hands the accumulated data to MetricsCalculator when the run ends.
+
+Important implementation note: aioquic exposes no public API for loss and RTT
+statistics, so this collector reads the connection's private recovery state
+(`_loss`, and its `_rtt_smoothed`, `_packets_lost` and `_packets_sent` fields).
+Every such access is wrapped in getattr with a default and guarded by
+try/except, so that an aioquic version change degrades the affected metric to
+zero rather than crashing a sweep in progress. This is the main place the
+project is coupled to a specific aioquic internal layout.
+
+Connections:
+    Imports from: .calculator (MetricsCalculator, MetricsResult)
+    Imported by:  metrics/__init__.py, simulation.client, simulation.runner
+    Reads from:   aioquic connection internals (private recovery state)
 """
 
 import time
@@ -105,14 +119,19 @@ class MetricsCollector:
         """
         if self.connection is not None:
             try:
-                # Access aioquic internal RTT metrics
+                # aioquic keeps smoothed RTT on its private recovery object and
+                # offers no public accessor, so this reaches into _loss directly.
+                # Guarded throughout: a version change degrades RTT to zero
+                # rather than raising mid-run.
                 loss_handler = getattr(self.connection, "_loss", None)
                 if loss_handler is not None:
                     rtt = getattr(loss_handler, "_rtt_smoothed", None)
                     if rtt is not None and rtt > 0:
                         self.rtt_samples.append(rtt)
             except (AttributeError, TypeError):
-                pass  # Connection doesn't have RTT info
+                # No usable RTT state on this connection; leave the sample list
+                # untouched so the run still reports its other metrics.
+                pass
 
     @property
     def duration(self) -> float:
@@ -136,7 +155,10 @@ class MetricsCollector:
         Returns:
             MetricsResult with all calculated metrics.
         """
-        # Get actual packet loss info from aioquic connection if available
+        # Prefer aioquic's own sent/lost counters over the locally incremented
+        # ones. The local counters track application-level writes, whereas
+        # aioquic counts actual QUIC packets after coalescing and
+        # retransmission, which is the figure a loss rate should be based on.
         actual_packets_sent = self.packets_sent
         actual_packets_lost = 0
 
@@ -153,13 +175,18 @@ class MetricsCollector:
             except (AttributeError, TypeError):
                 pass
 
-        # Calculate packets_received as sent - lost
+        # Received is inferred rather than observed: the sender never sees a
+        # receive count directly, so anything sent and not reported lost is
+        # treated as delivered.
         actual_packets_received = max(0, actual_packets_sent - actual_packets_lost)
 
         return MetricsCalculator.calculate_all(
             total_bytes=self.bytes_sent,
             duration_seconds=self.duration,
             rtt_samples=self.rtt_samples,
+            # Prefer receive timestamps for jitter; fall back to send
+            # timestamps for send-only workloads (such as file transfer, where
+            # nothing is echoed back) so jitter is still reported.
             packet_timestamps=self.receive_timestamps or self.send_timestamps,
             packets_sent=actual_packets_sent,
             packets_received=actual_packets_received,

@@ -1,6 +1,24 @@
 #!/bin/bash
-# Setup virtual network namespace for realistic bottleneck testing
-# This creates a proper network interface where tc rules actually work
+#
+# Create a virtual network namespace and veth pair for bottleneck testing.
+#
+# Purpose
+#   Linux tc shaping is not reliably honoured on the loopback interface: the
+#   kernel bypasses much of the queueing path, so bandwidth limits and delays
+#   applied to `lo` largely fail to take effect. A veth pair behaves like a
+#   real link, which is what makes tc rules genuinely apply. Every experiment
+#   that needs accurate shaping runs across the topology built here.
+#
+# Topology created
+#   host namespace                        bottleneck_ns
+#     veth0  10.200.1.1/24  <--------->  veth1  10.200.1.2/24
+#
+# The script verifies connectivity with a ping, then blocks so that the
+# namespace stays alive for other processes to use. A trap on EXIT tears the
+# namespace and interface down, so Ctrl+C leaves no state behind.
+#
+# Consumed by: setup_namespace_bottleneck.py, and the veth-based test_* scripts
+# Requires:    root (already satisfied inside the project's container), iproute2
 
 set -e
 

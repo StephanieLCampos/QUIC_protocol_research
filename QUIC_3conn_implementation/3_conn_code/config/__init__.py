@@ -40,6 +40,13 @@ Example Usage
 
     # Load from JSON file
     config = MultiConnectionConfig.from_json("my_config.json")
+
+Connections
+-----------
+Imports from : .connection_config, .multi_connection_config
+Imported by  : main.py, simulation.process_orchestrator,
+               simulation.worker_process, web.control_server,
+               examples/run_3conn_through_bottleneck.py
 """
 
 from .connection_config import ConnectionConfig, DYNAMIC_PARAMETERS, START_ONLY_PARAMETERS

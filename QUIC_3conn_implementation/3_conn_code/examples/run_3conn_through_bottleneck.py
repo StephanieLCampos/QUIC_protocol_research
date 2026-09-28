@@ -1,12 +1,26 @@
 """
-Run 3-connection simulations through wireless bottleneck scenarios.
+Example: 3-connection simulation through a wireless bottleneck.
 
-This demonstrates how to test the 3-connection setup under different
-wireless conditions (capacity, delay, loss).
+Runs the full three-connection setup across a named wireless scenario,
+demonstrating how the competing workloads behave when a real capacity, delay
+and loss constraint is applied.
+
+This is the example that exercises the project's central question: how three
+connections with different objectives divide one constrained link, and how the
+division changes with the scenario.
+
+Requires a privileged container, since the bottleneck is enforced with Linux tc.
 
 Usage:
     docker run -it --rm --privileged -v $(pwd):/workspace quic-wireless \
         bash -c "cd /workspace/3_conn_code && python3 examples/run_3conn_through_bottleneck.py --scenario congested_low"
+
+Connections
+-----------
+Imports from : wireless_bottleneck (get_scenario, list_scenarios,
+               WirelessBottleneck), config.multi_connection_config,
+               simulation.process_orchestrator
+Invoked by   : run directly, inside the privileged container
 """
 
 import asyncio

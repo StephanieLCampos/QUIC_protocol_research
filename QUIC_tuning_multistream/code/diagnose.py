@@ -1,11 +1,21 @@
 #!/usr/bin/env python3
+#!/usr/bin/env python3
 """
-Diagnostic script to check wireless bottleneck setup.
+Environment diagnostic for the wireless bottleneck testbed.
 
-Run this first to verify everything is configured correctly.
+Verifies that the host can actually run the experiments before time is spent on
+one: Python version, presence of the `tc` binary, privileges sufficient to
+modify qdiscs, and importability of the project modules.
 
-Usage:
-    python3 diagnose.py
+Intended as the first command run inside a freshly built container. Each check
+is independent and reports pass or fail with a remedy, so a partially usable
+environment still produces a complete picture rather than stopping at the first
+problem.
+
+Connections:
+    Imports from: standard library only (sys, subprocess, pathlib); project
+                  modules are probed dynamically rather than imported at load
+    Invoked by:   run directly, per QUICKSTART_GUIDE.md
 """
 
 import sys

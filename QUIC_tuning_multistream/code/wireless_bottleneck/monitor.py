@@ -1,8 +1,33 @@
 """
-Bottleneck monitoring and instrumentation.
+Bottleneck instrumentation and metrics.
 
-Records queue occupancy, packet drops, per-flow statistics,
-and other metrics from the wireless bottleneck.
+Records what actually happened at the emulated link: queue occupancy over
+time, packet arrivals, drops broken down by cause, and per-flow byte counts.
+
+`BottleneckMetrics` is the accumulating record; `BottleneckMonitor` wraps it
+with sampling-interval bookkeeping so a caller can poll queue state at a fixed
+cadence without tracking timing itself.
+
+Fairness measurement
+--------------------
+`get_flow_fairness_index` implements Jain's fairness index over per-flow
+transmitted bytes:
+
+    J = (sum x_i)^2 / (n * sum x_i^2)
+
+The result is 1.0 when every flow received an identical share and falls
+towards 1/n as allocation becomes more skewed, giving a single comparable
+number for how evenly competing connections shared the link. This is the
+measure the multi-connection work in the sibling project builds on.
+
+Note that per-flow accounting is populated by callers recording events, not by
+tc itself; tc reports only interface-wide totals, which WirelessBottleneck
+merges in separately.
+
+Connections:
+    Imports from: standard library only (time, dataclasses, typing,
+                  collections, statistics)
+    Imported by:  .bottleneck, wireless_bottleneck/__init__.py
 """
 
 import time
@@ -133,6 +158,9 @@ class BottleneckMetrics:
         Returns:
             Fairness index (1.0 = perfectly fair, 0.0 = completely unfair)
         """
+        # An empty allocation is defined as perfectly fair: with no flows
+        # competing there is no unfairness to report, and returning 0.0 would
+        # misleadingly suggest a problem.
         if not self.flow_bytes_transmitted:
             return 1.0
         
@@ -148,6 +176,8 @@ class BottleneckMetrics:
         if sum_squares == 0:
             return 1.0
         
+        # Jain's fairness index: 1.0 when all flows received an equal share,
+        # falling toward 1/n as the allocation becomes more skewed.
         return (sum_shares ** 2) / (n * sum_squares)
     
     def summary(self) -> Dict[str, any]:

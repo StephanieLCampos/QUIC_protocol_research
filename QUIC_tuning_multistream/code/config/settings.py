@@ -1,8 +1,19 @@
 """
 Global settings for the QUIC Multi-Stream Research Project.
 
-This module contains all configurable settings including paths,
-default values, and simulation parameters.
+Defines a single `Settings` dataclass holding every path and default the
+simulation needs: TLS certificate locations, output directories, QUIC server
+host/port, per-run duration, and the traffic-shape constants for each of the
+three application types (video streaming, file transfer, conference call).
+
+The traffic constants declared here are the defaults that the synthesizers fall
+back to; callers may override them per-run. Output directories are created
+eagerly in __post_init__ so downstream writers can assume they exist.
+
+Connections:
+    Imports from: standard library only (pathlib, dataclasses, typing)
+    Imported by:  config/__init__.py, main.py, simulation.runner,
+                  grid_search.executor, examples.run_app_with_real_bottleneck
 """
 
 from pathlib import Path
@@ -53,13 +64,23 @@ class Settings:
     conference_bitrate_kbps: int = 128  # 128kbps audio
 
     def __post_init__(self):
-        """Ensure output directories exist."""
+        """
+        Create the output directories so downstream writers can assume they exist.
+
+        Runs on every instantiation; mkdir with exist_ok makes this idempotent.
+        """
         self.measurements_dir.mkdir(parents=True, exist_ok=True)
         self.reports_dir.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def get_instance(cls) -> "Settings":
-        """Get singleton instance of settings."""
+        """
+        Return a lazily-created shared Settings instance.
+
+        Used where callers need the same configuration object rather than an
+        independent copy. Note this caches onto the class itself, so subclasses
+        would share the parent's instance.
+        """
         if not hasattr(cls, "_instance"):
             cls._instance = cls()
         return cls._instance

@@ -1,6 +1,11 @@
 #!/bin/bash
-# Run wireless bottleneck without needing to install packages
-# Uses a manual workaround for Docker network issues
+#
+# Open a bare privileged Linux container with the code mounted.
+#
+# Fallback for environments where run-bottleneck.sh cannot install packages
+# (restrictive proxy, VPN, or offline). It performs no setup at all and simply
+# drops into a shell, leaving the operator to install iproute2 and python3 by
+# hand. Use run-bottleneck.sh in preference to this.
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

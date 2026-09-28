@@ -1,8 +1,24 @@
 """
-Parameter definitions for QUIC tuning research.
+QUIC parameter definitions for the Generation 1 tuning research.
 
-This module defines the parameter values used in grid search
-and preset configurations for different application types.
+Declares the parameter space swept by the grid search and the hand-tuned
+presets used as comparison baselines.
+
+Three congestion-control parameters are swept here:
+    - initial_cw            Initial congestion window, in bytes
+    - max_ack_delay         Maximum ACK delay, in seconds
+    - loss_reduction_factor Multiplier applied to cwnd on loss
+
+Four values each yields 4 x 4 x 4 = 64 combinations per application type, and
+192 runs across all three types. The `ParameterPresets` class additionally
+holds per-application configurations expressing the expected trade-offs
+(throughput for file transfer, latency for video, jitter for conference calls);
+these serve as the baselines that grid-search results are compared against.
+
+Connections:
+    Imports from: standard library only (dataclasses, typing)
+    Imported by:  config/__init__.py, grid_search.parameter_space,
+                  examples.wireless_experiment
 """
 
 from dataclasses import dataclass
@@ -13,18 +29,25 @@ from typing import List, Dict, Any
 class GridSearchParams:
     """Parameter values for grid search."""
 
-    # Initial Congestion Window values (in bytes)
-    # 10, 30, 60, 100 packets * 1200 bytes/packet
+    # These three fields default to None rather than to a list literal because
+    # mutable defaults are shared across all dataclass instances in Python. The
+    # real defaults are assigned per-instance in __post_init__ below.
+
+    # Initial Congestion Window values (in bytes).
+    # Chosen as 10, 30, 60 and 100 packets at the 1200-byte QUIC datagram size,
+    # spanning the RFC 9002 default up to an aggressive fast-start window.
     initial_cw_values: List[int] = None
 
-    # Max ACK Delay values (in seconds)
+    # Max ACK Delay values (in seconds), from near-immediate (2ms) to the
+    # 25ms RFC default and beyond, trading ACK overhead against feedback latency.
     max_ack_delay_values: List[float] = None
 
-    # Loss Reduction Factor values
+    # Loss Reduction Factor values: the multiplier applied to the congestion
+    # window on a loss event. Lower is more conservative, higher recovers faster.
     loss_factor_values: List[float] = None
 
     def __post_init__(self):
-        """Set default values if not provided."""
+        """Assign per-instance default parameter grids when none were supplied."""
         if self.initial_cw_values is None:
             self.initial_cw_values = [12000, 36000, 72000, 120000]
         if self.max_ack_delay_values is None:
@@ -34,7 +57,13 @@ class GridSearchParams:
 
     @property
     def total_combinations(self) -> int:
-        """Total number of parameter combinations."""
+        """
+        Number of parameter combinations in the sweep, per application type.
+
+        This is the Cartesian product of the three value lists (4 x 4 x 4 = 64
+        by default). The full run multiplies this by the three application
+        types, giving the 192 simulations the scheduler enumerates.
+        """
         return (
             len(self.initial_cw_values)
             * len(self.max_ack_delay_values)
@@ -96,7 +125,18 @@ class ParameterPresets:
 
     @classmethod
     def get_preset(cls, application_type: str) -> ParameterSet:
-        """Get preset for a specific application type."""
+        """
+        Return the preset parameter set for an application type.
+
+        Args:
+            application_type: One of "baseline", "file_transfer",
+                "video_streaming" or "conference_call".
+
+        Returns:
+            The matching ParameterSet, or BASELINE if the name is unrecognised.
+            Falling back rather than raising keeps a mistyped application name
+            from aborting a long grid-search run.
+        """
         presets = {
             "baseline": cls.BASELINE,
             "file_transfer": cls.FILE_TRANSFER,

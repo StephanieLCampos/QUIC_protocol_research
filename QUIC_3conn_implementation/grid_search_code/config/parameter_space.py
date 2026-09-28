@@ -4,6 +4,29 @@ Parameter space definitions for QUIC congestion control grid search.
 Defines the search space for finding optimal parameters per application type.
 Only the 6 DYNAMIC parameters are searched. Start-only parameters
 (initial_cw, max_ack_delay) are fixed at their defaults.
+
+Why only the dynamic parameters
+-------------------------------
+The start-only parameters cannot be changed once a connection is established,
+so a Q-learning agent could never act on them. Searching them here would
+produce recommendations the live system has no way to apply. They are pinned
+instead at their RFC 9002 defaults (initial_cw = 14720 bytes, max_ack_delay =
+0.025s), which also keeps the search space tractable.
+
+Search scale
+------------
+    reduced  4 parameters   243 combinations total   (81 per application type)
+    full     6 parameters 2,187 combinations total  (729 per application type)
+
+Each combination knows the filename its result will occupy
+(`get_filename`), which is what allows the scheduler to determine completion
+from the filesystem alone.
+
+Connections
+-----------
+Imports from : standard library only (dataclasses, typing)
+Imported by  : main.py, runner.executor, runner.single_connection_runner,
+               scheduler.resumable_scheduler
 """
 
 from dataclasses import dataclass

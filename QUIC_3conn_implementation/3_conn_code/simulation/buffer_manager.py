@@ -3,6 +3,28 @@ Buffer manager for send buffer visualization.
 
 Provides a thread-safe send buffer for monitoring packet queues
 in the UI (read-only observation).
+
+Holds packets awaiting transmission so the dashboard can display queue depth
+and occupancy. Locking is required because a buffer may be written by a sending
+path and read by the web server on a different thread.
+
+The deque is bounded by `max_size`: once full, appending evicts the oldest
+entry rather than growing without limit. That is acceptable precisely because
+this structure exists for visualisation rather than transport, so losing the
+oldest observation costs only display history.
+
+Status: not used on the active code path
+----------------------------------------
+No caller in the project creates a SendBuffer or BufferManager. Worker
+processes write directly to aioquic, and the dashboard's buffer display is fed
+by BUFFER_STATE IPC messages rather than by this module. Retained as the
+supporting structure for that display should it be reinstated.
+
+Connections
+-----------
+Imports from : standard library only (dataclasses, typing, collections,
+               threading, time)
+Imported by  : nothing at present (see status note above)
 """
 
 from dataclasses import dataclass, field

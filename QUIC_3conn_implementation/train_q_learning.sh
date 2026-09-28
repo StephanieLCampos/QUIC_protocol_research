@@ -1,5 +1,25 @@
 #!/bin/bash
+#
 # train_q_learning.sh - Batch train Q-learning across 5 main scenarios
+#
+# Runs repeated training sessions over every wireless scenario in sequence,
+# building up a single Q-table that has seen the full range of conditions.
+#
+# Note this script differs from train_agents.sh in one important respect: it
+# clears output/q_learning_checkpoint.json at the start unconditionally. That
+# is required whenever the agent's state representation has changed, because a
+# Q-table keyed by the old state layout is meaningless under the new one.
+#
+# Configuration via environment variables
+#   DURATION   seconds per session          (default 300)
+#   SESSIONS   sessions per scenario        (default 3)
+#
+# Total runtime is scenarios x SESSIONS x DURATION, reported before the run
+# begins. With the defaults that is 5 x 3 x 300s, roughly 75 minutes.
+#
+# Usage
+#   ./train_q_learning.sh
+#   DURATION=600 SESSIONS=5 ./train_q_learning.sh
 
 SCENARIOS=(
     "stable_high"

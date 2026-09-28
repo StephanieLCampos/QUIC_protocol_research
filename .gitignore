@@ -54,3 +54,8 @@ Thumbs.db
 **/certs/*.key
 **/certs/*.crt
 **/certs/*.p12
+
+# ── Local working notes (not for publication) ─────────────────────────────────
+# Session change log written for the repository owner's reference. Kept out of
+# git so it does not appear in the published portfolio repository.
+QUIC_tuning_multistream/final_claude_changes.md

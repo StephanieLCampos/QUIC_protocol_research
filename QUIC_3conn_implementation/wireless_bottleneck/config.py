@@ -1,8 +1,29 @@
 """
-Configuration for wireless bottleneck simulation.
+Configuration model for the wireless bottleneck (Generation 2).
 
-Defines parameters for modeling shared wireless links including
-capacity, delay, loss, and time-varying behavior.
+Defines `BottleneckConfig`, the single description of an emulated link, plus
+the `LossModel` and `QueueDiscipline` enumerations it draws on.
+
+A link is characterised along four axes:
+    capacity      link rate in bits per second, optionally asymmetric
+    delay         one-way propagation delay (RTT is twice this)
+    loss          rate plus a model: uniform random, or Gilbert-Elliott bursts
+    queueing      buffer depth and discipline
+
+Two forms of time variation are supported. The simple form varies capacity
+alone along a sinusoid. The channel-quality form (`channel_quality_variation`)
+derives all four parameters from one Ornstein-Uhlenbeck quality proxy, with the
+`cqv_*` fields defining the value each parameter takes at q=0 and q=1; see
+bottleneck.py for the mappings and the rationale.
+
+This class is a pure description and performs no enforcement. Note that not
+every declared field reaches the tc configuration actually emitted: the RED,
+CoDel and PIE tuning fields belong to a qdisc path that is no longer invoked.
+
+Connections
+-----------
+Imports from : standard library only (dataclasses, typing, enum)
+Imported by  : .bottleneck, .scenarios, wireless_bottleneck/__init__.py
 """
 
 from dataclasses import dataclass, field

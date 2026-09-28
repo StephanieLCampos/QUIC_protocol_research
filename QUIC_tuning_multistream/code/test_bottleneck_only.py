@@ -1,10 +1,21 @@
 """
-Test wireless bottleneck module directly without QUIC simulation.
+Diagnostic: bottleneck module in isolation, without QUIC.
 
-This tests ONLY the bottleneck setup to verify it works in the container.
+Exercises setup, teardown, scenario loading and metrics collection with no
+QUIC traffic involved, so that a failure can be attributed to the tc layer
+rather than to the protocol stack.
 
-Usage (inside Docker container):
-    python3 test_bottleneck_only.py
+This is the check to run after `diagnose.py` and before any QUIC example: if
+these tests pass but a QUIC example fails, the problem lies in the simulation
+code rather than in network emulation.
+
+Despite the `test_` prefix this is a standalone diagnostic script, not part of
+an automated test suite; the project has no pytest configuration.
+
+Connections:
+    Imports from: wireless_bottleneck (WirelessBottleneck, BottleneckConfig,
+                  get_scenario, list_scenarios)
+    Invoked by:   run directly, inside the container
 """
 
 import sys

@@ -3,6 +3,27 @@
 # Q-Learning Agent Training Script
 # Trains Andy's, Default, and Hybrid Q-learning agents on multiple scenarios
 #
+# Purpose
+#   Runs all three agents across the wireless scenarios so their learned
+#   policies can be compared on equal terms. Since the agents differ only in
+#   state representation, training them identically is what makes the
+#   comparison meaningful.
+#
+# Q-table persistence
+#   Q-tables are checkpointed to results/q_learning_checkpoint*.json and are
+#   deliberately NOT cleared between scenarios: learning is meant to accumulate
+#   so an agent generalises across network conditions rather than overfitting
+#   to the last one. CLEAR_QTABLE is explicitly unset for that reason. Pass
+#   --clear to delete the checkpoints once at the start for a fresh run.
+#
+# Re-invokes itself with --run-training inside a tmux session, so a multi-hour
+# training run survives the terminal being closed.
+#
+# Usage
+#   ./train_agents.sh              # train all three agents, resuming Q-tables
+#   ./train_agents.sh --clear      # discard prior learning, then train
+#
+# Requires Docker; each session runs through docker compose.
 
 # Colors for output
 GREEN='\033[0;32m'

@@ -1,12 +1,20 @@
 """
-Test wireless bottleneck on veth interface inside Docker container.
+Diagnostic: wireless bottleneck over veth inside the container.
 
-This script should be run inside the Docker container where network
-namespaces can be properly created and managed.
+Creates a namespace and veth pair, applies a scenario to the veth interface,
+and runs a QUIC simulation across it, verifying the veth path end to end.
 
-Usage:
-    docker run -it --rm --cap-add=NET_ADMIN -v $(pwd):/workspace quic-wireless \\
-        bash -c "cd /workspace/code && python3 test_veth_bottleneck.py"
+Overlaps substantially with test_bottleneck_with_stats.py and
+setup_namespace_bottleneck.py; the three were written separately while the
+veth approach was being established, and differ mainly in how much they report.
+
+Despite the `test_` prefix this is a standalone diagnostic script rather than
+part of an automated test suite.
+
+Connections:
+    Imports from: wireless_bottleneck (WirelessBottleneck, get_scenario),
+                  simulation.runner (SimulationRunner)
+    Invoked by:   run directly, inside a container with NET_ADMIN
 """
 
 import sys
