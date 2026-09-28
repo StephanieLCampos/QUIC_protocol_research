@@ -1,8 +1,29 @@
 """
-Predefined wireless scenarios for testing.
+Predefined wireless scenarios.
 
-These scenarios represent common wireless conditions that QUIC
-connections may encounter.
+Supplies five named link configurations covering the conditions the study
+cares about, so experiments can be described by scenario name rather than by
+restating a dozen tuning values:
+
+    stable_high     100 Mbps, 10ms RTT, 0.1% loss   - good WiFi or wired
+    congested_low     5 Mbps, 30ms RTT, 2% loss     - contended WiFi, RED queue
+    varying          20 Mbps +/-40% every 6s        - mobility and fading, CoDel
+    lossy            10 Mbps, 5% burst loss         - poor radio, Gilbert-Elliott
+    asymmetric       50 down / 10 up, 25ms RTT      - mobile network shape
+
+Each scenario is produced by a factory function rather than declared as a
+literal, which keeps the reasoning behind its values in one place with the
+values themselves. `PREDEFINED_SCENARIOS` maps the short name used on the
+command line to the constructed scenario.
+
+Note that these are module-level singletons: every caller of `get_scenario`
+receives the same WirelessScenario object, so mutating a returned config
+affects all later users within the process.
+
+Connections:
+    Imports from: .config (BottleneckConfig, LossModel, QueueDiscipline)
+    Imported by:  wireless_bottleneck/__init__.py, .cli, .validate,
+                  examples/, the test_* diagnostic scripts
 """
 
 from dataclasses import dataclass
@@ -77,19 +98,26 @@ def congested_low_capacity() -> WirelessScenario:
 
 def rapidly_varying_capacity() -> WirelessScenario:
     """
-    Rapidly varying capacity link (simulates mobility/fading).
-    
+    Varying capacity link (simulates mobility/slow fading).
+
     Characteristics:
     - 20 Mbps average capacity
-    - Varies ±40% every 2 seconds (simulates fading)
+    - Varies ±40% every 6 seconds (simulates slow fading)
     - 20ms RTT (10ms propagation)
     - 1% loss rate
     - Medium queue (100 packets)
     - CoDel queueing
+
+    Note: the 6-second period matches the Generation 2 scenario of the same
+    name, so results from the two generations are directly comparable. The
+    value originates there, where a Q-learning agent acting every 2 seconds
+    needs roughly three decisions within one network state to learn cause and
+    effect. Generation 1 has no agent, but the periods must agree for the
+    comparison to mean anything.
     """
     return WirelessScenario(
         name="rapidly_varying_capacity",
-        description="20 Mbps link with ±40% capacity variation every 2s",
+        description="20 Mbps link with ±40% capacity variation every 6s",
         config=BottleneckConfig(
             capacity_bps=20_000_000,  # 20 Mbps average
             propagation_delay=0.010,  # 10ms (20ms RTT)
@@ -100,7 +128,7 @@ def rapidly_varying_capacity() -> WirelessScenario:
             codel_target_delay=0.005,  # 5ms
             codel_interval=0.100,  # 100ms
             time_varying=True,
-            variation_period=2.0,  # 2 second period
+            variation_period=6.0,  # 6 second period (matches Generation 2)
             variation_amplitude=0.4,  # ±40%
         )
     )
